@@ -9,7 +9,7 @@ export type LivePreviewSpan =
   | { kind: "heading"; from: number; to: number; level: number }
   | { kind: "bold"; from: number; to: number }
   | { kind: "italic"; from: number; to: number }
-  | { kind: "highlight"; from: number; to: number; highlightId: string };
+  | { kind: "highlight"; from: number; to: number; highlightId: string; color?: string };
 
 interface Range {
   from: number;
@@ -45,7 +45,8 @@ export function computeLivePreviewSpans(
 
   for (const m of text.matchAll(HIGHLIGHT_PATTERN)) {
     const id = m[1];
-    const inner = m[2];
+    const color = m[2];
+    const inner = m[3];
     const matchStart = textOffset + (m.index ?? 0);
     const matchEnd = matchStart + m[0].length;
     const closingLength = "{{/h}}".length;
@@ -58,7 +59,7 @@ export function computeLivePreviewSpans(
     if (inner.length === 0) continue;
 
     spans.push({ kind: "hide", from: matchStart, to: openTo });
-    spans.push({ kind: "highlight", from: openTo, to: innerTo, highlightId: id });
+    spans.push({ kind: "highlight", from: openTo, to: innerTo, highlightId: id, color });
     spans.push({ kind: "hide", from: innerTo, to: matchEnd });
   }
 

@@ -1,6 +1,7 @@
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
 import { RangeSetBuilder } from "@codemirror/state";
 import { computeLivePreviewSpans } from "./live-preview-spans";
+import { getHighlightBackground } from "./highlight-colors";
 
 const HEADING_CLASS: Record<number, string> = {
   1: "cm-live-heading cm-live-heading-1",
@@ -42,7 +43,10 @@ function buildDecorations(view: EditorView): DecorationSet {
             span.to,
             Decoration.mark({
               class: "cm-live-highlight",
-              attributes: { "data-hl-id": span.highlightId },
+              attributes: {
+                "data-hl-id": span.highlightId,
+                style: `background-color: ${getHighlightBackground(span.color)};`,
+              },
             })
           );
           break;

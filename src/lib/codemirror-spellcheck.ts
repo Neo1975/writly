@@ -7,7 +7,7 @@ const WORD_PATTERN = /[A-Za-zÀ-ÖØ-öø-ÿ'’]+/g;
 
 function maskHighlightMarkers(text: string): string {
   const closingTag = "{{/h}}";
-  return text.replace(HIGHLIGHT_PATTERN, (match, _id: string, inner: string) => {
+  return text.replace(HIGHLIGHT_PATTERN, (match, _id: string, _color: string, inner: string) => {
     const openingLength = match.length - inner.length - closingTag.length;
     return " ".repeat(openingLength) + inner + " ".repeat(closingTag.length);
   });

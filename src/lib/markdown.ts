@@ -7,18 +7,22 @@ import type { Plugin } from "unified";
 import type { Root } from "mdast";
 
 export const HIGHLIGHT_PATTERN =
-  /\{\{h:([a-zA-Z0-9_-]+)\}\}([\s\S]*?)\{\{\/h\}\}/g;
+  /\{\{h:([a-zA-Z0-9_-]+)(?::([a-z0-9-]+))?\}\}([\s\S]*?)\{\{\/h\}\}/g;
 
 const remarkHighlight: Plugin<[], Root> = () => (tree) => {
   findAndReplace(tree, [
     [
       HIGHLIGHT_PATTERN,
-      (_match: string, id: string, text: string) =>
+      (_match: string, id: string, color: string | undefined, text: string) =>
         ({
           type: "highlight",
           data: {
             hName: "mark",
-            hProperties: { className: ["wr-highlight"], "data-hl-id": id },
+            hProperties: {
+              className: ["wr-highlight"],
+              "data-hl-id": id,
+              "data-hl-color": color,
+            },
           },
           children: [{ type: "text", value: text }],
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,12 +42,13 @@ export async function renderMarkdown(content: string): Promise<string> {
   return String(file);
 }
 
-export function wrapWithHighlight(text: string, highlightId: string): string {
-  return `{{h:${highlightId}}}${text}{{/h}}`;
+export function wrapWithHighlight(text: string, highlightId: string, color?: string): string {
+  const colorSuffix = color ? `:${color}` : "";
+  return `{{h:${highlightId}${colorSuffix}}}${text}{{/h}}`;
 }
 
 export function stripHighlights(content: string): string {
-  return content.replace(HIGHLIGHT_PATTERN, (_match, _id, text) => text);
+  return content.replace(HIGHLIGHT_PATTERN, (_match, _id, _color, text) => text);
 }
 
 export function extractHighlightIds(content: string): string[] {
@@ -52,4 +57,11 @@ export function extractHighlightIds(content: string): string[] {
     ids.add(match[1]);
   }
   return Array.from(ids);
+}
+
+export function getHighlightColor(content: string, highlightId: string): string | undefined {
+  for (const match of content.matchAll(HIGHLIGHT_PATTERN)) {
+    if (match[1] === highlightId) return match[2];
+  }
+  return undefined;
 }

@@ -5,7 +5,12 @@ import CodeMirror, { type ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorView } from "@codemirror/view";
 import { apiFetch } from "@/lib/api-client";
-import { wrapWithHighlight } from "@/lib/markdown";
+import { getHighlightColor, wrapWithHighlight } from "@/lib/markdown";
+import {
+  DEFAULT_HIGHLIGHT_COLOR_ID,
+  HIGHLIGHT_COLORS,
+  getHighlightSwatch,
+} from "@/lib/highlight-colors";
 import { italianSpellcheck } from "@/lib/codemirror-spellcheck";
 import { livePreview } from "@/lib/codemirror-live-preview";
 import { loadItalianSpellChecker, type SpellChecker } from "@/lib/spellcheck";
@@ -49,7 +54,9 @@ export function ChapterEditor({
   const [pendingHighlight, setPendingHighlight] = useState<{
     id: string;
     text: string;
+    color: string;
   } | null>(null);
+  const [selectedColor, setSelectedColor] = useState(DEFAULT_HIGHLIGHT_COLOR_ID);
   const [commentDraft, setCommentDraft] = useState("");
   const [focusedHighlightId, setFocusedHighlightId] = useState<string | null>(
     null
@@ -125,10 +132,10 @@ export function ChapterEditor({
     const id = crypto.randomUUID().slice(0, 8);
     const wrapped =
       content.slice(0, selectionStart) +
-      wrapWithHighlight(selected, id) +
+      wrapWithHighlight(selected, id, selectedColor) +
       content.slice(selectionEnd);
     setContent(wrapped);
-    setPendingHighlight({ id, text: selected });
+    setPendingHighlight({ id, text: selected, color: selectedColor });
     setCommentDraft("");
   }
 
@@ -181,6 +188,22 @@ export function ChapterEditor({
     <div className="flex flex-1 gap-6 px-6 py-6">
       <div className="flex flex-1 flex-col gap-4">
         <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1" role="radiogroup" aria-label="Colore evidenziazione">
+            {HIGHLIGHT_COLORS.map((color) => (
+              <button
+                key={color.id}
+                type="button"
+                role="radio"
+                aria-checked={selectedColor === color.id}
+                title={color.label}
+                onClick={() => setSelectedColor(color.id)}
+                style={{ backgroundColor: color.swatch }}
+                className={`h-6 w-6 rounded-full border-2 ${
+                  selectedColor === color.id ? "border-zinc-900" : "border-transparent"
+                }`}
+              />
+            ))}
+          </div>
           <button
             onClick={handleHighlightSelection}
             className="rounded-full border border-zinc-300 px-4 py-2 text-sm hover:border-zinc-500"
@@ -200,7 +223,11 @@ export function ChapterEditor({
 
         {pendingHighlight && (
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
-            <p className="mb-2 text-sm font-medium">
+            <p className="mb-2 flex items-center gap-2 text-sm font-medium">
+              <span
+                className="h-3 w-3 shrink-0 rounded-full"
+                style={{ backgroundColor: getHighlightSwatch(pendingHighlight.color) }}
+              />
               Commento per: <em>&ldquo;{pendingHighlight.text}&rdquo;</em>
             </p>
             <textarea
@@ -269,6 +296,14 @@ export function ChapterEditor({
                 }`}
               >
                 <div className="mb-1 flex items-center gap-2">
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={{
+                      backgroundColor: getHighlightSwatch(
+                        getHighlightColor(content, comment.highlightId)
+                      ),
+                    }}
+                  />
                   <span className="font-medium">{comment.author}</span>
                   <span
                     className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
