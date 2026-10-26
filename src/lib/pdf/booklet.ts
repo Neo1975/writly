@@ -15,7 +15,10 @@ export async function imposeBooklet(contentPdfBytes: Uint8Array): Promise<Uint8A
   const pageHeight = firstPage.getHeight();
 
   const outDoc = await PDFDocument.create();
-  const embeddedPages = await outDoc.embedPdf(contentPdfBytes);
+  const embeddedPages = await outDoc.embedPdf(
+    contentPdfBytes,
+    Array.from({ length: total }, (_, i) => i)
+  );
 
   const sheetWidth = pageWidth * 2;
   const sheetHeight = pageHeight;
