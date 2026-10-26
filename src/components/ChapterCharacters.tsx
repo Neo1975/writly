@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
+import { CharacterQuickView } from "@/components/CharacterQuickView";
 import type { Character, Scene } from "@/lib/types";
 
 function escapeRegExp(value: string): string {
@@ -38,6 +39,7 @@ export function ChapterCharacters({
   const [scenes, setScenes] = useState<Scene[] | null>(null);
   const [allCharacters, setAllCharacters] = useState<Character[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -53,11 +55,22 @@ export function ChapterCharacters({
       .catch((err) => setError(err.message));
   }, [owner, repo, romanzoSlug]);
 
+  const chapterScenes = useMemo(
+    () => (scenes ?? []).filter((scene) => scene.chapterFile === file),
+    [scenes, file]
+  );
+
+  function scenesForCharacter(character: Character): Scene[] {
+    const name = character.name.trim().toLowerCase();
+    return chapterScenes.filter((scene) =>
+      scene.personaggi.some((p) => p.trim().toLowerCase() === name)
+    );
+  }
+
   const characters = useMemo(() => {
     if (!scenes || !allCharacters) return null;
     const linkedViaScene = new Set(
-      scenes
-        .filter((scene) => scene.chapterFile === file)
+      chapterScenes
         .flatMap((scene) => scene.personaggi)
         .map((name) => name.trim().toLowerCase())
         .filter(Boolean)
@@ -67,7 +80,7 @@ export function ChapterCharacters({
         linkedViaScene.has(character.name.trim().toLowerCase()) ||
         mentionsCharacter(content, character.name)
     );
-  }, [scenes, allCharacters, file, content]);
+  }, [scenes, allCharacters, chapterScenes, content]);
 
   return (
     <div>
@@ -83,23 +96,62 @@ export function ChapterCharacters({
         </p>
       )}
       <ul className="flex flex-col gap-2">
-        {characters?.map((character) => (
-          <li
-            key={character.id}
-            className="rounded-lg border border-zinc-200 bg-white p-3 text-sm"
-          >
-            <div className="flex items-center gap-2">
-              <span className="font-medium">{character.name}</span>
-              <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] uppercase text-zinc-600">
-                {character.role}
-              </span>
-            </div>
-            {character.description && (
-              <p className="mt-1 text-xs text-zinc-500">{character.description}</p>
-            )}
-          </li>
-        ))}
+        {characters?.map((character) => {
+          const linkedScenes = scenesForCharacter(character);
+          return (
+            <li
+              key={character.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelectedCharacter(character)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setSelectedCharacter(character);
+                }
+              }}
+              title="Apri scheda completa"
+              className="cursor-pointer rounded-lg border border-zinc-200 bg-white p-3 text-sm hover:border-zinc-400"
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{character.name}</span>
+                <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] uppercase text-zinc-600">
+                  {character.role}
+                </span>
+                {linkedScenes.length > 0 && (
+                  <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-indigo-700">
+                    In scena
+                  </span>
+                )}
+              </div>
+              {character.description && (
+                <p className="mt-1 line-clamp-2 text-xs text-zinc-500">
+                  {character.description}
+                </p>
+              )}
+              {character.goal && (
+                <p className="mt-1 line-clamp-1 text-xs text-zinc-400">
+                  <span className="font-medium">Obiettivo: </span>
+                  {character.goal}
+                </p>
+              )}
+              {linkedScenes.length > 0 && (
+                <p className="mt-1 line-clamp-1 text-xs text-indigo-600">
+                  {linkedScenes.map((s) => s.title).join(", ")}
+                </p>
+              )}
+            </li>
+          );
+        })}
       </ul>
+
+      {selectedCharacter && (
+        <CharacterQuickView
+          character={selectedCharacter}
+          scenes={scenesForCharacter(selectedCharacter)}
+          onClose={() => setSelectedCharacter(null)}
+        />
+      )}
     </div>
   );
 }
