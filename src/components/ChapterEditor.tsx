@@ -62,6 +62,7 @@ export function ChapterEditor({
     null
   );
   const [spellChecker, setSpellChecker] = useState<SpellChecker | null>(null);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
   const editorRef = useRef<ReactCodeMirrorRef>(null);
   const { promptMessage, dialog: commitDialog } = useCommitMessageDialog();
@@ -194,6 +195,25 @@ export function ChapterEditor({
       effects: EditorView.scrollIntoView(range.from, { y: "center" }),
     });
     view.focus();
+  }
+
+  async function handleDeleteComment(e: React.MouseEvent, comment: ChapterComment) {
+    e.stopPropagation();
+    if (!window.confirm("Eliminare questo commento?")) return;
+
+    setDeletingCommentId(comment.id);
+    setError(null);
+    try {
+      const result = await apiFetch<{ comments: ChapterComment[] }>(base, {
+        method: "PUT",
+        body: JSON.stringify({ action: "delete-comment", commentId: comment.id }),
+      });
+      setComments(result.comments);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore inatteso");
+    } finally {
+      setDeletingCommentId(null);
+    }
   }
 
   if (loading) {
@@ -340,6 +360,25 @@ export function ChapterEditor({
                   >
                     {comment.authorType === "ai-mentor" ? "Mentore AI" : "Autore"}
                   </span>
+                  <button
+                    onClick={(e) => handleDeleteComment(e, comment)}
+                    disabled={deletingCommentId === comment.id}
+                    title="Elimina commento"
+                    className="ml-auto shrink-0 text-zinc-400 hover:text-red-600 disabled:opacity-50"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="h-4 w-4"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M8.75 1a.75.75 0 0 0-.75.75V2h-3a.75.75 0 0 0 0 1.5h.3l.6 11.1A2 2 0 0 0 7.9 16.5h4.2a2 2 0 0 0 2-1.9l.6-11.1h.3a.75.75 0 0 0 0-1.5h-3v-.25a.75.75 0 0 0-.75-.75h-2.5Zm-1.1 4a.5.5 0 0 1 .5.47l.3 8a.5.5 0 1 1-1 .06l-.3-8a.5.5 0 0 1 .5-.53Zm3.7.47a.5.5 0 1 0-1-.06l-.3 8a.5.5 0 1 0 1 .06l.3-8Z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
                 </div>
                 <p className="text-zinc-700">{comment.text}</p>
               </li>

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { requireSessionOctokit } from "@/lib/session-github";
 import { getFile, putFile } from "@/lib/github";
-import { appendComment, capitoliDirFor, getComments } from "@/lib/domain";
+import { appendComment, capitoliDirFor, getComments, removeComment } from "@/lib/domain";
 
 interface RouteParams {
   params: Promise<{ owner: string; repo: string; slug: string; file: string }>;
@@ -87,6 +87,15 @@ export async function PUT(request: Request, { params }: RouteParams) {
       resolved: false,
     };
     const comments = await appendComment(auth.octokit, owner, repo, mdPath, comment);
+    return NextResponse.json({ comments });
+  }
+
+  if (body.action === "delete-comment") {
+    const commentId = typeof body.commentId === "string" ? body.commentId : "";
+    if (!commentId) {
+      return NextResponse.json({ error: "commentId è obbligatorio" }, { status: 400 });
+    }
+    const comments = await removeComment(auth.octokit, owner, repo, mdPath, commentId);
     return NextResponse.json({ comments });
   }
 

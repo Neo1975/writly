@@ -103,6 +103,27 @@ export async function appendComment(
   return updated;
 }
 
+export async function removeComment(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  mdPath: string,
+  commentId: string
+): Promise<ChapterComment[]> {
+  const { comments, sha } = await getComments(octokit, owner, repo, mdPath);
+  const updated = comments.filter((c) => c.id !== commentId);
+  await putFile(
+    octokit,
+    owner,
+    repo,
+    commentsPathFor(mdPath),
+    JSON.stringify(updated, null, 2) + "\n",
+    "Rimuovi commento",
+    sha
+  );
+  return updated;
+}
+
 export function scenePathFor(romanzoSlug: string): string {
   return `romanzi/${romanzoSlug}/scene/scene.json`;
 }
