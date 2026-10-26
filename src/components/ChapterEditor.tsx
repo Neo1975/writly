@@ -1,0 +1,312 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import CodeMirror, { type ReactCodeMirrorRef } from "@uiw/react-codemirror";
+import { markdown } from "@codemirror/lang-markdown";
+import { EditorView } from "@codemirror/view";
+import { apiFetch } from "@/lib/api-client";
+import { wrapWithHighlight } from "@/lib/markdown";
+import { italianSpellcheck } from "@/lib/codemirror-spellcheck";
+import { livePreview } from "@/lib/codemirror-live-preview";
+import { loadItalianSpellChecker, type SpellChecker } from "@/lib/spellcheck";
+import { useCommitMessageDialog } from "@/hooks/useCommitMessageDialog";
+import { ChapterCharacters } from "@/components/ChapterCharacters";
+import { ChapterCommitLog } from "@/components/ChapterCommitLog";
+import { CollapsibleSection } from "@/components/CollapsibleSection";
+import type { ChapterComment } from "@/lib/types";
+
+interface ChapterData {
+  content: string;
+  sha: string;
+  comments: ChapterComment[];
+}
+
+export function ChapterEditor({
+  owner,
+  repo,
+  romanzoSlug,
+  file,
+  title,
+}: {
+  owner: string;
+  repo: string;
+  romanzoSlug: string;
+  file: string;
+  title: string;
+}) {
+  const base = `/api/sagas/${owner}/${repo}/romanzi/${romanzoSlug}/capitoli/${encodeURIComponent(
+    file
+  )}`;
+
+  const [content, setContent] = useState("");
+  const [sha, setSha] = useState<string | undefined>(undefined);
+  const [comments, setComments] = useState<ChapterComment[]>([]);
+  const [commitLogVersion, setCommitLogVersion] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [pendingHighlight, setPendingHighlight] = useState<{
+    id: string;
+    text: string;
+  } | null>(null);
+  const [commentDraft, setCommentDraft] = useState("");
+  const [focusedHighlightId, setFocusedHighlightId] = useState<string | null>(
+    null
+  );
+  const [spellChecker, setSpellChecker] = useState<SpellChecker | null>(null);
+
+  const editorRef = useRef<ReactCodeMirrorRef>(null);
+  const { promptMessage, dialog: commitDialog } = useCommitMessageDialog();
+
+  useEffect(() => {
+    apiFetch<ChapterData>(base)
+      .then((data) => {
+        setContent(data.content);
+        setSha(data.sha);
+        setComments(data.comments);
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [base]);
+
+  useEffect(() => {
+    loadItalianSpellChecker()
+      .then(setSpellChecker)
+      .catch((err) => console.error("Correttore ortografico non disponibile", err));
+  }, []);
+
+  const editorExtensions = useMemo(
+    () => [
+      markdown(),
+      EditorView.lineWrapping,
+      italianSpellcheck(spellChecker),
+      livePreview(setFocusedHighlightId),
+    ],
+    [spellChecker]
+  );
+
+  async function handleSave() {
+    const message = await promptMessage(`Aggiorna capitolo "${title}"`);
+    if (message === null) return;
+
+    setSaving(true);
+    setError(null);
+    setStatus(null);
+    try {
+      const result = await apiFetch<{ sha: string }>(base, {
+        method: "PUT",
+        body: JSON.stringify({
+          action: "save-content",
+          content,
+          sha,
+          message,
+        }),
+      });
+      setSha(result.sha);
+      setStatus("Salvato su GitHub.");
+      setCommitLogVersion((v) => v + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore inatteso");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleHighlightSelection() {
+    const view = editorRef.current?.view;
+    if (!view) return;
+    const { from: selectionStart, to: selectionEnd } = view.state.selection.main;
+    if (selectionStart === selectionEnd) {
+      setError("Seleziona prima il testo da evidenziare.");
+      return;
+    }
+    const selected = view.state.sliceDoc(selectionStart, selectionEnd);
+    const id = crypto.randomUUID().slice(0, 8);
+    const wrapped =
+      content.slice(0, selectionStart) +
+      wrapWithHighlight(selected, id) +
+      content.slice(selectionEnd);
+    setContent(wrapped);
+    setPendingHighlight({ id, text: selected });
+    setCommentDraft("");
+  }
+
+  async function handleSaveHighlightAndComment() {
+    if (!pendingHighlight) return;
+    const message = await promptMessage(`Evidenzia sezione in "${title}"`);
+    if (message === null) return;
+
+    setSaving(true);
+    setError(null);
+    try {
+      const saveResult = await apiFetch<{ sha: string }>(base, {
+        method: "PUT",
+        body: JSON.stringify({
+          action: "save-content",
+          content,
+          sha,
+          message,
+        }),
+      });
+      setSha(saveResult.sha);
+
+      if (commentDraft.trim()) {
+        const result = await apiFetch<{ comments: ChapterComment[] }>(base, {
+          method: "PUT",
+          body: JSON.stringify({
+            action: "add-comment",
+            highlightId: pendingHighlight.id,
+            text: commentDraft.trim(),
+          }),
+        });
+        setComments(result.comments);
+      }
+      setStatus("Evidenziazione e commento salvati.");
+      setPendingHighlight(null);
+      setCommentDraft("");
+      setCommitLogVersion((v) => v + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore inatteso");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return <p className="px-6 py-10 text-sm text-zinc-500">Caricamento…</p>;
+  }
+
+  return (
+    <div className="flex flex-1 gap-6 px-6 py-6">
+      <div className="flex flex-1 flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleHighlightSelection}
+            className="rounded-full border border-zinc-300 px-4 py-2 text-sm hover:border-zinc-500"
+          >
+            Evidenzia selezione
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {saving ? "Salvataggio…" : "Salva su GitHub"}
+          </button>
+          {status && <span className="text-sm text-green-700">{status}</span>}
+        </div>
+        {error && <p className="text-sm text-red-600">{error}</p>}
+
+        {pendingHighlight && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+            <p className="mb-2 text-sm font-medium">
+              Commento per: <em>&ldquo;{pendingHighlight.text}&rdquo;</em>
+            </p>
+            <textarea
+              value={commentDraft}
+              onChange={(e) => setCommentDraft(e.target.value)}
+              placeholder="Scrivi un commento su questa sezione (opzionale)"
+              rows={2}
+              className="mb-2 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveHighlightAndComment}
+                disabled={saving}
+                className="rounded-full bg-zinc-900 px-4 py-2 text-xs font-medium text-white disabled:opacity-50"
+              >
+                Conferma evidenziazione
+              </button>
+              <button
+                onClick={() => setPendingHighlight(null)}
+                className="rounded-full border border-zinc-300 px-4 py-2 text-xs"
+              >
+                Annulla
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="min-h-[60vh] flex-1 overflow-hidden rounded-lg border border-zinc-200 bg-white">
+          <CodeMirror
+            ref={editorRef}
+            value={content}
+            onChange={setContent}
+            extensions={editorExtensions}
+            height="60vh"
+            basicSetup={{ lineNumbers: false, foldGutter: false }}
+            className="text-sm"
+          />
+        </div>
+      </div>
+
+      <aside className="w-96 shrink-0">
+        <CollapsibleSection
+          title="Commenti dell'editor"
+          headerExtra={
+            focusedHighlightId && (
+              <button
+                onClick={() => setFocusedHighlightId(null)}
+                className="text-xs text-zinc-400 hover:text-zinc-700"
+              >
+                Mostra tutti
+              </button>
+            )
+          }
+        >
+          <ul className="flex flex-col gap-3">
+            {comments.length === 0 && (
+              <li className="text-sm text-zinc-500">Nessun commento ancora.</li>
+            )}
+            {comments.map((comment) => (
+              <li
+                key={comment.id}
+                className={`rounded-lg border p-3 text-sm ${
+                  focusedHighlightId === comment.highlightId
+                    ? "border-amber-400 bg-amber-50"
+                    : "border-zinc-200 bg-white"
+                }`}
+              >
+                <div className="mb-1 flex items-center gap-2">
+                  <span className="font-medium">{comment.author}</span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                      comment.authorType === "ai-mentor"
+                        ? "bg-indigo-100 text-indigo-700"
+                        : "bg-zinc-100 text-zinc-600"
+                    }`}
+                  >
+                    {comment.authorType === "ai-mentor" ? "Mentore AI" : "Autore"}
+                  </span>
+                </div>
+                <p className="text-zinc-700">{comment.text}</p>
+              </li>
+            ))}
+          </ul>
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Personaggi nel capitolo">
+          <ChapterCharacters
+            owner={owner}
+            repo={repo}
+            romanzoSlug={romanzoSlug}
+            file={file}
+            content={content}
+          />
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Log dei commit" defaultOpen={false}>
+          <ChapterCommitLog
+            owner={owner}
+            repo={repo}
+            romanzoSlug={romanzoSlug}
+            file={file}
+            refreshKey={commitLogVersion}
+          />
+        </CollapsibleSection>
+      </aside>
+      {commitDialog}
+    </div>
+  );
+}

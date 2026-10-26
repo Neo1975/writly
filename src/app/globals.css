@@ -24,3 +24,43 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.cm-misspelled {
+  text-decoration: underline wavy #dc2626;
+  text-decoration-skip-ink: none;
+}
+
+.cm-live-highlight {
+  background-color: #fef3c7;
+  border-radius: 2px;
+  padding: 0 1px;
+  cursor: pointer;
+}
+
+.cm-live-heading {
+  font-weight: 700;
+}
+
+.cm-live-heading-1 {
+  font-size: 1.5em;
+}
+
+.cm-live-heading-2 {
+  font-size: 1.25em;
+}
+
+.cm-live-heading-3 {
+  font-size: 1.1em;
+}
+
+.cm-live-heading-rest {
+  font-size: 1em;
+}
+
+.cm-live-bold {
+  font-weight: 700;
+}
+
+.cm-live-italic {
+  font-style: italic;
+}

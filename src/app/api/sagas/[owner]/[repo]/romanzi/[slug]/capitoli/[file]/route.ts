@@ -1,0 +1,94 @@
+import { NextResponse } from "next/server";
+import { randomUUID } from "crypto";
+import { requireSessionOctokit } from "@/lib/session-github";
+import { getFile, putFile } from "@/lib/github";
+import { appendComment, capitoliDirFor, getComments } from "@/lib/domain";
+
+interface RouteParams {
+  params: Promise<{ owner: string; repo: string; slug: string; file: string }>;
+}
+
+const SAFE_FILENAME = /^[\w.-]+\.md$/;
+
+function resolveMdPath(slug: string, file: string): string | null {
+  const name = decodeURIComponent(file);
+  if (!SAFE_FILENAME.test(name)) return null;
+  return `${capitoliDirFor(slug)}/${name}`;
+}
+
+export async function GET(_request: Request, { params }: RouteParams) {
+  const auth = await requireSessionOctokit();
+  if (!auth.ok) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
+  }
+  const { owner, repo, slug, file } = await params;
+  const mdPath = resolveMdPath(slug, file);
+  if (!mdPath) {
+    return NextResponse.json({ error: "Nome file non valido" }, { status: 400 });
+  }
+
+  const chapterFile = await getFile(auth.octokit, owner, repo, mdPath);
+  if (!chapterFile) {
+    return NextResponse.json({ error: "Capitolo non trovato" }, { status: 404 });
+  }
+  const { comments } = await getComments(auth.octokit, owner, repo, mdPath);
+
+  return NextResponse.json({
+    content: chapterFile.content,
+    sha: chapterFile.sha,
+    comments,
+  });
+}
+
+export async function PUT(request: Request, { params }: RouteParams) {
+  const auth = await requireSessionOctokit();
+  if (!auth.ok) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
+  }
+  const { owner, repo, slug, file } = await params;
+  const mdPath = resolveMdPath(slug, file);
+  if (!mdPath) {
+    return NextResponse.json({ error: "Nome file non valido" }, { status: 400 });
+  }
+
+  const body = await request.json();
+
+  if (body.action === "save-content") {
+    const content = typeof body.content === "string" ? body.content : "";
+    const sha = typeof body.sha === "string" ? body.sha : undefined;
+    const result = await putFile(
+      auth.octokit,
+      owner,
+      repo,
+      mdPath,
+      content,
+      typeof body.message === "string" ? body.message : "Aggiorna capitolo",
+      sha
+    );
+    return NextResponse.json({ sha: result.content?.sha });
+  }
+
+  if (body.action === "add-comment") {
+    const highlightId = typeof body.highlightId === "string" ? body.highlightId : "";
+    const text = typeof body.text === "string" ? body.text.trim() : "";
+    if (!highlightId || !text) {
+      return NextResponse.json(
+        { error: "highlightId e text sono obbligatori" },
+        { status: 400 }
+      );
+    }
+    const comment = {
+      id: randomUUID(),
+      highlightId,
+      author: auth.session.user?.name ?? auth.session.user?.email ?? "Autore",
+      authorType: "user" as const,
+      text,
+      createdAt: new Date().toISOString(),
+      resolved: false,
+    };
+    const comments = await appendComment(auth.octokit, owner, repo, mdPath, comment);
+    return NextResponse.json({ comments });
+  }
+
+  return NextResponse.json({ error: "action non valida" }, { status: 400 });
+}

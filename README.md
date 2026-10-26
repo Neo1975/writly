@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Writly
 
-## Getting Started
+Web app di supporto alla scrittura narrativa. Organizza il lavoro in **Sage**
+(progetti) → **Romanzi** → **Capitoli**, con testo in markdown esteso
+(evidenziazioni ancorate a commenti), un'**architettura delle scene** e delle
+**schede personaggio** (condivise a livello di saga) a schede. Ogni saga è un
+repository GitHub a parte: GitHub è l'unica fonte di verità, non c'è un
+database applicativo.
 
-First, run the development server:
+Il repository di ogni saga viene scaffoldato con una skill Claude Code
+(`.claude/skills/editor-comment.md`) che permette di clonarlo in locale e
+usare Claude Code come mentore/editor: legge i capitoli, aggiunge
+evidenziazioni e commenti nei file `*.comments.json` marcandoli con
+`"authorType": "ai-mentor"`, distinguendoli così da quelli inseriti dall'app
+(`"authorType": "user"`).
+
+## Setup
+
+1. Crea una **GitHub OAuth App**: https://github.com/settings/developers →
+   "New OAuth App".
+   - Homepage URL: `http://localhost:3000` (in produzione l'URL di Vercel)
+   - Authorization callback URL: `http://localhost:3000/api/auth/callback/github`
+     (in produzione `https://<tuo-dominio>/api/auth/callback/github`)
+2. Copia `.env.local.example` in `.env.local` e compila:
+   - `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` — dalla OAuth App creata sopra
+   - `AUTH_SECRET` — genera con `npx auth secret`
+3. Installa le dipendenze e avvia il server di sviluppo:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Apri [http://localhost:3000](http://localhost:3000) e accedi con GitHub. Al
+primo accesso l'app richiede lo scope `repo` per poter creare e scrivere nei
+repository delle tue sage.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Struttura di una saga (repo GitHub)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+saga.json
+personaggi/personaggi.json
+romanzi/<slug-romanzo>/romanzo.json
+romanzi/<slug-romanzo>/capitoli/<NN>-<slug>.md
+romanzi/<slug-romanzo>/capitoli/<NN>-<slug>.comments.json
+romanzi/<slug-romanzo>/scene/scene.json
+.claude/skills/editor-comment.md
+```
 
-## Learn More
+La sintassi di evidenziazione nei file `.md` è:
 
-To learn more about Next.js, take a look at the following resources:
+```
+{{h:ID}}testo evidenziato{{/h}}
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Editor e correzione ortografica
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+L'editor dei capitoli usa CodeMirror 6 (markdown, a capo automatico) invece
+di una semplice textarea, per poter aggiungere in futuro altre funzionalità
+basate sul contenuto. È integrato un correttore ortografico italiano:
+dizionario Hunspell (`public/dictionaries/it.{aff,dic}`, da
+[wooorm/dictionaries](https://github.com/wooorm/dictionaries), licenza GPL-3.0
+— attribuzione in `public/dictionaries/LICENSE-it.txt`) caricato lato client
+tramite [`hunspell-asm`](https://github.com/kwonoj/hunspell-asm), un motore
+Hunspell reale compilato in WebAssembly.
 
-## Deploy on Vercel
+Nota: le librerie JS "pure" (`nspell`, `typo-js`) pre-espandono l'intero
+dizionario in un'unica struttura JS e superano un limite interno del motore
+V8 con un dizionario morfologicamente ricco come l'italiano — per questo è
+stato scelto `hunspell-asm`, che esegue il controllo in memoria WASM senza
+quel limite.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deploy su Vercel
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Importa il repository su Vercel e imposta le stesse variabili d'ambiente
+(`AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `AUTH_SECRET`), aggiornando la
+callback URL della OAuth App con il dominio di produzione.
