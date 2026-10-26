@@ -5,7 +5,7 @@ import CodeMirror, { type ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorView } from "@codemirror/view";
 import { apiFetch } from "@/lib/api-client";
-import { getHighlightColor, wrapWithHighlight } from "@/lib/markdown";
+import { findHighlightRange, getHighlightColor, wrapWithHighlight } from "@/lib/markdown";
 import {
   DEFAULT_HIGHLIGHT_COLOR_ID,
   HIGHLIGHT_COLORS,
@@ -180,6 +180,22 @@ export function ChapterEditor({
     }
   }
 
+  function handleCommentClick(comment: ChapterComment) {
+    setFocusedHighlightId(comment.highlightId);
+    const view = editorRef.current?.view;
+    if (!view) return;
+    const range = findHighlightRange(content, comment.highlightId);
+    if (!range) {
+      setError("Il testo evidenziato collegato a questo commento non è più presente.");
+      return;
+    }
+    view.dispatch({
+      selection: { anchor: range.from, head: range.to },
+      effects: EditorView.scrollIntoView(range.from, { y: "center" }),
+    });
+    view.focus();
+  }
+
   if (loading) {
     return <p className="px-6 py-10 text-sm text-zinc-500">Caricamento…</p>;
   }
@@ -289,7 +305,17 @@ export function ChapterEditor({
             {comments.map((comment) => (
               <li
                 key={comment.id}
-                className={`rounded-lg border p-3 text-sm ${
+                role="button"
+                tabIndex={0}
+                onClick={() => handleCommentClick(comment)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleCommentClick(comment);
+                  }
+                }}
+                title="Vai al testo evidenziato"
+                className={`cursor-pointer rounded-lg border p-3 text-sm hover:border-zinc-400 ${
                   focusedHighlightId === comment.highlightId
                     ? "border-amber-400 bg-amber-50"
                     : "border-zinc-200 bg-white"

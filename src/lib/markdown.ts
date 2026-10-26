@@ -65,3 +65,19 @@ export function getHighlightColor(content: string, highlightId: string): string 
   }
   return undefined;
 }
+
+export function findHighlightRange(
+  content: string,
+  highlightId: string
+): { from: number; to: number } | null {
+  for (const match of content.matchAll(HIGHLIGHT_PATTERN)) {
+    if (match[1] !== highlightId) continue;
+    const inner = match[3];
+    const matchStart = match.index ?? 0;
+    const closingLength = "{{/h}}".length;
+    const openingLength = match[0].length - inner.length - closingLength;
+    const from = matchStart + openingLength;
+    return { from, to: from + inner.length };
+  }
+  return null;
+}
