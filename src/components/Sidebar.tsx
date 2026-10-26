@@ -155,6 +155,12 @@ export function Sidebar({
                               >
                                 Architettura delle scene
                               </Link>
+                              <Link
+                                href={`${romanzoHref}/pdf`}
+                                className={navLinkClass(pathname === `${romanzoHref}/pdf`)}
+                              >
+                                Esporta PDF
+                              </Link>
                               {capitoli?.map((capitolo) => (
                                 <Link
                                   key={capitolo.file}

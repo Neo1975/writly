@@ -42,6 +42,10 @@ export function wrapWithHighlight(text: string, highlightId: string): string {
   return `{{h:${highlightId}}}${text}{{/h}}`;
 }
 
+export function stripHighlights(content: string): string {
+  return content.replace(HIGHLIGHT_PATTERN, (_match, _id, text) => text);
+}
+
 export function extractHighlightIds(content: string): string[] {
   const ids = new Set<string>();
   for (const match of content.matchAll(HIGHLIGHT_PATTERN)) {

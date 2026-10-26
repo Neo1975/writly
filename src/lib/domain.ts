@@ -1,6 +1,6 @@
 import type { Octokit } from "octokit";
 import { getFile, listDir, putFile } from "./github";
-import type { ChapterComment, Character, Romanzo, Scene } from "./types";
+import type { ChapterComment, Character, PdfSettings, Romanzo, Scene } from "./types";
 
 export interface RomanzoSummary extends Romanzo {
   slug: string;
@@ -133,6 +133,68 @@ export async function saveScenes(
     repo,
     scenePathFor(romanzoSlug),
     JSON.stringify(scenes, null, 2) + "\n",
+    message,
+    sha
+  );
+}
+
+export async function getChapterContents(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  romanzoSlug: string,
+  files: string[]
+): Promise<{ file: string; content: string }[]> {
+  const dirPath = capitoliDirFor(romanzoSlug);
+  const results = await Promise.all(
+    files.map(async (name) => {
+      const file = await getFile(octokit, owner, repo, `${dirPath}/${name}`);
+      return { file: name, content: file?.content ?? "" };
+    })
+  );
+  return results;
+}
+
+export function pdfSettingsPathFor(romanzoSlug: string): string {
+  return `romanzi/${romanzoSlug}/pdf-settings.json`;
+}
+
+export const DEFAULT_PDF_SETTINGS: PdfSettings = {
+  templateId: "classico",
+  pageSize: "A5",
+  includeCoverPage: true,
+  includeToc: true,
+};
+
+export async function getPdfSettings(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  romanzoSlug: string
+): Promise<{ settings: PdfSettings; sha?: string }> {
+  const file = await getFile(octokit, owner, repo, pdfSettingsPathFor(romanzoSlug));
+  if (!file) return { settings: DEFAULT_PDF_SETTINGS };
+  return {
+    settings: { ...DEFAULT_PDF_SETTINGS, ...(JSON.parse(file.content) as PdfSettings) },
+    sha: file.sha,
+  };
+}
+
+export async function savePdfSettings(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  romanzoSlug: string,
+  settings: PdfSettings,
+  sha: string | undefined,
+  message: string
+) {
+  await putFile(
+    octokit,
+    owner,
+    repo,
+    pdfSettingsPathFor(romanzoSlug),
+    JSON.stringify(settings, null, 2) + "\n",
     message,
     sha
   );

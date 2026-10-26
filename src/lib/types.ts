@@ -44,6 +44,22 @@ export interface Scene {
   status: SceneStatus;
 }
 
+export type PdfTemplateId = "classico" | "moderno" | "manoscritto";
+
+export type PdfPageSize = "A4" | "A5" | "LETTER";
+
+export interface PdfSettings {
+  templateId: PdfTemplateId;
+  pageSize: PdfPageSize;
+  fontSize?: number;
+  lineHeight?: number;
+  marginMm?: number;
+  authorName?: string;
+  includeCoverPage: boolean;
+  includeToc: boolean;
+  chapterFiles?: string[];
+}
+
 export type CharacterRole = "protagonista" | "antagonista" | "comprimario" | "altro";
 
 export interface Character {
