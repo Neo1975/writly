@@ -5,7 +5,12 @@ import CodeMirror, { type ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorView } from "@codemirror/view";
 import { apiFetch } from "@/lib/api-client";
-import { findHighlightRange, getHighlightColor, wrapWithHighlight } from "@/lib/markdown";
+import {
+  findHighlightRange,
+  getHighlightColor,
+  unwrapHighlight,
+  wrapWithHighlight,
+} from "@/lib/markdown";
 import {
   DEFAULT_HIGHLIGHT_COLOR_ID,
   HIGHLIGHT_COLORS,
@@ -199,16 +204,42 @@ export function ChapterEditor({
 
   async function handleDeleteComment(e: React.MouseEvent, comment: ChapterComment) {
     e.stopPropagation();
-    if (!window.confirm("Eliminare questo commento?")) return;
+    if (
+      !window.confirm(
+        "Eliminare questo commento e la relativa evidenziazione? Il testo evidenziato resterà al suo posto, senza il colore."
+      )
+    )
+      return;
 
     setDeletingCommentId(comment.id);
     setError(null);
     try {
+      const otherCommentOnSameHighlight = comments.some(
+        (c) => c.id !== comment.id && c.highlightId === comment.highlightId
+      );
+      if (!otherCommentOnSameHighlight) {
+        const unwrapped = unwrapHighlight(content, comment.highlightId);
+        if (unwrapped !== content) {
+          const saveResult = await apiFetch<{ sha: string }>(base, {
+            method: "PUT",
+            body: JSON.stringify({
+              action: "save-content",
+              content: unwrapped,
+              sha,
+              message: "Rimuovi evidenziazione",
+            }),
+          });
+          setContent(unwrapped);
+          setSha(saveResult.sha);
+        }
+      }
+
       const result = await apiFetch<{ comments: ChapterComment[] }>(base, {
         method: "PUT",
         body: JSON.stringify({ action: "delete-comment", commentId: comment.id }),
       });
       setComments(result.comments);
+      setCommitLogVersion((v) => v + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore inatteso");
     } finally {

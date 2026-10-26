@@ -66,6 +66,12 @@ export function getHighlightColor(content: string, highlightId: string): string 
   return undefined;
 }
 
+export function unwrapHighlight(content: string, highlightId: string): string {
+  return content.replace(HIGHLIGHT_PATTERN, (match, id: string, _color, inner: string) =>
+    id === highlightId ? inner : match
+  );
+}
+
 export function findHighlightRange(
   content: string,
   highlightId: string
