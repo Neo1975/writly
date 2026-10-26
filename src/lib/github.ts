@@ -152,6 +152,25 @@ export async function listFileCommits(
   }));
 }
 
+export async function getFileAtRef(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  path: string,
+  ref: string
+): Promise<string | null> {
+  try {
+    const { data } = await octokit.rest.repos.getContent({ owner, repo, path, ref });
+    if (Array.isArray(data) || data.type !== "file" || !data.content) {
+      return null;
+    }
+    return Buffer.from(data.content, "base64").toString("utf-8");
+  } catch (error) {
+    if (isNotFoundError(error)) return null;
+    throw error;
+  }
+}
+
 function isNotFoundError(error: unknown): boolean {
   return (
     typeof error === "object" &&

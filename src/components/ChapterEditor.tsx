@@ -22,6 +22,7 @@ import { loadItalianSpellChecker, type SpellChecker } from "@/lib/spellcheck";
 import { useCommitMessageDialog } from "@/hooks/useCommitMessageDialog";
 import { ChapterCharacters } from "@/components/ChapterCharacters";
 import { ChapterCommitLog } from "@/components/ChapterCommitLog";
+import { ChapterVersionCompare } from "@/components/ChapterVersionCompare";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 import type { ChapterComment } from "@/lib/types";
 
@@ -49,6 +50,7 @@ export function ChapterEditor({
   )}`;
 
   const [content, setContent] = useState("");
+  const [savedContent, setSavedContent] = useState("");
   const [sha, setSha] = useState<string | undefined>(undefined);
   const [comments, setComments] = useState<ChapterComment[]>([]);
   const [commitLogVersion, setCommitLogVersion] = useState(0);
@@ -76,6 +78,7 @@ export function ChapterEditor({
     apiFetch<ChapterData>(base)
       .then((data) => {
         setContent(data.content);
+        setSavedContent(data.content);
         setSha(data.sha);
         setComments(data.comments);
       })
@@ -117,6 +120,7 @@ export function ChapterEditor({
         }),
       });
       setSha(result.sha);
+      setSavedContent(content);
       setStatus("Salvato su GitHub.");
       setCommitLogVersion((v) => v + 1);
     } catch (err) {
@@ -163,6 +167,7 @@ export function ChapterEditor({
         }),
       });
       setSha(saveResult.sha);
+      setSavedContent(content);
 
       if (commentDraft.trim()) {
         const result = await apiFetch<{ comments: ChapterComment[] }>(base, {
@@ -230,6 +235,7 @@ export function ChapterEditor({
             }),
           });
           setContent(unwrapped);
+          setSavedContent(unwrapped);
           setSha(saveResult.sha);
         }
       }
@@ -424,6 +430,18 @@ export function ChapterEditor({
             romanzoSlug={romanzoSlug}
             file={file}
             content={content}
+          />
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Confronta versioni" defaultOpen={false}>
+          <ChapterVersionCompare
+            owner={owner}
+            repo={repo}
+            romanzoSlug={romanzoSlug}
+            file={file}
+            currentContent={content}
+            isDirty={content !== savedContent}
+            refreshKey={commitLogVersion}
           />
         </CollapsibleSection>
 
