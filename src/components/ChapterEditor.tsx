@@ -258,6 +258,85 @@ export function ChapterEditor({
     }
   }
 
+  const activeComments = comments.filter((c) => !c.resolved);
+  const resolvedComments = comments.filter((c) => c.resolved);
+
+  function renderCommentItem(comment: ChapterComment) {
+    return (
+      <li
+        key={comment.id}
+        role="button"
+        tabIndex={0}
+        onClick={() => handleCommentClick(comment)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleCommentClick(comment);
+          }
+        }}
+        title="Vai al testo evidenziato"
+        className={`cursor-pointer rounded-lg border p-3 text-sm hover:border-zinc-400 ${
+          focusedHighlightId === comment.highlightId
+            ? "border-amber-400 bg-amber-50"
+            : "border-zinc-200 bg-white"
+        }`}
+      >
+        <div className="mb-1 flex items-center gap-2">
+          <span
+            className="h-3 w-3 shrink-0 rounded-full"
+            style={{
+              backgroundColor: getHighlightSwatch(
+                getHighlightColor(content, comment.highlightId)
+              ),
+            }}
+          />
+          <span className="font-medium">{comment.author}</span>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
+              comment.authorType === "ai-mentor"
+                ? "bg-indigo-100 text-indigo-700"
+                : "bg-zinc-100 text-zinc-600"
+            }`}
+          >
+            {comment.authorType === "ai-mentor" ? "Mentore AI" : "Autore"}
+          </span>
+          {comment.resolved && (
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-700">
+              Risolto
+            </span>
+          )}
+          <span
+            onClick={(e) => e.stopPropagation()}
+            className="select-text font-mono text-[10px] text-zinc-400"
+            title={comment.id}
+          >
+            #{comment.id.slice(0, 8)}
+          </span>
+          <button
+            onClick={(e) => handleDeleteComment(e, comment)}
+            disabled={deletingCommentId === comment.id}
+            title="Elimina commento"
+            className="ml-auto shrink-0 text-zinc-400 hover:text-red-600 disabled:opacity-50"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className="h-4 w-4"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.75 1a.75.75 0 0 0-.75.75V2h-3a.75.75 0 0 0 0 1.5h.3l.6 11.1A2 2 0 0 0 7.9 16.5h4.2a2 2 0 0 0 2-1.9l.6-11.1h.3a.75.75 0 0 0 0-1.5h-3v-.25a.75.75 0 0 0-.75-.75h-2.5Zm-1.1 4a.5.5 0 0 1 .5.47l.3 8a.5.5 0 1 1-1 .06l-.3-8a.5.5 0 0 1 .5-.53Zm3.7.47a.5.5 0 1 0-1-.06l-.3 8a.5.5 0 1 0 1 .06l.3-8Z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+        </div>
+        <p className="text-zinc-700">{comment.text}</p>
+      </li>
+    );
+  }
+
   if (loading) {
     return <p className="px-6 py-10 text-sm text-zinc-500">Caricamento…</p>;
   }
@@ -364,74 +443,19 @@ export function ChapterEditor({
             {comments.length === 0 && (
               <li className="text-sm text-zinc-500">Nessun commento ancora.</li>
             )}
-            {comments.map((comment) => (
-              <li
-                key={comment.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => handleCommentClick(comment)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleCommentClick(comment);
-                  }
-                }}
-                title="Vai al testo evidenziato"
-                className={`cursor-pointer rounded-lg border p-3 text-sm hover:border-zinc-400 ${
-                  focusedHighlightId === comment.highlightId
-                    ? "border-amber-400 bg-amber-50"
-                    : "border-zinc-200 bg-white"
-                }`}
-              >
-                <div className="mb-1 flex items-center gap-2">
-                  <span
-                    className="h-3 w-3 shrink-0 rounded-full"
-                    style={{
-                      backgroundColor: getHighlightSwatch(
-                        getHighlightColor(content, comment.highlightId)
-                      ),
-                    }}
-                  />
-                  <span className="font-medium">{comment.author}</span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
-                      comment.authorType === "ai-mentor"
-                        ? "bg-indigo-100 text-indigo-700"
-                        : "bg-zinc-100 text-zinc-600"
-                    }`}
-                  >
-                    {comment.authorType === "ai-mentor" ? "Mentore AI" : "Autore"}
-                  </span>
-                  <span
-                    onClick={(e) => e.stopPropagation()}
-                    className="select-text font-mono text-[10px] text-zinc-400"
-                    title={comment.id}
-                  >
-                    #{comment.id.slice(0, 8)}
-                  </span>
-                  <button
-                    onClick={(e) => handleDeleteComment(e, comment)}
-                    disabled={deletingCommentId === comment.id}
-                    title="Elimina commento"
-                    className="ml-auto shrink-0 text-zinc-400 hover:text-red-600 disabled:opacity-50"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                      className="h-4 w-4"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M8.75 1a.75.75 0 0 0-.75.75V2h-3a.75.75 0 0 0 0 1.5h.3l.6 11.1A2 2 0 0 0 7.9 16.5h4.2a2 2 0 0 0 2-1.9l.6-11.1h.3a.75.75 0 0 0 0-1.5h-3v-.25a.75.75 0 0 0-.75-.75h-2.5Zm-1.1 4a.5.5 0 0 1 .5.47l.3 8a.5.5 0 1 1-1 .06l-.3-8a.5.5 0 0 1 .5-.53Zm3.7.47a.5.5 0 1 0-1-.06l-.3 8a.5.5 0 1 0 1 .06l.3-8Z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </button>
-                </div>
-                <p className="text-zinc-700">{comment.text}</p>
-              </li>
-            ))}
+            {comments.length > 0 && activeComments.length === 0 && (
+              <li className="text-sm text-zinc-500">Nessun commento aperto.</li>
+            )}
+            {activeComments.map(renderCommentItem)}
+          </ul>
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Storico commenti risolti" defaultOpen={false}>
+          <ul className="flex flex-col gap-3">
+            {resolvedComments.length === 0 && (
+              <li className="text-sm text-zinc-500">Nessun commento risolto finora.</li>
+            )}
+            {resolvedComments.map(renderCommentItem)}
           </ul>
         </CollapsibleSection>
 
