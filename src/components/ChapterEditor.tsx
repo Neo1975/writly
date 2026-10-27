@@ -403,7 +403,8 @@ export function ChapterEditor({
                     {comment.authorType === "ai-mentor" ? "Mentore AI" : "Autore"}
                   </span>
                   <span
-                    className="font-mono text-[10px] text-zinc-400"
+                    onClick={(e) => e.stopPropagation()}
+                    className="select-text font-mono text-[10px] text-zinc-400"
                     title={comment.id}
                   >
                     #{comment.id.slice(0, 8)}
