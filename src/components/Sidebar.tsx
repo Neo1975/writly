@@ -109,6 +109,20 @@ export function Sidebar({
   const branchInfo =
     ctx && branchInfoByKey?.key === `${ctx.owner}/${ctx.repo}` ? branchInfoByKey : null;
 
+  const [staleBranchNotice, setStaleBranchNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!ctx || !branchInfo || !branch) return;
+    const stillExists = branchInfo.branches.some((b) => b.name === branch);
+    if (stillExists) return;
+    queueMicrotask(() => {
+      setStaleBranchNotice(
+        `Il branch "${branch}" non esiste più su GitHub: tornato su "${branchInfo.defaultBranch}".`
+      );
+      setBranch(ctx.owner, ctx.repo, undefined);
+    });
+  }, [ctx, branchInfo, branch, setBranch]);
+
   const romanzi =
     ctx && romanziByKey?.key === `${ctx.owner}/${ctx.repo}` ? romanziByKey.data : null;
   const capitoli =
@@ -158,6 +172,7 @@ export function Sidebar({
                           value={branch ?? branchInfo.defaultBranch}
                           onChange={(e) => {
                             const value = e.target.value;
+                            setStaleBranchNotice(null);
                             setBranch(
                               ctx.owner,
                               ctx.repo,
@@ -174,6 +189,11 @@ export function Sidebar({
                           ))}
                         </select>
                       </label>
+                    )}
+                    {staleBranchNotice && (
+                      <p className="mb-1 px-2 text-[11px] text-amber-600">
+                        {staleBranchNotice}
+                      </p>
                     )}
                     {branchInfo && branchInfo.branches.length > 1 && (
                       <button
