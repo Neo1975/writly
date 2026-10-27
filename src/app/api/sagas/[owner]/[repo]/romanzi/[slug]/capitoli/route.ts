@@ -8,13 +8,14 @@ interface RouteParams {
   params: Promise<{ owner: string; repo: string; slug: string }>;
 }
 
-export async function GET(_request: Request, { params }: RouteParams) {
+export async function GET(request: Request, { params }: RouteParams) {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
   const { owner, repo, slug } = await params;
-  const capitoli = await listCapitoli(auth.octokit, owner, repo, slug);
+  const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
+  const capitoli = await listCapitoli(auth.octokit, owner, repo, slug, branch);
   return NextResponse.json({ capitoli });
 }
 
@@ -24,6 +25,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
   const { owner, repo, slug } = await params;
+  const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
 
   const body = await request.json();
   const title = typeof body.title === "string" ? body.title.trim() : "";
@@ -31,7 +33,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "title è obbligatorio" }, { status: 400 });
   }
 
-  const existing = await listCapitoli(auth.octokit, owner, repo, slug);
+  const existing = await listCapitoli(auth.octokit, owner, repo, slug, branch);
   const order = existing.length + 1;
   const paddedOrder = String(order).padStart(2, "0");
   const fileName = `${paddedOrder}-${slugify(title)}.md`;
@@ -43,7 +45,9 @@ export async function POST(request: Request, { params }: RouteParams) {
     repo,
     `${dirPath}/${fileName}`,
     chapterTemplate(title),
-    `Crea capitolo "${title}"`
+    `Crea capitolo "${title}"`,
+    undefined,
+    branch
   );
   await putFile(
     auth.octokit,
@@ -51,7 +55,9 @@ export async function POST(request: Request, { params }: RouteParams) {
     repo,
     `${dirPath}/${fileName.replace(/\.md$/, ".comments.json")}`,
     emptyJsonArray(),
-    "Inizializza commenti capitolo"
+    "Inizializza commenti capitolo",
+    undefined,
+    branch
   );
 
   return NextResponse.json({ file: fileName, title, order }, { status: 201 });

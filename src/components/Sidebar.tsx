@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, withBranch } from "@/lib/api-client";
 import { signOutAction } from "@/lib/actions";
-import type { SagaSummary } from "@/lib/github";
+import { useBranchSelection } from "@/contexts/BranchContext";
+import type { SagaSummary, BranchSummary } from "@/lib/github";
 import type { RomanzoSummary, CapitoloSummary } from "@/lib/domain";
 
 interface Context {
@@ -49,6 +50,14 @@ export function Sidebar({
     key: string;
     data: CapitoloSummary[];
   } | null>(null);
+  const [branchInfoByKey, setBranchInfoByKey] = useState<{
+    key: string;
+    branches: BranchSummary[];
+    defaultBranch: string;
+  } | null>(null);
+
+  const { getBranch, setBranch } = useBranchSelection();
+  const branch = ctx ? getBranch(ctx.owner, ctx.repo) : undefined;
 
   useEffect(() => {
     apiFetch<{ sagas: SagaSummary[] }>("/api/sagas")
@@ -59,22 +68,44 @@ export function Sidebar({
   useEffect(() => {
     if (!ctx) return;
     const key = `${ctx.owner}/${ctx.repo}`;
+    apiFetch<{ branches: BranchSummary[]; defaultBranch: string }>(
+      `/api/sagas/${ctx.owner}/${ctx.repo}/branches`
+    )
+      .then((data) =>
+        setBranchInfoByKey({
+          key,
+          branches: data.branches,
+          defaultBranch: data.defaultBranch,
+        })
+      )
+      .catch(() => {});
+  }, [ctx]);
+
+  useEffect(() => {
+    if (!ctx) return;
+    const key = `${ctx.owner}/${ctx.repo}`;
     apiFetch<{ romanzi: RomanzoSummary[] }>(
-      `/api/sagas/${ctx.owner}/${ctx.repo}/romanzi`
+      withBranch(`/api/sagas/${ctx.owner}/${ctx.repo}/romanzi`, branch)
     )
       .then((data) => setRomanziByKey({ key, data: data.romanzi }))
       .catch(() => setRomanziByKey({ key, data: [] }));
-  }, [ctx]);
+  }, [ctx, branch]);
 
   useEffect(() => {
     if (!ctx?.slug) return;
     const key = `${ctx.owner}/${ctx.repo}/${ctx.slug}`;
     apiFetch<{ capitoli: CapitoloSummary[] }>(
-      `/api/sagas/${ctx.owner}/${ctx.repo}/romanzi/${ctx.slug}/capitoli`
+      withBranch(
+        `/api/sagas/${ctx.owner}/${ctx.repo}/romanzi/${ctx.slug}/capitoli`,
+        branch
+      )
     )
       .then((data) => setCapitoliByKey({ key, data: data.capitoli }))
       .catch(() => setCapitoliByKey({ key, data: [] }));
-  }, [ctx]);
+  }, [ctx, branch]);
+
+  const branchInfo =
+    ctx && branchInfoByKey?.key === `${ctx.owner}/${ctx.repo}` ? branchInfoByKey : null;
 
   const romanzi =
     ctx && romanziByKey?.key === `${ctx.owner}/${ctx.repo}` ? romanziByKey.data : null;
@@ -118,6 +149,30 @@ export function Sidebar({
 
                 {isActiveSaga && (
                   <div className="ml-2 mt-1 flex flex-col gap-0.5 border-l border-zinc-200 pl-3">
+                    {branchInfo && (
+                      <label className="mb-1 flex flex-col gap-0.5 px-2 text-[11px] text-zinc-400">
+                        Branch
+                        <select
+                          value={branch ?? branchInfo.defaultBranch}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setBranch(
+                              ctx.owner,
+                              ctx.repo,
+                              value === branchInfo.defaultBranch ? undefined : value
+                            );
+                          }}
+                          className="min-w-0 rounded border border-zinc-300 px-1.5 py-1 text-xs text-zinc-700"
+                        >
+                          {branchInfo.branches.map((b) => (
+                            <option key={b.name} value={b.name}>
+                              {b.name}
+                              {b.name === branchInfo.defaultBranch ? " (default)" : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
                     <Link
                       href={`${sagaHref}/personaggi`}
                       className={navLinkClass(pathname === `${sagaHref}/personaggi`)}

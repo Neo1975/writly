@@ -9,7 +9,7 @@ interface RouteParams {
 
 const SAFE_FILENAME = /^[\w.-]+\.md$/;
 
-export async function GET(_request: Request, { params }: RouteParams) {
+export async function GET(request: Request, { params }: RouteParams) {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -19,8 +19,9 @@ export async function GET(_request: Request, { params }: RouteParams) {
   if (!SAFE_FILENAME.test(name)) {
     return NextResponse.json({ error: "Nome file non valido" }, { status: 400 });
   }
+  const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
 
   const path = `${capitoliDirFor(slug)}/${name}`;
-  const commits = await listFileCommits(auth.octokit, owner, repo, path);
+  const commits = await listFileCommits(auth.octokit, owner, repo, path, { branch });
   return NextResponse.json({ commits });
 }

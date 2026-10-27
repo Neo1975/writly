@@ -8,13 +8,14 @@ interface RouteParams {
   params: Promise<{ owner: string; repo: string }>;
 }
 
-export async function GET(_request: Request, { params }: RouteParams) {
+export async function GET(request: Request, { params }: RouteParams) {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
   const { owner, repo } = await params;
-  const romanzi = await listRomanzi(auth.octokit, owner, repo);
+  const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
+  const romanzi = await listRomanzi(auth.octokit, owner, repo, branch);
   return NextResponse.json({ romanzi });
 }
 
@@ -24,6 +25,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
   const { owner, repo } = await params;
+  const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
 
   const body = await request.json();
   const title = typeof body.title === "string" ? body.title.trim() : "";
@@ -38,7 +40,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "titolo non valido" }, { status: 400 });
   }
 
-  const existing = await listRomanzi(auth.octokit, owner, repo);
+  const existing = await listRomanzi(auth.octokit, owner, repo, branch);
   if (existing.some((r) => r.slug === slug)) {
     return NextResponse.json(
       { error: "Esiste già un romanzo con questo nome" },
@@ -53,7 +55,9 @@ export async function POST(request: Request, { params }: RouteParams) {
     repo,
     `romanzi/${slug}/romanzo.json`,
     romanzoJsonTemplate(title, order, description),
-    `Crea romanzo "${title}"`
+    `Crea romanzo "${title}"`,
+    undefined,
+    branch
   );
   await putFile(
     auth.octokit,
@@ -61,7 +65,9 @@ export async function POST(request: Request, { params }: RouteParams) {
     repo,
     `romanzi/${slug}/scene/scene.json`,
     emptyJsonArray(),
-    "Inizializza architettura scene"
+    "Inizializza architettura scene",
+    undefined,
+    branch
   );
 
   return NextResponse.json(

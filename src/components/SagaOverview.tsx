@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, withBranch } from "@/lib/api-client";
+import { useCurrentBranch } from "@/contexts/BranchContext";
 import type { RomanzoSummary } from "@/lib/domain";
 
 export function SagaOverview({ owner, repo }: { owner: string; repo: string }) {
@@ -11,7 +12,8 @@ export function SagaOverview({ owner, repo }: { owner: string; repo: string }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
-  const base = `/api/sagas/${owner}/${repo}/romanzi`;
+  const branch = useCurrentBranch(owner, repo);
+  const base = withBranch(`/api/sagas/${owner}/${repo}/romanzi`, branch);
 
   useEffect(() => {
     apiFetch<{ romanzi: RomanzoSummary[] }>(base)

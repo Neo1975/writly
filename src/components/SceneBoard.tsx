@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, withBranch } from "@/lib/api-client";
+import { useCurrentBranch } from "@/contexts/BranchContext";
 import { useCommitMessageDialog } from "@/hooks/useCommitMessageDialog";
 import type { CapitoloSummary } from "@/lib/domain";
 import type { Scene, SceneStatus } from "@/lib/types";
@@ -27,8 +28,15 @@ export function SceneBoard({
   repo: string;
   slug: string;
 }) {
-  const sceneBase = `/api/sagas/${owner}/${repo}/romanzi/${slug}/scene`;
-  const capitoliBase = `/api/sagas/${owner}/${repo}/romanzi/${slug}/capitoli`;
+  const branch = useCurrentBranch(owner, repo);
+  const sceneBase = withBranch(
+    `/api/sagas/${owner}/${repo}/romanzi/${slug}/scene`,
+    branch
+  );
+  const capitoliBase = withBranch(
+    `/api/sagas/${owner}/${repo}/romanzi/${slug}/capitoli`,
+    branch
+  );
 
   const [scenes, setScenes] = useState<Scene[] | null>(null);
   const [capitoli, setCapitoli] = useState<CapitoloSummary[]>([]);

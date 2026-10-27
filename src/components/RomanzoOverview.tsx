@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, withBranch } from "@/lib/api-client";
+import { useCurrentBranch } from "@/contexts/BranchContext";
 import type { CapitoloSummary } from "@/lib/domain";
 
 export function RomanzoOverview({
@@ -20,7 +21,11 @@ export function RomanzoOverview({
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
 
-  const base = `/api/sagas/${owner}/${repo}/romanzi/${slug}/capitoli`;
+  const branch = useCurrentBranch(owner, repo);
+  const base = withBranch(
+    `/api/sagas/${owner}/${repo}/romanzi/${slug}/capitoli`,
+    branch
+  );
 
   useEffect(() => {
     apiFetch<{ capitoli: CapitoloSummary[] }>(base)

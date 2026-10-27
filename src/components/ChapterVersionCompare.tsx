@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { diffWords } from "diff";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, withBranch } from "@/lib/api-client";
+import { useCurrentBranch } from "@/contexts/BranchContext";
 import { stripHighlights } from "@/lib/markdown";
 import type { CommitSummary } from "@/lib/github";
 
@@ -33,9 +34,11 @@ export function ChapterVersionCompare({
   isDirty,
   refreshKey,
 }: VersionCompareProps) {
-  const base = `/api/sagas/${owner}/${repo}/romanzi/${romanzoSlug}/capitoli/${encodeURIComponent(
+  const branch = useCurrentBranch(owner, repo);
+  const commitsPath = `/api/sagas/${owner}/${repo}/romanzi/${romanzoSlug}/capitoli/${encodeURIComponent(
     file
   )}/commits`;
+  const base = withBranch(commitsPath, branch);
 
   const [commits, setCommits] = useState<CommitSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +71,7 @@ export function ChapterVersionCompare({
     );
     for (const choice of toFetch) {
       inFlightShas.current.add(choice);
-      apiFetch<{ content: string }>(`${base}/${choice}`)
+      apiFetch<{ content: string }>(`${commitsPath}/${choice}`)
         .then((data) => {
           setContentCache((prev) => ({ ...prev, [choice]: data.content }));
         })
@@ -77,7 +80,7 @@ export function ChapterVersionCompare({
           inFlightShas.current.delete(choice);
         });
     }
-  }, [leftChoice, rightChoice, base, contentCache]);
+  }, [leftChoice, rightChoice, commitsPath, contentCache]);
 
   function resolveContent(choice: string): string | null {
     if (choice === CURRENT) return currentContent;

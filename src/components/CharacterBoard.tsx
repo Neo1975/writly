@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, withBranch } from "@/lib/api-client";
+import { useCurrentBranch } from "@/contexts/BranchContext";
 import { useCommitMessageDialog } from "@/hooks/useCommitMessageDialog";
 import type { Character, CharacterRole } from "@/lib/types";
 
@@ -17,7 +18,8 @@ function emptyCharacter(order: number): Character {
 }
 
 export function CharacterBoard({ owner, repo }: { owner: string; repo: string }) {
-  const base = `/api/sagas/${owner}/${repo}/personaggi`;
+  const branch = useCurrentBranch(owner, repo);
+  const base = withBranch(`/api/sagas/${owner}/${repo}/personaggi`, branch);
 
   const [characters, setCharacters] = useState<Character[] | null>(null);
   const [saving, setSaving] = useState(false);

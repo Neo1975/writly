@@ -1,3 +1,9 @@
+export function withBranch(url: string, branch?: string | null): string {
+  if (!branch) return url;
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}branch=${encodeURIComponent(branch)}`;
+}
+
 export async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     ...init,

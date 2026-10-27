@@ -19,6 +19,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
   const { owner, repo, slug } = await params;
+  const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
 
   const body = await request.json();
   if (!body.settings || typeof body.settings !== "object") {
@@ -31,14 +32,15 @@ export async function POST(request: Request, { params }: RouteParams) {
     auth.octokit,
     owner,
     repo,
-    `romanzi/${slug}/romanzo.json`
+    `romanzi/${slug}/romanzo.json`,
+    branch
   );
   if (!romanzoFile) {
     return NextResponse.json({ error: "Romanzo non trovato" }, { status: 404 });
   }
   const romanzo = JSON.parse(romanzoFile.content) as Romanzo;
 
-  const allCapitoli = await listCapitoli(auth.octokit, owner, repo, slug);
+  const allCapitoli = await listCapitoli(auth.octokit, owner, repo, slug, branch);
   const selected = settings.chapterFiles?.length
     ? allCapitoli.filter((c) => settings.chapterFiles!.includes(c.file))
     : allCapitoli;
@@ -55,7 +57,8 @@ export async function POST(request: Request, { params }: RouteParams) {
     owner,
     repo,
     slug,
-    selected.map((c) => c.file)
+    selected.map((c) => c.file),
+    branch
   );
   const contentByFile = new Map(contents.map((c) => [c.file, c.content]));
 

@@ -68,10 +68,11 @@ export async function getFile(
   octokit: Octokit,
   owner: string,
   repo: string,
-  path: string
+  path: string,
+  ref?: string
 ): Promise<RepoFile | null> {
   try {
-    const { data } = await octokit.rest.repos.getContent({ owner, repo, path });
+    const { data } = await octokit.rest.repos.getContent({ owner, repo, path, ref });
     if (Array.isArray(data) || data.type !== "file" || !data.content) {
       return null;
     }
@@ -89,10 +90,11 @@ export async function listDir(
   octokit: Octokit,
   owner: string,
   repo: string,
-  path: string
+  path: string,
+  ref?: string
 ) {
   try {
-    const { data } = await octokit.rest.repos.getContent({ owner, repo, path });
+    const { data } = await octokit.rest.repos.getContent({ owner, repo, path, ref });
     if (!Array.isArray(data)) return [];
     return data;
   } catch (error) {
@@ -108,7 +110,8 @@ export async function putFile(
   path: string,
   content: string,
   message: string,
-  sha?: string
+  sha?: string,
+  branch?: string
 ) {
   const { data } = await octokit.rest.repos.createOrUpdateFileContents({
     owner,
@@ -117,8 +120,36 @@ export async function putFile(
     message,
     content: Buffer.from(content, "utf-8").toString("base64"),
     sha,
+    branch,
   });
   return data;
+}
+
+export interface BranchSummary {
+  name: string;
+  protected: boolean;
+}
+
+export async function listBranches(
+  octokit: Octokit,
+  owner: string,
+  repo: string
+): Promise<BranchSummary[]> {
+  const { data } = await octokit.rest.repos.listBranches({
+    owner,
+    repo,
+    per_page: 100,
+  });
+  return data.map((branch) => ({ name: branch.name, protected: branch.protected }));
+}
+
+export async function getDefaultBranch(
+  octokit: Octokit,
+  owner: string,
+  repo: string
+): Promise<string> {
+  const { data } = await octokit.rest.repos.get({ owner, repo });
+  return data.default_branch;
 }
 
 export interface CommitSummary {
@@ -134,13 +165,15 @@ export async function listFileCommits(
   owner: string,
   repo: string,
   path: string,
-  perPage = 20
+  options: { perPage?: number; branch?: string } = {}
 ): Promise<CommitSummary[]> {
+  const { perPage = 20, branch } = options;
   const { data } = await octokit.rest.repos.listCommits({
     owner,
     repo,
     path,
     per_page: perPage,
+    sha: branch,
   });
 
   return data.map((entry) => ({

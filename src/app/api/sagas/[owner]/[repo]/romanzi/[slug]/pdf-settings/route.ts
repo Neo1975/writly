@@ -7,13 +7,14 @@ interface RouteParams {
   params: Promise<{ owner: string; repo: string; slug: string }>;
 }
 
-export async function GET(_request: Request, { params }: RouteParams) {
+export async function GET(request: Request, { params }: RouteParams) {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
   const { owner, repo, slug } = await params;
-  const { settings } = await getPdfSettings(auth.octokit, owner, repo, slug);
+  const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
+  const { settings } = await getPdfSettings(auth.octokit, owner, repo, slug, branch);
   return NextResponse.json({ settings });
 }
 
@@ -23,6 +24,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
   const { owner, repo, slug } = await params;
+  const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
 
   const body = await request.json();
   if (!body.settings || typeof body.settings !== "object") {
@@ -34,8 +36,8 @@ export async function PUT(request: Request, { params }: RouteParams) {
       ? body.message.trim()
       : "Aggiorna impostazioni PDF";
 
-  const { sha } = await getPdfSettings(auth.octokit, owner, repo, slug);
-  await savePdfSettings(auth.octokit, owner, repo, slug, settings, sha, message);
+  const { sha } = await getPdfSettings(auth.octokit, owner, repo, slug, branch);
+  await savePdfSettings(auth.octokit, owner, repo, slug, settings, sha, message, branch);
 
   return NextResponse.json({ settings });
 }

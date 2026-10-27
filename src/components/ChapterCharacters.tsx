@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, withBranch } from "@/lib/api-client";
+import { useCurrentBranch } from "@/contexts/BranchContext";
 import { CharacterQuickView } from "@/components/CharacterQuickView";
 import type { Character, Scene } from "@/lib/types";
 
@@ -41,19 +42,23 @@ export function ChapterCharacters({
   const [error, setError] = useState<string | null>(null);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
 
+  const branch = useCurrentBranch(owner, repo);
+
   useEffect(() => {
     Promise.all([
       apiFetch<{ scenes: Scene[] }>(
-        `/api/sagas/${owner}/${repo}/romanzi/${romanzoSlug}/scene`
+        withBranch(`/api/sagas/${owner}/${repo}/romanzi/${romanzoSlug}/scene`, branch)
       ),
-      apiFetch<{ characters: Character[] }>(`/api/sagas/${owner}/${repo}/personaggi`),
+      apiFetch<{ characters: Character[] }>(
+        withBranch(`/api/sagas/${owner}/${repo}/personaggi`, branch)
+      ),
     ])
       .then(([sceneData, characterData]) => {
         setScenes(sceneData.scenes);
         setAllCharacters(characterData.characters);
       })
       .catch((err) => setError(err.message));
-  }, [owner, repo, romanzoSlug]);
+  }, [owner, repo, romanzoSlug, branch]);
 
   const chapterScenes = useMemo(
     () => (scenes ?? []).filter((scene) => scene.chapterFile === file),

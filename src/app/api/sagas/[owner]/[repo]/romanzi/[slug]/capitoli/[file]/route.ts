@@ -16,7 +16,7 @@ function resolveMdPath(slug: string, file: string): string | null {
   return `${capitoliDirFor(slug)}/${name}`;
 }
 
-export async function GET(_request: Request, { params }: RouteParams) {
+export async function GET(request: Request, { params }: RouteParams) {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -26,12 +26,13 @@ export async function GET(_request: Request, { params }: RouteParams) {
   if (!mdPath) {
     return NextResponse.json({ error: "Nome file non valido" }, { status: 400 });
   }
+  const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
 
-  const chapterFile = await getFile(auth.octokit, owner, repo, mdPath);
+  const chapterFile = await getFile(auth.octokit, owner, repo, mdPath, branch);
   if (!chapterFile) {
     return NextResponse.json({ error: "Capitolo non trovato" }, { status: 404 });
   }
-  const { comments } = await getComments(auth.octokit, owner, repo, mdPath);
+  const { comments } = await getComments(auth.octokit, owner, repo, mdPath, branch);
 
   return NextResponse.json({
     content: chapterFile.content,
@@ -50,6 +51,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
   if (!mdPath) {
     return NextResponse.json({ error: "Nome file non valido" }, { status: 400 });
   }
+  const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
 
   const body = await request.json();
 
@@ -63,7 +65,8 @@ export async function PUT(request: Request, { params }: RouteParams) {
       mdPath,
       content,
       typeof body.message === "string" ? body.message : "Aggiorna capitolo",
-      sha
+      sha,
+      branch
     );
     return NextResponse.json({ sha: result.content?.sha });
   }
@@ -86,7 +89,14 @@ export async function PUT(request: Request, { params }: RouteParams) {
       createdAt: new Date().toISOString(),
       resolved: false,
     };
-    const comments = await appendComment(auth.octokit, owner, repo, mdPath, comment);
+    const comments = await appendComment(
+      auth.octokit,
+      owner,
+      repo,
+      mdPath,
+      comment,
+      branch
+    );
     return NextResponse.json({ comments });
   }
 
@@ -95,7 +105,14 @@ export async function PUT(request: Request, { params }: RouteParams) {
     if (!commentId) {
       return NextResponse.json({ error: "commentId è obbligatorio" }, { status: 400 });
     }
-    const comments = await removeComment(auth.octokit, owner, repo, mdPath, commentId);
+    const comments = await removeComment(
+      auth.octokit,
+      owner,
+      repo,
+      mdPath,
+      commentId,
+      branch
+    );
     return NextResponse.json({ comments });
   }
 

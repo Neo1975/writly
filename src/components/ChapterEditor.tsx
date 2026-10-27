@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import CodeMirror, { type ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorView } from "@codemirror/view";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, withBranch } from "@/lib/api-client";
+import { useCurrentBranch } from "@/contexts/BranchContext";
 import {
   findHighlightRange,
   getHighlightColor,
@@ -45,9 +46,13 @@ export function ChapterEditor({
   file: string;
   title: string;
 }) {
-  const base = `/api/sagas/${owner}/${repo}/romanzi/${romanzoSlug}/capitoli/${encodeURIComponent(
-    file
-  )}`;
+  const branch = useCurrentBranch(owner, repo);
+  const base = withBranch(
+    `/api/sagas/${owner}/${repo}/romanzi/${romanzoSlug}/capitoli/${encodeURIComponent(
+      file
+    )}`,
+    branch
+  );
 
   const [content, setContent] = useState("");
   const [savedContent, setSavedContent] = useState("");

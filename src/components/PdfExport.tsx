@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, withBranch } from "@/lib/api-client";
+import { useCurrentBranch } from "@/contexts/BranchContext";
 import { useCommitMessageDialog } from "@/hooks/useCommitMessageDialog";
 import { PDF_TEMPLATES } from "@/lib/pdf/templates";
 import type { CapitoloSummary } from "@/lib/domain";
@@ -45,9 +46,19 @@ export function PdfExport({
   slug: string;
   romanzoTitle: string;
 }) {
-  const settingsBase = `/api/sagas/${owner}/${repo}/romanzi/${slug}/pdf-settings`;
-  const capitoliBase = `/api/sagas/${owner}/${repo}/romanzi/${slug}/capitoli`;
-  const pdfBase = `/api/sagas/${owner}/${repo}/romanzi/${slug}/pdf`;
+  const branch = useCurrentBranch(owner, repo);
+  const settingsBase = withBranch(
+    `/api/sagas/${owner}/${repo}/romanzi/${slug}/pdf-settings`,
+    branch
+  );
+  const capitoliBase = withBranch(
+    `/api/sagas/${owner}/${repo}/romanzi/${slug}/capitoli`,
+    branch
+  );
+  const pdfBase = withBranch(
+    `/api/sagas/${owner}/${repo}/romanzi/${slug}/pdf`,
+    branch
+  );
 
   const [settings, setSettings] = useState<PdfSettings | null>(null);
   const [capitoli, setCapitoli] = useState<CapitoloSummary[]>([]);

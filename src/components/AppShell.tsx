@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Sidebar } from "@/components/Sidebar";
+import { BranchProvider } from "@/contexts/BranchContext";
 
 export function AppShell({
   user,
@@ -9,9 +10,11 @@ export function AppShell({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-1">
-      <Sidebar user={user} />
-      <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">{children}</div>
-    </div>
+    <BranchProvider>
+      <div className="flex flex-1">
+        <Sidebar user={user} />
+        <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">{children}</div>
+      </div>
+    </BranchProvider>
   );
 }

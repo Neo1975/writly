@@ -7,13 +7,14 @@ interface RouteParams {
   params: Promise<{ owner: string; repo: string }>;
 }
 
-export async function GET(_request: Request, { params }: RouteParams) {
+export async function GET(request: Request, { params }: RouteParams) {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
   const { owner, repo } = await params;
-  const { characters } = await getCharacters(auth.octokit, owner, repo);
+  const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
+  const { characters } = await getCharacters(auth.octokit, owner, repo, branch);
   return NextResponse.json({ characters });
 }
 
@@ -23,6 +24,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
   const { owner, repo } = await params;
+  const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
 
   const body = await request.json();
   if (!Array.isArray(body.characters)) {
@@ -37,8 +39,8 @@ export async function PUT(request: Request, { params }: RouteParams) {
       ? body.message.trim()
       : "Aggiorna schede personaggi";
 
-  const { sha } = await getCharacters(auth.octokit, owner, repo);
-  await saveCharacters(auth.octokit, owner, repo, characters, sha, message);
+  const { sha } = await getCharacters(auth.octokit, owner, repo, branch);
+  await saveCharacters(auth.octokit, owner, repo, characters, sha, message, branch);
 
   return NextResponse.json({ characters });
 }

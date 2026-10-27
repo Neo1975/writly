@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, withBranch } from "@/lib/api-client";
+import { useCurrentBranch } from "@/contexts/BranchContext";
 import type { CommitSummary } from "@/lib/github";
 
 export function ChapterCommitLog({
@@ -19,16 +20,20 @@ export function ChapterCommitLog({
 }) {
   const [commits, setCommits] = useState<CommitSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const branch = useCurrentBranch(owner, repo);
 
   useEffect(() => {
     apiFetch<{ commits: CommitSummary[] }>(
-      `/api/sagas/${owner}/${repo}/romanzi/${romanzoSlug}/capitoli/${encodeURIComponent(
-        file
-      )}/commits`
+      withBranch(
+        `/api/sagas/${owner}/${repo}/romanzi/${romanzoSlug}/capitoli/${encodeURIComponent(
+          file
+        )}/commits`,
+        branch
+      )
     )
       .then((data) => setCommits(data.commits))
       .catch((err) => setError(err.message));
-  }, [owner, repo, romanzoSlug, file, refreshKey]);
+  }, [owner, repo, romanzoSlug, file, refreshKey, branch]);
 
   return (
     <div>
