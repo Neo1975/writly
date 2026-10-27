@@ -402,6 +402,12 @@ export function ChapterEditor({
                   >
                     {comment.authorType === "ai-mentor" ? "Mentore AI" : "Autore"}
                   </span>
+                  <span
+                    className="font-mono text-[10px] text-zinc-400"
+                    title={comment.id}
+                  >
+                    #{comment.id.slice(0, 8)}
+                  </span>
                   <button
                     onClick={(e) => handleDeleteComment(e, comment)}
                     disabled={deletingCommentId === comment.id}
