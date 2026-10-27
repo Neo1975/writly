@@ -204,11 +204,54 @@ export async function getFileAtRef(
   }
 }
 
+export interface MergeResult {
+  status: "merged" | "up-to-date" | "conflict";
+  sha?: string;
+}
+
+export async function mergeBranches(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  base: string,
+  head: string,
+  commitMessage?: string
+): Promise<MergeResult> {
+  try {
+    const response = await octokit.rest.repos.merge({
+      owner,
+      repo,
+      base,
+      head,
+      commit_message: commitMessage,
+    });
+    const status: number = response.status;
+    if (status === 204) {
+      return { status: "up-to-date" };
+    }
+    return { status: "merged", sha: response.data.sha };
+  } catch (error) {
+    if (isConflictError(error)) {
+      return { status: "conflict" };
+    }
+    throw error;
+  }
+}
+
 function isNotFoundError(error: unknown): boolean {
   return (
     typeof error === "object" &&
     error !== null &&
     "status" in error &&
     (error as { status?: number }).status === 404
+  );
+}
+
+function isConflictError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "status" in error &&
+    (error as { status?: number }).status === 409
   );
 }

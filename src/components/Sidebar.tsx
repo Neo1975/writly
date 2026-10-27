@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { apiFetch, withBranch } from "@/lib/api-client";
 import { signOutAction } from "@/lib/actions";
 import { useBranchSelection } from "@/contexts/BranchContext";
+import { MergeBranchesDialog } from "@/components/MergeBranchesDialog";
 import type { SagaSummary, BranchSummary } from "@/lib/github";
 import type { RomanzoSummary, CapitoloSummary } from "@/lib/domain";
 
@@ -58,6 +59,7 @@ export function Sidebar({
 
   const { getBranch, setBranch } = useBranchSelection();
   const branch = ctx ? getBranch(ctx.owner, ctx.repo) : undefined;
+  const [mergeOpen, setMergeOpen] = useState(false);
 
   useEffect(() => {
     apiFetch<{ sagas: SagaSummary[] }>("/api/sagas")
@@ -173,6 +175,14 @@ export function Sidebar({
                         </select>
                       </label>
                     )}
+                    {branchInfo && branchInfo.branches.length > 1 && (
+                      <button
+                        onClick={() => setMergeOpen(true)}
+                        className="mb-1 px-2 text-left text-[11px] text-zinc-400 hover:text-zinc-700 hover:underline"
+                      >
+                        Unisci branch…
+                      </button>
+                    )}
                     <Link
                       href={`${sagaHref}/personaggi`}
                       className={navLinkClass(pathname === `${sagaHref}/personaggi`)}
@@ -279,6 +289,17 @@ export function Sidebar({
           </button>
         </form>
       </div>
+
+      {mergeOpen && ctx && branchInfo && (
+        <MergeBranchesDialog
+          owner={ctx.owner}
+          repo={ctx.repo}
+          branches={branchInfo.branches}
+          defaultHead={branch ?? branchInfo.defaultBranch}
+          defaultBase={branchInfo.defaultBranch}
+          onClose={() => setMergeOpen(false)}
+        />
+      )}
     </aside>
   );
 }
