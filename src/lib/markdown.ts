@@ -31,13 +31,51 @@ const remarkHighlight: Plugin<[], Root> = () => (tree) => {
   ]);
 };
 
-const processor = unified()
-  .use(remarkParse)
-  .use(remarkHighlight)
-  .use(remarkRehype, { allowDangerousHtml: false })
-  .use(rehypeStringify);
+export const WIKILINK_PATTERN = /\[\[([^\]]+)\]\]/g;
 
-export async function renderMarkdown(content: string): Promise<string> {
+type WikilinkResolver = (title: string) => string | undefined;
+
+const remarkWikilink: Plugin<[WikilinkResolver?], Root> =
+  (resolveSlug) => (tree) => {
+    findAndReplace(tree, [
+      [
+        WIKILINK_PATTERN,
+        (_match: string, rawTitle: string) => {
+          const title = rawTitle.trim();
+          const slug = resolveSlug?.(title);
+          return {
+            type: "wikilink",
+            data: {
+              hName: "a",
+              hProperties: {
+                className: slug ? ["wr-wikilink"] : ["wr-wikilink", "wr-wikilink-unresolved"],
+                href: slug ? `/agendina?note=${encodeURIComponent(slug)}` : undefined,
+              },
+            },
+            children: [{ type: "text", value: title }],
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any;
+        },
+      ],
+    ]);
+  };
+
+function buildProcessor(resolveSlug?: WikilinkResolver) {
+  return unified()
+    .use(remarkParse)
+    .use(remarkHighlight)
+    .use(remarkWikilink, resolveSlug)
+    .use(remarkRehype, { allowDangerousHtml: false })
+    .use(rehypeStringify);
+}
+
+const defaultProcessor = buildProcessor();
+
+export async function renderMarkdown(
+  content: string,
+  options?: { resolveNoteSlug?: WikilinkResolver }
+): Promise<string> {
+  const processor = options?.resolveNoteSlug ? buildProcessor(options.resolveNoteSlug) : defaultProcessor;
   const file = await processor.process(content);
   return String(file);
 }

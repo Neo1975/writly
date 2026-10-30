@@ -62,6 +62,11 @@ export interface PdfSettings {
 
 export type CharacterRole = "protagonista" | "antagonista" | "comprimario" | "altro";
 
+export interface CharacterRelationship {
+  personaggioId: string;
+  relazione: string;
+}
+
 export interface Character {
   id: string;
   name: string;
@@ -71,6 +76,27 @@ export interface Character {
   backstory?: string;
   goal?: string;
   arc?: string;
-  relationships?: string;
+  relationships?: CharacterRelationship[];
   order: number;
+}
+
+export interface TimelineEvent {
+  id: string;
+  title: string;
+  description?: string;
+  tempo?: string;
+  order: number;
+  personaggi: string[];
+  romanzoSlug?: string;
+  sceneId?: string;
+}
+
+export type NoteCategory = "personaggio" | "worldbuilding" | "parola" | "spunto" | "generale";
+
+export interface NoteMeta {
+  slug: string;
+  title: string;
+  category: NoteCategory;
+  tags: string[];
+  updatedAt: string;
 }

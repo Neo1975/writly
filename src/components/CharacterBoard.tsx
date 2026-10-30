@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { apiFetch, withBranch } from "@/lib/api-client";
 import { useCurrentBranch } from "@/contexts/BranchContext";
 import { useCommitMessageDialog } from "@/hooks/useCommitMessageDialog";
-import type { Character, CharacterRole } from "@/lib/types";
+import type { Character, CharacterRelationship, CharacterRole } from "@/lib/types";
+import { CharacterGraph } from "@/components/CharacterGraph";
 
 const ROLES: CharacterRole[] = ["protagonista", "antagonista", "comprimario", "altro"];
 
@@ -36,6 +37,56 @@ export function CharacterBoard({ owner, repo }: { owner: string; repo: string })
   function updateCharacter(id: string, patch: Partial<Character>) {
     setCharacters((prev) =>
       prev ? prev.map((c) => (c.id === id ? { ...c, ...patch } : c)) : prev
+    );
+  }
+
+  function updateRelationship(
+    characterId: string,
+    index: number,
+    patch: Partial<CharacterRelationship>
+  ) {
+    setCharacters((prev) =>
+      prev
+        ? prev.map((c) => {
+            if (c.id !== characterId) return c;
+            const relationships = [...(c.relationships ?? [])];
+            relationships[index] = { ...relationships[index], ...patch };
+            return { ...c, relationships };
+          })
+        : prev
+    );
+  }
+
+  function addRelationship(characterId: string) {
+    setCharacters((prev) =>
+      prev
+        ? prev.map((c) =>
+            c.id === characterId
+              ? {
+                  ...c,
+                  relationships: [
+                    ...(c.relationships ?? []),
+                    { personaggioId: "", relazione: "" },
+                  ],
+                }
+              : c
+          )
+        : prev
+    );
+  }
+
+  function removeRelationship(characterId: string, index: number) {
+    setCharacters((prev) =>
+      prev
+        ? prev.map((c) =>
+            c.id === characterId
+              ? {
+                  ...c,
+                  relationships: (c.relationships ?? []).filter((_, i) => i !== index),
+                }
+              : c
+          )
+        : prev
     );
   }
 
@@ -91,6 +142,8 @@ export function CharacterBoard({ owner, repo }: { owner: string; repo: string })
         {status && <span className="text-sm text-green-700">{status}</span>}
       </div>
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+
+      {characters.length > 0 && <CharacterGraph characters={characters} />}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {characters.map((character) => (
@@ -168,15 +221,55 @@ export function CharacterBoard({ owner, repo }: { owner: string; repo: string })
               rows={1}
               className="rounded border border-zinc-300 px-2 py-1 text-xs"
             />
-            <textarea
-              value={character.relationships ?? ""}
-              onChange={(e) =>
-                updateCharacter(character.id, { relationships: e.target.value })
-              }
-              placeholder="Relazioni con altri personaggi"
-              rows={2}
-              className="rounded border border-zinc-300 px-2 py-1 text-xs"
-            />
+            <div className="flex flex-col gap-1">
+              <span className="text-[11px] font-medium text-zinc-500">
+                Relazioni con altri personaggi
+              </span>
+              {(character.relationships ?? []).map((rel, index) => (
+                <div key={index} className="flex items-center gap-1">
+                  <select
+                    value={rel.personaggioId}
+                    onChange={(e) =>
+                      updateRelationship(character.id, index, {
+                        personaggioId: e.target.value,
+                      })
+                    }
+                    className="min-w-0 flex-1 rounded border border-zinc-300 px-1.5 py-1 text-xs"
+                  >
+                    <option value="">— personaggio —</option>
+                    {characters
+                      .filter((c) => c.id !== character.id)
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name || "(senza nome)"}
+                        </option>
+                      ))}
+                  </select>
+                  <input
+                    value={rel.relazione}
+                    onChange={(e) =>
+                      updateRelationship(character.id, index, {
+                        relazione: e.target.value,
+                      })
+                    }
+                    placeholder="es. fratello di"
+                    className="min-w-0 flex-1 rounded border border-zinc-300 px-1.5 py-1 text-xs"
+                  />
+                  <button
+                    onClick={() => removeRelationship(character.id, index)}
+                    className="shrink-0 text-xs text-red-600 hover:underline"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => addRelationship(character.id)}
+                className="self-start text-xs text-zinc-500 hover:text-zinc-900 hover:underline"
+              >
+                + Aggiungi relazione
+              </button>
+            </div>
           </div>
         ))}
       </div>

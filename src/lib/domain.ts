@@ -1,6 +1,15 @@
 import type { Octokit } from "octokit";
-import { getFile, listDir, putFile } from "./github";
-import type { ChapterComment, Character, PdfSettings, Romanzo, Scene } from "./types";
+import { deleteFile, getFile, listDir, putFile } from "./github";
+import type {
+  ChapterComment,
+  Character,
+  CharacterRelationship,
+  NoteMeta,
+  PdfSettings,
+  Romanzo,
+  Scene,
+  TimelineEvent,
+} from "./types";
 
 export interface RomanzoSummary extends Romanzo {
   slug: string;
@@ -250,6 +259,18 @@ export async function savePdfSettings(
 
 export const CHARACTERS_PATH = "personaggi/personaggi.json";
 
+function normalizeRelationships(
+  relationships: unknown
+): CharacterRelationship[] | undefined {
+  if (relationships === undefined || relationships === null) return undefined;
+  if (typeof relationships === "string") {
+    return relationships.trim() === ""
+      ? []
+      : [{ personaggioId: "", relazione: relationships }];
+  }
+  return relationships as CharacterRelationship[];
+}
+
 export async function getCharacters(
   octokit: Octokit,
   owner: string,
@@ -258,7 +279,14 @@ export async function getCharacters(
 ): Promise<{ characters: Character[]; sha?: string }> {
   const file = await getFile(octokit, owner, repo, CHARACTERS_PATH, branch);
   if (!file) return { characters: [] };
-  return { characters: JSON.parse(file.content) as Character[], sha: file.sha };
+  const characters = JSON.parse(file.content) as Character[];
+  return {
+    characters: characters.map((c) => ({
+      ...c,
+      relationships: normalizeRelationships(c.relationships),
+    })),
+    sha: file.sha,
+  };
 }
 
 export async function saveCharacters(
@@ -280,4 +308,115 @@ export async function saveCharacters(
     sha,
     branch
   );
+}
+
+export const TIMELINE_PATH = "timeline/timeline.json";
+
+export async function getTimelineEvents(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  branch?: string
+): Promise<{ events: TimelineEvent[]; sha?: string }> {
+  const file = await getFile(octokit, owner, repo, TIMELINE_PATH, branch);
+  if (!file) return { events: [] };
+  return { events: JSON.parse(file.content) as TimelineEvent[], sha: file.sha };
+}
+
+export async function saveTimelineEvents(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  events: TimelineEvent[],
+  sha: string | undefined,
+  message: string,
+  branch?: string
+) {
+  await putFile(
+    octokit,
+    owner,
+    repo,
+    TIMELINE_PATH,
+    JSON.stringify(events, null, 2) + "\n",
+    message,
+    sha,
+    branch
+  );
+}
+
+export const NOTE_INDEX_PATH = "note/index.json";
+
+export function notePathFor(slug: string): string {
+  return `note/${slug}.md`;
+}
+
+export async function getNoteIndex(
+  octokit: Octokit,
+  owner: string,
+  repo: string
+): Promise<{ notes: NoteMeta[]; sha?: string }> {
+  const file = await getFile(octokit, owner, repo, NOTE_INDEX_PATH);
+  if (!file) return { notes: [] };
+  return { notes: JSON.parse(file.content) as NoteMeta[], sha: file.sha };
+}
+
+export async function saveNoteIndex(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  notes: NoteMeta[],
+  sha: string | undefined,
+  message: string
+) {
+  await putFile(
+    octokit,
+    owner,
+    repo,
+    NOTE_INDEX_PATH,
+    JSON.stringify(notes, null, 2) + "\n",
+    message,
+    sha
+  );
+}
+
+export async function getNoteContent(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  slug: string
+): Promise<{ content: string; sha: string } | null> {
+  const file = await getFile(octokit, owner, repo, notePathFor(slug));
+  if (!file) return null;
+  return { content: file.content, sha: file.sha };
+}
+
+export async function saveNoteContent(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  slug: string,
+  content: string,
+  sha: string | undefined,
+  message: string
+) {
+  await putFile(
+    octokit,
+    owner,
+    repo,
+    notePathFor(slug),
+    content,
+    message,
+    sha
+  );
+}
+
+export async function deleteNote(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  slug: string,
+  sha: string,
+  message: string
+) {
+  await deleteFile(octokit, owner, repo, notePathFor(slug), message, sha);
 }

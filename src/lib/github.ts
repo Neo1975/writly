@@ -1,6 +1,8 @@
 import { Octokit } from "octokit";
 
 const SAGA_TOPIC = "writly-saga";
+const PERSONAL_TOPIC = "writly-personal";
+const PERSONAL_REPO_NAME = "writly-agendina";
 
 export function getOctokit(accessToken: string) {
   return new Octokit({ auth: accessToken });
@@ -54,6 +56,47 @@ export async function createSagaRepo(
     owner: data.owner.login,
     repo: data.name,
     names: [SAGA_TOPIC],
+  });
+
+  return { owner: data.owner.login, repo: data.name, htmlUrl: data.html_url };
+}
+
+export interface PersonalRepoSummary {
+  owner: string;
+  repo: string;
+  htmlUrl: string;
+}
+
+export async function findPersonalRepo(
+  octokit: Octokit,
+  username: string
+): Promise<PersonalRepoSummary | null> {
+  const { data } = await octokit.rest.search.repos({
+    q: `topic:${PERSONAL_TOPIC} user:${username}`,
+  });
+  const repo = data.items[0];
+  if (!repo) return null;
+  return {
+    owner: repo.owner?.login ?? username,
+    repo: repo.name,
+    htmlUrl: repo.html_url,
+  };
+}
+
+export async function createPersonalRepo(
+  octokit: Octokit
+): Promise<PersonalRepoSummary> {
+  const { data } = await octokit.rest.repos.createForAuthenticatedUser({
+    name: PERSONAL_REPO_NAME,
+    description: "Agendina personale Writly",
+    private: true,
+    auto_init: true,
+  });
+
+  await octokit.rest.repos.replaceAllTopics({
+    owner: data.owner.login,
+    repo: data.name,
+    names: [PERSONAL_TOPIC],
   });
 
   return { owner: data.owner.login, repo: data.name, htmlUrl: data.html_url };
@@ -123,6 +166,25 @@ export async function putFile(
     branch,
   });
   return data;
+}
+
+export async function deleteFile(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  path: string,
+  message: string,
+  sha: string,
+  branch?: string
+) {
+  await octokit.rest.repos.deleteFile({
+    owner,
+    repo,
+    path,
+    message,
+    sha,
+    branch,
+  });
 }
 
 export interface BranchSummary {

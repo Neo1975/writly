@@ -139,6 +139,12 @@ export function Sidebar({
         Writly
       </Link>
 
+      <div className="px-3 pt-3">
+        <Link href="/agendina" className={navLinkClass(pathname === "/agendina")}>
+          Agendina
+        </Link>
+      </div>
+
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         <div className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
           Le tue saghe
@@ -208,6 +214,12 @@ export function Sidebar({
                       className={navLinkClass(pathname === `${sagaHref}/personaggi`)}
                     >
                       Schede personaggio
+                    </Link>
+                    <Link
+                      href={`${sagaHref}/timeline`}
+                      className={navLinkClass(pathname === `${sagaHref}/timeline`)}
+                    >
+                      Timeline degli eventi
                     </Link>
 
                     <div className="mt-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">

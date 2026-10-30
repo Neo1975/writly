@@ -40,6 +40,7 @@ lui la scelta finale.
 \`\`\`
 saga.json
 personaggi/personaggi.json
+timeline/timeline.json
 romanzi/<slug-romanzo>/romanzo.json
 romanzi/<slug-romanzo>/capitoli/<NN>-<slug>.md
 romanzi/<slug-romanzo>/capitoli/<NN>-<slug>.comments.json
@@ -98,9 +99,20 @@ narrativa prevista, ma modificale solo se l'utente te lo chiede esplicitamente.
 
 \`personaggi/personaggi.json\` contiene le schede dei personaggi condivise
 da tutta la saga (nome, ruolo, descrizione fisica, personalità, background,
-obiettivo/motivazione, arco narrativo, relazioni con altri personaggi). Usale
+obiettivo/motivazione, arco narrativo). Il campo \`relationships\` è un array
+di oggetti \`{ "personaggioId": "<id del personaggio collegato>", "relazione":
+"<testo libero, es. 'fratello di'>" }\` — non più una stringa libera. Usale
 come riferimento per verificare coerenza caratteriale tra i capitoli; non
 modificarle senza una richiesta esplicita dell'utente.
+
+## Timeline degli eventi
+
+\`timeline/timeline.json\` contiene un array di eventi della cronologia
+narrativa della saga (titolo, descrizione, collocazione temporale libera in
+\`tempo\`, ordine cronologico in \`order\`, array di id dei personaggi coinvolti
+in \`personaggi\`, e riferimenti opzionali a \`romanzoSlug\`/\`sceneId\`). Usala
+per capire la sequenza degli eventi, incluse eventuali backstory precedenti ai
+romanzi pubblicati; non modificarla senza una richiesta esplicita dell'utente.
 
 ## Commit
 

@@ -154,6 +154,7 @@ export function ChapterCharacters({
         <CharacterQuickView
           character={selectedCharacter}
           scenes={scenesForCharacter(selectedCharacter)}
+          allCharacters={allCharacters ?? []}
           onClose={() => setSelectedCharacter(null)}
         />
       )}

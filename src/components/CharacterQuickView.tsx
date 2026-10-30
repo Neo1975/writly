@@ -19,13 +19,42 @@ function Field({ label, value }: { label: string; value?: string }) {
   );
 }
 
+function RelationshipsField({
+  character,
+  allCharacters,
+}: {
+  character: Character;
+  allCharacters: Character[];
+}) {
+  const relationships = character.relationships ?? [];
+  if (relationships.length === 0) return null;
+  return (
+    <div>
+      <h3 className="text-xs font-semibold uppercase text-zinc-400">Relazioni</h3>
+      <ul className="mt-0.5 flex flex-col gap-0.5 text-sm text-zinc-700">
+        {relationships.map((rel, index) => {
+          const target = allCharacters.find((c) => c.id === rel.personaggioId);
+          return (
+            <li key={index}>
+              {rel.relazione || "(relazione non specificata)"} —{" "}
+              {target?.name ?? "relazione non assegnata"}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 export function CharacterQuickView({
   character,
   scenes,
+  allCharacters,
   onClose,
 }: {
   character: Character;
   scenes: Scene[];
+  allCharacters: Character[];
   onClose: () => void;
 }) {
   return (
@@ -59,7 +88,7 @@ export function CharacterQuickView({
           <Field label="Background" value={character.backstory} />
           <Field label="Obiettivo / motivazione" value={character.goal} />
           <Field label="Arco narrativo" value={character.arc} />
-          <Field label="Relazioni" value={character.relationships} />
+          <RelationshipsField character={character} allCharacters={allCharacters} />
 
           {scenes.length === 0 &&
             !character.description &&
@@ -67,7 +96,7 @@ export function CharacterQuickView({
             !character.backstory &&
             !character.goal &&
             !character.arc &&
-            !character.relationships && (
+            (character.relationships ?? []).length === 0 && (
               <p className="text-sm text-zinc-500">
                 Nessun dettaglio ancora compilato per questo personaggio.
               </p>
