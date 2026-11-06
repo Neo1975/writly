@@ -9,6 +9,7 @@ import { useCurrentBranch } from "@/contexts/BranchContext";
 import {
   findHighlightRange,
   getHighlightColor,
+  stripHighlights,
   unwrapHighlight,
   wrapWithHighlight,
 } from "@/lib/markdown";
@@ -78,6 +79,10 @@ export function ChapterEditor({
 
   const editorRef = useRef<ReactCodeMirrorRef>(null);
   const { promptMessage, dialog: commitDialog } = useCommitMessageDialog();
+
+  const plainText = useMemo(() => stripHighlights(content), [content]);
+  const wordCount = plainText.trim() === "" ? 0 : plainText.trim().split(/\s+/).length;
+  const charCount = plainText.length;
 
   useEffect(() => {
     apiFetch<ChapterData>(base)
@@ -411,6 +416,11 @@ export function ChapterEditor({
             </div>
           </div>
         )}
+
+        <div className="flex items-center justify-end text-xs text-zinc-400">
+          {wordCount} {wordCount === 1 ? "parola" : "parole"} · {charCount}{" "}
+          {charCount === 1 ? "battuta" : "battute"}
+        </div>
 
         <div className="min-h-[60vh] flex-1 overflow-hidden rounded-lg border border-zinc-200 bg-white">
           <CodeMirror
