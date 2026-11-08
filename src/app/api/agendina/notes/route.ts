@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireSessionOctokit } from "@/lib/session-github";
+import { parseJsonBody } from "@/lib/api-request";
 import { findPersonalRepo, getAuthenticatedUsername, putFile } from "@/lib/github";
 import { getNoteIndex, notePathFor, saveNoteIndex } from "@/lib/domain";
 import { slugify } from "@/lib/templates";
@@ -38,9 +39,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Agendina non ancora creata" }, { status: 404 });
   }
 
-  const body = await request.json();
+  const body = await parseJsonBody(request);
+  if (body === null) {
+    return NextResponse.json({ error: "JSON non valido" }, { status: 400 });
+  }
   const title = typeof body.title === "string" && body.title.trim() ? body.title.trim() : "Nuova nota";
-  const category: NoteCategory = CATEGORIES.includes(body.category) ? body.category : "generale";
+  const category: NoteCategory = CATEGORIES.includes(body.category as NoteCategory)
+    ? (body.category as NoteCategory)
+    : "generale";
 
   const { notes, sha } = await getNoteIndex(auth.octokit, repo.owner, repo.repo);
   const baseSlug = slugify(title) || "nota";

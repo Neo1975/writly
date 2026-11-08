@@ -1,11 +1,13 @@
 import type { Octokit } from "octokit";
 import { NextResponse } from "next/server";
 import { requireSessionOctokit } from "@/lib/session-github";
+import { parseJsonBody } from "@/lib/api-request";
 import { findPersonalRepo, getAuthenticatedUsername } from "@/lib/github";
 import {
   deleteNote,
   getNoteContent,
   getNoteIndex,
+  isSafeSlug,
   saveNoteContent,
   saveNoteIndex,
 } from "@/lib/domain";
@@ -34,6 +36,9 @@ export async function GET(_request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
   const { slug } = await params;
+  if (!isSafeSlug(slug)) {
+    return NextResponse.json({ error: "Slug non valido" }, { status: 400 });
+  }
   const repo = await resolveRepo(auth.octokit);
   if (!repo) {
     return NextResponse.json({ error: "Agendina non ancora creata" }, { status: 404 });
@@ -57,17 +62,25 @@ export async function PUT(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
   const { slug } = await params;
+  if (!isSafeSlug(slug)) {
+    return NextResponse.json({ error: "Slug non valido" }, { status: 400 });
+  }
   const repo = await resolveRepo(auth.octokit);
   if (!repo) {
     return NextResponse.json({ error: "Agendina non ancora creata" }, { status: 404 });
   }
 
-  const body = await request.json();
+  const body = await parseJsonBody(request);
+  if (body === null) {
+    return NextResponse.json({ error: "JSON non valido" }, { status: 400 });
+  }
   if (typeof body.content !== "string") {
     return NextResponse.json({ error: "content deve essere una stringa" }, { status: 400 });
   }
   const title = typeof body.title === "string" && body.title.trim() ? body.title.trim() : slug;
-  const category: NoteCategory = CATEGORIES.includes(body.category) ? body.category : "generale";
+  const category: NoteCategory = CATEGORIES.includes(body.category as NoteCategory)
+    ? (body.category as NoteCategory)
+    : "generale";
   const tags = Array.isArray(body.tags) ? body.tags.filter((t: unknown) => typeof t === "string") : [];
   const message =
     typeof body.message === "string" && body.message.trim()
@@ -101,6 +114,9 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
   const { slug } = await params;
+  if (!isSafeSlug(slug)) {
+    return NextResponse.json({ error: "Slug non valido" }, { status: 400 });
+  }
   const repo = await resolveRepo(auth.octokit);
   if (!repo) {
     return NextResponse.json({ error: "Agendina non ancora creata" }, { status: 404 });

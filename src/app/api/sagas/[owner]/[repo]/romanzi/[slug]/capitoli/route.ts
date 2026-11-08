@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireSessionOctokit } from "@/lib/session-github";
 import { putFile } from "@/lib/github";
-import { capitoliDirFor, listCapitoli } from "@/lib/domain";
+import { parseJsonBody } from "@/lib/api-request";
+import { capitoliDirFor, isSafeSlug, listCapitoli } from "@/lib/domain";
 import { chapterTemplate, emptyJsonArray, slugify } from "@/lib/templates";
 
 interface RouteParams {
@@ -14,6 +15,9 @@ export async function GET(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
   const { owner, repo, slug } = await params;
+  if (!isSafeSlug(slug)) {
+    return NextResponse.json({ error: "Slug non valido" }, { status: 400 });
+  }
   const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
   const capitoli = await listCapitoli(auth.octokit, owner, repo, slug, branch);
   return NextResponse.json({ capitoli });
@@ -25,9 +29,15 @@ export async function POST(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
   const { owner, repo, slug } = await params;
+  if (!isSafeSlug(slug)) {
+    return NextResponse.json({ error: "Slug non valido" }, { status: 400 });
+  }
   const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
 
-  const body = await request.json();
+  const body = await parseJsonBody(request);
+  if (body === null) {
+    return NextResponse.json({ error: "JSON non valido" }, { status: 400 });
+  }
   const title = typeof body.title === "string" ? body.title.trim() : "";
   if (!title) {
     return NextResponse.json({ error: "title è obbligatorio" }, { status: 400 });

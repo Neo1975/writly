@@ -48,6 +48,12 @@ export interface CapitoloSummary {
   order: number;
 }
 
+const SAFE_SLUG = /^[a-z0-9-]+$/;
+
+export function isSafeSlug(slug: string): boolean {
+  return SAFE_SLUG.test(slug);
+}
+
 export function commentsPathFor(mdPath: string): string {
   return mdPath.replace(/\.md$/, ".comments.json");
 }

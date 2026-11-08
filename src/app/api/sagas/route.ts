@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireSessionOctokit } from "@/lib/session-github";
+import { parseJsonBody } from "@/lib/api-request";
 import {
   createSagaRepo,
   getAuthenticatedUsername,
@@ -26,7 +27,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
 
-  const body = await request.json();
+  const body = await parseJsonBody(request);
+  if (body === null) {
+    return NextResponse.json({ error: "JSON non valido" }, { status: 400 });
+  }
   const title = typeof body.title === "string" ? body.title.trim() : "";
   if (!title) {
     return NextResponse.json({ error: "title è obbligatorio" }, { status: 400 });

@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { requireSessionOctokit } from "@/lib/session-github";
+import { parseJsonBody } from "@/lib/api-request";
 import { getFile, putFile } from "@/lib/github";
-import { appendComment, capitoliDirFor, getComments, removeComment } from "@/lib/domain";
+import {
+  appendComment,
+  capitoliDirFor,
+  getComments,
+  isSafeSlug,
+  removeComment,
+} from "@/lib/domain";
 
 interface RouteParams {
   params: Promise<{ owner: string; repo: string; slug: string; file: string }>;
@@ -11,6 +18,7 @@ interface RouteParams {
 const SAFE_FILENAME = /^[\w.-]+\.md$/;
 
 function resolveMdPath(slug: string, file: string): string | null {
+  if (!isSafeSlug(slug)) return null;
   const name = decodeURIComponent(file);
   if (!SAFE_FILENAME.test(name)) return null;
   return `${capitoliDirFor(slug)}/${name}`;
@@ -53,7 +61,10 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
   const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
 
-  const body = await request.json();
+  const body = await parseJsonBody(request);
+  if (body === null) {
+    return NextResponse.json({ error: "JSON non valido" }, { status: 400 });
+  }
 
   if (body.action === "save-content") {
     const content = typeof body.content === "string" ? body.content : "";

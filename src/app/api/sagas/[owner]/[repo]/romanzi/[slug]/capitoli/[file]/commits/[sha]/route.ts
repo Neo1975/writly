@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireSessionOctokit } from "@/lib/session-github";
 import { getFileAtRef } from "@/lib/github";
-import { capitoliDirFor } from "@/lib/domain";
+import { capitoliDirFor, isSafeSlug } from "@/lib/domain";
 
 interface RouteParams {
   params: Promise<{ owner: string; repo: string; slug: string; file: string; sha: string }>;
@@ -17,7 +17,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
   }
   const { owner, repo, slug, file, sha } = await params;
   const name = decodeURIComponent(file);
-  if (!SAFE_FILENAME.test(name) || !SAFE_SHA.test(sha)) {
+  if (!isSafeSlug(slug) || !SAFE_FILENAME.test(name) || !SAFE_SHA.test(sha)) {
     return NextResponse.json({ error: "Parametri non validi" }, { status: 400 });
   }
 

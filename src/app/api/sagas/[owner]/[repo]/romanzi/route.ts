@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireSessionOctokit } from "@/lib/session-github";
+import { parseJsonBody } from "@/lib/api-request";
 import { putFile } from "@/lib/github";
 import { listRomanzi } from "@/lib/domain";
 import { emptyJsonArray, romanzoJsonTemplate, slugify } from "@/lib/templates";
@@ -27,7 +28,10 @@ export async function POST(request: Request, { params }: RouteParams) {
   const { owner, repo } = await params;
   const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
 
-  const body = await request.json();
+  const body = await parseJsonBody(request);
+  if (body === null) {
+    return NextResponse.json({ error: "JSON non valido" }, { status: 400 });
+  }
   const title = typeof body.title === "string" ? body.title.trim() : "";
   if (!title) {
     return NextResponse.json({ error: "title è obbligatorio" }, { status: 400 });

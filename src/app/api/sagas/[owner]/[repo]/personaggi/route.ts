@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireSessionOctokit } from "@/lib/session-github";
+import { parseJsonBody } from "@/lib/api-request";
 import { getCharacters, saveCharacters } from "@/lib/domain";
+import { isCharacter } from "@/lib/validation";
 import type { Character } from "@/lib/types";
 
 interface RouteParams {
@@ -26,10 +28,13 @@ export async function PUT(request: Request, { params }: RouteParams) {
   const { owner, repo } = await params;
   const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
 
-  const body = await request.json();
-  if (!Array.isArray(body.characters)) {
+  const body = await parseJsonBody(request);
+  if (body === null) {
+    return NextResponse.json({ error: "JSON non valido" }, { status: 400 });
+  }
+  if (!Array.isArray(body.characters) || !body.characters.every(isCharacter)) {
     return NextResponse.json(
-      { error: "characters deve essere un array" },
+      { error: "characters deve essere un array di personaggi validi" },
       { status: 400 }
     );
   }

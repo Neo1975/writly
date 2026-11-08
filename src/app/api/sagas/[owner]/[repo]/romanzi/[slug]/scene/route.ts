@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireSessionOctokit } from "@/lib/session-github";
-import { getScenes, saveScenes } from "@/lib/domain";
+import { parseJsonBody } from "@/lib/api-request";
+import { getScenes, isSafeSlug, saveScenes } from "@/lib/domain";
+import { isScene } from "@/lib/validation";
 import type { Scene } from "@/lib/types";
 
 interface RouteParams {
@@ -13,6 +15,9 @@ export async function GET(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
   const { owner, repo, slug } = await params;
+  if (!isSafeSlug(slug)) {
+    return NextResponse.json({ error: "Slug non valido" }, { status: 400 });
+  }
   const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
   const { scenes } = await getScenes(auth.octokit, owner, repo, slug, branch);
   return NextResponse.json({ scenes });
@@ -24,11 +29,20 @@ export async function PUT(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
   const { owner, repo, slug } = await params;
+  if (!isSafeSlug(slug)) {
+    return NextResponse.json({ error: "Slug non valido" }, { status: 400 });
+  }
   const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
 
-  const body = await request.json();
-  if (!Array.isArray(body.scenes)) {
-    return NextResponse.json({ error: "scenes deve essere un array" }, { status: 400 });
+  const body = await parseJsonBody(request);
+  if (body === null) {
+    return NextResponse.json({ error: "JSON non valido" }, { status: 400 });
+  }
+  if (!Array.isArray(body.scenes) || !body.scenes.every(isScene)) {
+    return NextResponse.json(
+      { error: "scenes deve essere un array di scene valide" },
+      { status: 400 }
+    );
   }
   const scenes = body.scenes as Scene[];
   const message =

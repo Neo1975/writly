@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireSessionOctokit } from "@/lib/session-github";
-import { getPdfSettings, savePdfSettings } from "@/lib/domain";
+import { parseJsonBody } from "@/lib/api-request";
+import { getPdfSettings, isSafeSlug, savePdfSettings } from "@/lib/domain";
 import type { PdfSettings } from "@/lib/types";
 
 interface RouteParams {
@@ -13,6 +14,9 @@ export async function GET(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
   const { owner, repo, slug } = await params;
+  if (!isSafeSlug(slug)) {
+    return NextResponse.json({ error: "Slug non valido" }, { status: 400 });
+  }
   const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
   const { settings } = await getPdfSettings(auth.octokit, owner, repo, slug, branch);
   return NextResponse.json({ settings });
@@ -24,9 +28,15 @@ export async function PUT(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
   const { owner, repo, slug } = await params;
+  if (!isSafeSlug(slug)) {
+    return NextResponse.json({ error: "Slug non valido" }, { status: 400 });
+  }
   const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
 
-  const body = await request.json();
+  const body = await parseJsonBody(request);
+  if (body === null) {
+    return NextResponse.json({ error: "JSON non valido" }, { status: 400 });
+  }
   if (!body.settings || typeof body.settings !== "object") {
     return NextResponse.json({ error: "settings è obbligatorio" }, { status: 400 });
   }

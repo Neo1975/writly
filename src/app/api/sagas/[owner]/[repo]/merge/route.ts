@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireSessionOctokit } from "@/lib/session-github";
+import { parseJsonBody } from "@/lib/api-request";
 import { mergeBranches } from "@/lib/github";
 
 interface RouteParams {
@@ -13,7 +14,10 @@ export async function POST(request: Request, { params }: RouteParams) {
   }
   const { owner, repo } = await params;
 
-  const body = await request.json();
+  const body = await parseJsonBody(request);
+  if (body === null) {
+    return NextResponse.json({ error: "JSON non valido" }, { status: 400 });
+  }
   const base = typeof body.base === "string" ? body.base.trim() : "";
   const head = typeof body.head === "string" ? body.head.trim() : "";
   const message = typeof body.message === "string" ? body.message.trim() : undefined;

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireSessionOctokit } from "@/lib/session-github";
 import { getFile } from "@/lib/github";
-import { getChapterContents, listCapitoli } from "@/lib/domain";
+import { parseJsonBody } from "@/lib/api-request";
+import { getChapterContents, isSafeSlug, listCapitoli } from "@/lib/domain";
 import { buildBookPdf } from "@/lib/pdf/document";
 import { imposeBooklet } from "@/lib/pdf/booklet";
 import { slugify } from "@/lib/templates";
@@ -19,9 +20,15 @@ export async function POST(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
   }
   const { owner, repo, slug } = await params;
+  if (!isSafeSlug(slug)) {
+    return NextResponse.json({ error: "Slug non valido" }, { status: 400 });
+  }
   const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
 
-  const body = await request.json();
+  const body = await parseJsonBody(request);
+  if (body === null) {
+    return NextResponse.json({ error: "JSON non valido" }, { status: 400 });
+  }
   if (!body.settings || typeof body.settings !== "object") {
     return NextResponse.json({ error: "settings è obbligatorio" }, { status: 400 });
   }
