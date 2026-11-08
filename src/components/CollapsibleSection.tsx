@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 
 export function CollapsibleSection({
@@ -23,13 +24,11 @@ export function CollapsibleSection({
           onClick={() => setOpen((v) => !v)}
           className="flex items-center gap-1.5 text-sm font-semibold text-zinc-700"
         >
-          <span
-            className={`inline-block text-xs text-zinc-400 transition-transform ${
+          <ChevronRight
+            className={`h-3.5 w-3.5 text-zinc-400 transition-transform ${
               open ? "rotate-90" : ""
             }`}
-          >
-            ›
-          </span>
+          />
           {title}
         </button>
         {headerExtra}

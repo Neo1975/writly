@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
 import type { SagaSummary } from "@/lib/github";
 
@@ -60,8 +61,9 @@ export function Dashboard() {
           <button
             type="submit"
             disabled={creating}
-            className="self-start rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            className="flex items-center gap-1.5 self-start rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
+            <Plus className="h-4 w-4" />
             {creating ? "Creazione in corso…" : "Crea saga e repository GitHub"}
           </button>
         </form>

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import CodeMirror from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
+import { Plus } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
 import { useCommitMessageDialog } from "@/hooks/useCommitMessageDialog";
 import { renderMarkdown } from "@/lib/markdown";
@@ -202,12 +203,17 @@ export function Agendina() {
 
   return (
     <div className="flex flex-1 overflow-hidden">
-      <div className="flex w-72 shrink-0 flex-col border-r border-zinc-200 p-4">
+      <div
+        className={`${
+          selectedSlug ? "hidden" : "flex"
+        } w-full flex-col border-r border-zinc-200 p-4 md:flex md:w-72 md:shrink-0`}
+      >
         <button
           onClick={handleCreateNote}
-          className="mb-3 rounded-full border border-zinc-300 px-3 py-1.5 text-sm hover:border-zinc-500"
+          className="mb-3 flex items-center justify-center gap-1.5 rounded-full border border-zinc-300 px-3 py-1.5 text-sm hover:border-zinc-500"
         >
-          + Nuova nota
+          <Plus className="h-4 w-4" />
+          Nuova nota
         </button>
         <input
           value={search}
@@ -255,7 +261,19 @@ export function Agendina() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div
+        className={`${
+          selectedSlug ? "flex" : "hidden"
+        } flex-1 flex-col overflow-y-auto p-4 sm:p-6 md:flex`}
+      >
+        {selectedSlug && (
+          <button
+            onClick={() => setSelectedSlug(null)}
+            className="mb-3 text-left text-sm text-zinc-500 hover:text-zinc-900 md:hidden"
+          >
+            ← Note
+          </button>
+        )}
         {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
         {!selectedSlug && (
           <p className="text-sm text-zinc-500">
@@ -292,7 +310,7 @@ export function Agendina() {
               className="rounded border border-zinc-300 px-2 py-1 text-xs"
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <CodeMirror
                 value={content}
                 onChange={setContent}
@@ -307,7 +325,7 @@ export function Agendina() {
               />
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 onClick={handleSave}
                 disabled={saving}

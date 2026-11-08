@@ -4,6 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import {
+  FileDown,
+  History,
+  LayoutGrid,
+  LogOut,
+  Menu,
+  NotebookPen,
+  Users,
+  X,
+} from "lucide-react";
 import { apiFetch, withBranch } from "@/lib/api-client";
 import { signOutAction } from "@/lib/actions";
 import { useBranchSelection } from "@/contexts/BranchContext";
@@ -25,7 +35,7 @@ function parseContext(pathname: string): Context | null {
 }
 
 function navLinkClass(active: boolean): string {
-  return `block truncate rounded px-2 py-1 text-sm ${
+  return `flex items-center gap-1.5 truncate rounded px-2 py-1 text-sm ${
     active ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-100"
   }`;
 }
@@ -60,6 +70,11 @@ export function Sidebar({
   const { getBranch, setBranch } = useBranchSelection();
   const branch = ctx ? getBranch(ctx.owner, ctx.repo) : undefined;
   const [mergeOpen, setMergeOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    queueMicrotask(() => setMobileOpen(false));
+  }, [pathname]);
 
   useEffect(() => {
     apiFetch<{ sagas: SagaSummary[] }>("/api/sagas")
@@ -131,21 +146,52 @@ export function Sidebar({
       : null;
 
   return (
-    <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-zinc-200 bg-white">
-      <Link
-        href="/dashboard"
-        className="flex items-center border-b border-zinc-200 px-4 py-4 text-base font-semibold"
-      >
-        Writly
-      </Link>
-
-      <div className="px-3 pt-3">
-        <Link href="/agendina" className={navLinkClass(pathname === "/agendina")}>
-          Agendina
-        </Link>
+    <>
+      <div className="flex items-center justify-between border-b border-zinc-200 bg-white px-4 py-3 md:hidden">
+        <button
+          onClick={() => setMobileOpen(true)}
+          aria-label="Apri il menu"
+          className="flex h-10 w-10 items-center justify-center rounded text-zinc-600 hover:bg-zinc-100"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <span className="text-base font-semibold">Writly</span>
+        <span className="h-10 w-10" />
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-zinc-200 bg-white transition-transform duration-200 md:static md:z-auto md:h-screen md:w-64 md:max-w-none md:shrink-0 md:translate-x-0 ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-4">
+          <Link href="/dashboard" className="text-base font-semibold">
+            Writly
+          </Link>
+          <button
+            onClick={() => setMobileOpen(false)}
+            aria-label="Chiudi il menu"
+            className="text-zinc-400 hover:text-zinc-700 md:hidden"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="px-3 pt-3">
+          <Link href="/agendina" className={navLinkClass(pathname === "/agendina")}>
+            <NotebookPen className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">Agendina</span>
+          </Link>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto px-3 py-4">
         <div className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
           Le tue saghe
         </div>
@@ -213,13 +259,15 @@ export function Sidebar({
                       href={`${sagaHref}/personaggi`}
                       className={navLinkClass(pathname === `${sagaHref}/personaggi`)}
                     >
-                      Schede personaggio
+                      <Users className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">Schede personaggio</span>
                     </Link>
                     <Link
                       href={`${sagaHref}/timeline`}
                       className={navLinkClass(pathname === `${sagaHref}/timeline`)}
                     >
-                      Timeline degli eventi
+                      <History className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">Timeline degli eventi</span>
                     </Link>
 
                     <div className="mt-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
@@ -250,13 +298,15 @@ export function Sidebar({
                                 href={`${romanzoHref}/scene`}
                                 className={navLinkClass(pathname === `${romanzoHref}/scene`)}
                               >
-                                Architettura delle scene
+                                <LayoutGrid className="h-3.5 w-3.5 shrink-0" />
+                                <span className="truncate">Architettura delle scene</span>
                               </Link>
                               <Link
                                 href={`${romanzoHref}/pdf`}
                                 className={navLinkClass(pathname === `${romanzoHref}/pdf`)}
                               >
-                                Esporta PDF
+                                <FileDown className="h-3.5 w-3.5 shrink-0" />
+                                <span className="truncate">Esporta PDF</span>
                               </Link>
                               {capitoli?.map((capitolo) => (
                                 <Link
@@ -315,8 +365,9 @@ export function Sidebar({
         <form action={signOutAction} className="mt-2">
           <button
             type="submit"
-            className="w-full rounded border border-zinc-200 px-2 py-1.5 text-xs text-zinc-500 hover:border-zinc-400 hover:text-zinc-900"
+            className="flex w-full items-center justify-center gap-1.5 rounded border border-zinc-200 px-2 py-1.5 text-xs text-zinc-500 hover:border-zinc-400 hover:text-zinc-900"
           >
+            <LogOut className="h-3.5 w-3.5" />
             Esci
           </button>
         </form>
@@ -332,6 +383,7 @@ export function Sidebar({
           onClose={() => setMergeOpen(false)}
         />
       )}
-    </aside>
+      </aside>
+    </>
   );
 }

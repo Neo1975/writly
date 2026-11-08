@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BookOpen, FileDown, Save } from "lucide-react";
 import { apiFetch, withBranch } from "@/lib/api-client";
 import { useCurrentBranch } from "@/contexts/BranchContext";
 import { useCommitMessageDialog } from "@/hooks/useCommitMessageDialog";
@@ -148,15 +149,17 @@ export function PdfExport({
         <button
           onClick={() => handleGenerate("standard")}
           disabled={generating !== null}
-          className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
+          <FileDown className="h-4 w-4" />
           {generating === "standard" ? "Generazione…" : "Scarica PDF"}
         </button>
         <button
           onClick={() => handleGenerate("booklet")}
           disabled={generating !== null}
-          className="rounded-full border border-zinc-300 px-4 py-2 text-sm hover:border-zinc-500 disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-full border border-zinc-300 px-4 py-2 text-sm hover:border-zinc-500 disabled:opacity-50"
         >
+          <BookOpen className="h-4 w-4" />
           {generating === "booklet"
             ? "Generazione…"
             : "Scarica versione opuscolo (fronte-retro)"}
@@ -164,8 +167,9 @@ export function PdfExport({
         <button
           onClick={handleSaveSettings}
           disabled={saving}
-          className="rounded-full border border-zinc-300 px-4 py-2 text-sm hover:border-zinc-500 disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-full border border-zinc-300 px-4 py-2 text-sm hover:border-zinc-500 disabled:opacity-50"
         >
+          <Save className="h-4 w-4" />
           {saving ? "Salvataggio…" : "Salva impostazioni su GitHub"}
         </button>
       </div>
@@ -192,7 +196,7 @@ export function PdfExport({
         </div>
       </section>
 
-      <section className="mb-8 grid grid-cols-2 gap-4 rounded-lg border border-zinc-200 bg-white p-5">
+      <section className="mb-8 grid grid-cols-1 gap-4 rounded-lg border border-zinc-200 bg-white p-5 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-xs text-zinc-600">
           Formato pagina
           <select

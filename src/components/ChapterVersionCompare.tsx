@@ -121,7 +121,7 @@ export function ChapterVersionCompare({
           <select
             value={leftChoice}
             onChange={(e) => setLeftChoice(e.target.value)}
-            className="rounded border border-zinc-300 px-2 py-1.5 text-sm"
+            className="min-w-0 rounded border border-zinc-300 px-2 py-1.5 text-sm"
           >
             {renderOptions()}
           </select>
@@ -132,7 +132,7 @@ export function ChapterVersionCompare({
           <select
             value={rightChoice}
             onChange={(e) => setRightChoice(e.target.value)}
-            className="rounded border border-zinc-300 px-2 py-1.5 text-sm"
+            className="min-w-0 rounded border border-zinc-300 px-2 py-1.5 text-sm"
           >
             {renderOptions()}
           </select>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Plus } from "lucide-react";
 import { apiFetch, withBranch } from "@/lib/api-client";
 import { useCurrentBranch } from "@/contexts/BranchContext";
 import { useCommitMessageDialog } from "@/hooks/useCommitMessageDialog";
@@ -119,9 +120,10 @@ export function TimelineBoard({ owner, repo }: { owner: string; repo: string }) 
       <div className="mb-6 flex items-center gap-3">
         <button
           onClick={addEvent}
-          className="rounded-full border border-zinc-300 px-4 py-2 text-sm hover:border-zinc-500"
+          className="flex items-center gap-1.5 rounded-full border border-zinc-300 px-4 py-2 text-sm hover:border-zinc-500"
         >
-          + Nuovo evento
+          <Plus className="h-4 w-4" />
+          Nuovo evento
         </button>
         <button
           onClick={handleSaveAll}
@@ -184,7 +186,7 @@ export function TimelineBoard({ owner, repo }: { owner: string; repo: string }) 
                 className="rounded border border-zinc-300 px-2 py-1 text-xs"
               />
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <select
                   value={event.romanzoSlug ?? ""}
                   onChange={(e) => {

@@ -11,7 +11,7 @@ export function AppShell({
 }) {
   return (
     <BranchProvider>
-      <div className="flex flex-1">
+      <div className="flex flex-1 flex-col md:flex-row">
         <Sidebar user={user} />
         <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">{children}</div>
       </div>

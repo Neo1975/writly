@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Plus } from "lucide-react";
 import { apiFetch, withBranch } from "@/lib/api-client";
 import { useCurrentBranch } from "@/contexts/BranchContext";
 import type { RomanzoSummary } from "@/lib/domain";
@@ -71,8 +72,9 @@ export function SagaOverview({ owner, repo }: { owner: string; repo: string }) {
           <button
             type="submit"
             disabled={creating}
-            className="self-start rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            className="flex items-center gap-1.5 self-start rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
+            <Plus className="h-4 w-4" />
             {creating ? "Creazione in corso…" : "Crea romanzo"}
           </button>
         </form>

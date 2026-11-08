@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Archive, GitCompare, Highlighter, History, Save, Trash2, X } from "lucide-react";
 import CodeMirror, { type ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorView } from "@codemirror/view";
@@ -26,6 +27,7 @@ import { ChapterCharacters } from "@/components/ChapterCharacters";
 import { ChapterCommitLog } from "@/components/ChapterCommitLog";
 import { ChapterVersionCompare } from "@/components/ChapterVersionCompare";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
+import { Modal } from "@/components/Modal";
 import type { ChapterComment } from "@/lib/types";
 
 interface ChapterData {
@@ -76,9 +78,32 @@ export function ChapterEditor({
   );
   const [spellChecker, setSpellChecker] = useState<SpellChecker | null>(null);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [resolvedOpen, setResolvedOpen] = useState(false);
+  const [commitLogOpen, setCommitLogOpen] = useState(false);
+  const [colorPopoverOpen, setColorPopoverOpen] = useState(false);
 
   const editorRef = useRef<ReactCodeMirrorRef>(null);
+  const colorPopoverRef = useRef<HTMLDivElement>(null);
   const { promptMessage, dialog: commitDialog } = useCommitMessageDialog();
+
+  useEffect(() => {
+    if (!colorPopoverOpen) return;
+    function handlePointerDown(e: MouseEvent) {
+      if (!colorPopoverRef.current?.contains(e.target as Node)) {
+        setColorPopoverOpen(false);
+      }
+    }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setColorPopoverOpen(false);
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [colorPopoverOpen]);
 
   const plainText = useMemo(() => stripHighlights(content), [content]);
   const wordCount = plainText.trim() === "" ? 0 : plainText.trim().split(/\s+/).length;
@@ -140,7 +165,7 @@ export function ChapterEditor({
     }
   }
 
-  function handleHighlightSelection() {
+  function handleHighlightSelection(colorId: string) {
     const view = editorRef.current?.view;
     if (!view) return;
     const { from: selectionStart, to: selectionEnd } = view.state.selection.main;
@@ -152,11 +177,24 @@ export function ChapterEditor({
     const id = crypto.randomUUID().slice(0, 8);
     const wrapped =
       content.slice(0, selectionStart) +
-      wrapWithHighlight(selected, id, selectedColor) +
+      wrapWithHighlight(selected, id, colorId) +
       content.slice(selectionEnd);
     setContent(wrapped);
-    setPendingHighlight({ id, text: selected, color: selectedColor });
+    setSelectedColor(colorId);
+    setPendingHighlight({ id, text: selected, color: colorId });
     setCommentDraft("");
+    setColorPopoverOpen(false);
+  }
+
+  function handleToggleColorPopover() {
+    const view = editorRef.current?.view;
+    const { from, to } = view?.state.selection.main ?? { from: 0, to: 0 };
+    if (from === to) {
+      setError("Seleziona prima il testo da evidenziare.");
+      return;
+    }
+    setError(null);
+    setColorPopoverOpen((open) => !open);
   }
 
   async function handleSaveHighlightAndComment() {
@@ -323,18 +361,7 @@ export function ChapterEditor({
             title="Elimina commento"
             className="ml-auto shrink-0 text-zinc-400 hover:text-red-600 disabled:opacity-50"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              className="h-4 w-4"
-            >
-              <path
-                fillRule="evenodd"
-                d="M8.75 1a.75.75 0 0 0-.75.75V2h-3a.75.75 0 0 0 0 1.5h.3l.6 11.1A2 2 0 0 0 7.9 16.5h4.2a2 2 0 0 0 2-1.9l.6-11.1h.3a.75.75 0 0 0 0-1.5h-3v-.25a.75.75 0 0 0-.75-.75h-2.5Zm-1.1 4a.5.5 0 0 1 .5.47l.3 8a.5.5 0 1 1-1 .06l-.3-8a.5.5 0 0 1 .5-.53Zm3.7.47a.5.5 0 1 0-1-.06l-.3 8a.5.5 0 1 0 1 .06l.3-8Z"
-                clipRule="evenodd"
-              />
-            </svg>
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
         <p className="text-zinc-700">{comment.text}</p>
@@ -347,36 +374,46 @@ export function ChapterEditor({
   }
 
   return (
-    <div className="flex flex-1 gap-6 px-6 py-6">
+    <div className="flex flex-1 flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:flex-row">
       <div className="flex flex-1 flex-col gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1" role="radiogroup" aria-label="Colore evidenziazione">
-            {HIGHLIGHT_COLORS.map((color) => (
-              <button
-                key={color.id}
-                type="button"
-                role="radio"
-                aria-checked={selectedColor === color.id}
-                title={color.label}
-                onClick={() => setSelectedColor(color.id)}
-                style={{ backgroundColor: color.swatch }}
-                className={`h-6 w-6 rounded-full border-2 ${
-                  selectedColor === color.id ? "border-zinc-900" : "border-transparent"
-                }`}
-              />
-            ))}
+        <div className="flex flex-wrap items-center gap-3">
+          <div ref={colorPopoverRef} className="relative">
+            <button
+              onClick={handleToggleColorPopover}
+              className="flex items-center gap-2 rounded-full border border-zinc-300 px-4 py-2 text-sm hover:border-zinc-500"
+            >
+              <Highlighter className="h-4 w-4" />
+              Evidenzia
+            </button>
+            {colorPopoverOpen && (
+              <div
+                className="absolute left-0 top-full z-10 mt-2 flex items-center gap-1 rounded-full border border-zinc-200 bg-white p-2 shadow-lg"
+                role="radiogroup"
+                aria-label="Colore evidenziazione"
+              >
+                {HIGHLIGHT_COLORS.map((color) => (
+                  <button
+                    key={color.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={selectedColor === color.id}
+                    title={color.label}
+                    onClick={() => handleHighlightSelection(color.id)}
+                    style={{ backgroundColor: color.swatch }}
+                    className={`h-8 w-8 rounded-full border-2 ${
+                      selectedColor === color.id ? "border-zinc-900" : "border-transparent"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-          <button
-            onClick={handleHighlightSelection}
-            className="rounded-full border border-zinc-300 px-4 py-2 text-sm hover:border-zinc-500"
-          >
-            Evidenzia selezione
-          </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            className="flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
+            <Save className="h-4 w-4" />
             {saving ? "Salvataggio…" : "Salva su GitHub"}
           </button>
           {status && <span className="text-sm text-green-700">{status}</span>}
@@ -435,7 +472,31 @@ export function ChapterEditor({
         </div>
       </div>
 
-      <aside className="w-96 shrink-0">
+      <aside className="w-full lg:w-96 lg:shrink-0">
+        <div className="mb-4 flex items-center gap-2 border-b border-zinc-200 pb-4">
+          <button
+            onClick={() => setResolvedOpen(true)}
+            title="Storico commenti risolti"
+            className="rounded-full border border-zinc-300 p-2 hover:border-zinc-500"
+          >
+            <Archive className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setCompareOpen(true)}
+            title="Confronta versioni"
+            className="rounded-full border border-zinc-300 p-2 hover:border-zinc-500"
+          >
+            <GitCompare className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setCommitLogOpen(true)}
+            title="Log dei commit"
+            className="rounded-full border border-zinc-300 p-2 hover:border-zinc-500"
+          >
+            <History className="h-4 w-4" />
+          </button>
+        </div>
+
         <CollapsibleSection
           title="Commenti dell'editor"
           headerExtra={
@@ -460,15 +521,6 @@ export function ChapterEditor({
           </ul>
         </CollapsibleSection>
 
-        <CollapsibleSection title="Storico commenti risolti" defaultOpen={false}>
-          <ul className="flex flex-col gap-3">
-            {resolvedComments.length === 0 && (
-              <li className="text-sm text-zinc-500">Nessun commento risolto finora.</li>
-            )}
-            {resolvedComments.map(renderCommentItem)}
-          </ul>
-        </CollapsibleSection>
-
         <CollapsibleSection title="Personaggi nel capitolo">
           <ChapterCharacters
             owner={owner}
@@ -478,8 +530,40 @@ export function ChapterEditor({
             content={content}
           />
         </CollapsibleSection>
-
-        <CollapsibleSection title="Confronta versioni" defaultOpen={false}>
+      </aside>
+      {commitDialog}
+      {resolvedOpen && (
+        <Modal onClose={() => setResolvedOpen(false)} maxWidthClassName="max-w-lg">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-zinc-900">Storico commenti risolti</h2>
+            <button
+              onClick={() => setResolvedOpen(false)}
+              className="shrink-0 text-zinc-400 hover:text-zinc-700"
+              title="Chiudi"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <ul className="flex flex-col gap-3">
+            {resolvedComments.length === 0 && (
+              <li className="text-sm text-zinc-500">Nessun commento risolto finora.</li>
+            )}
+            {resolvedComments.map(renderCommentItem)}
+          </ul>
+        </Modal>
+      )}
+      {compareOpen && (
+        <Modal onClose={() => setCompareOpen(false)} fullscreen>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-zinc-900">Confronta versioni</h2>
+            <button
+              onClick={() => setCompareOpen(false)}
+              className="shrink-0 text-zinc-400 hover:text-zinc-700"
+              title="Chiudi"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
           <ChapterVersionCompare
             owner={owner}
             repo={repo}
@@ -489,9 +573,20 @@ export function ChapterEditor({
             isDirty={content !== savedContent}
             refreshKey={commitLogVersion}
           />
-        </CollapsibleSection>
-
-        <CollapsibleSection title="Log dei commit" defaultOpen={false}>
+        </Modal>
+      )}
+      {commitLogOpen && (
+        <Modal onClose={() => setCommitLogOpen(false)} maxWidthClassName="max-w-lg">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-zinc-900">Log dei commit</h2>
+            <button
+              onClick={() => setCommitLogOpen(false)}
+              className="shrink-0 text-zinc-400 hover:text-zinc-700"
+              title="Chiudi"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
           <ChapterCommitLog
             owner={owner}
             repo={repo}
@@ -499,9 +594,8 @@ export function ChapterEditor({
             file={file}
             refreshKey={commitLogVersion}
           />
-        </CollapsibleSection>
-      </aside>
-      {commitDialog}
+        </Modal>
+      )}
     </div>
   );
 }
