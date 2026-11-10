@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
-import { getOctokit, getFile } from "@/lib/github";
+import { auth, signIn } from "@/auth";
+import { getOctokit, getFile, isUnauthorizedError } from "@/lib/github";
 import { Header } from "@/components/Header";
 import { PdfExport } from "@/components/PdfExport";
 import type { Romanzo } from "@/lib/types";
@@ -15,8 +15,16 @@ export default async function RomanzoPdfPage({
   const { owner, repo, slug } = await params;
 
   const octokit = getOctokit(session.accessToken);
-  const file = await getFile(octokit, owner, repo, `romanzi/${slug}/romanzo.json`);
-  const romanzo = file ? (JSON.parse(file.content) as Romanzo) : null;
+  let romanzo: Romanzo | null = null;
+  try {
+    const file = await getFile(octokit, owner, repo, `romanzi/${slug}/romanzo.json`);
+    romanzo = file ? (JSON.parse(file.content) as Romanzo) : null;
+  } catch (error) {
+    if (isUnauthorizedError(error)) {
+      await signIn("github", { redirectTo: `/saga/${owner}/${repo}/romanzo/${slug}/pdf` });
+    }
+    throw error;
+  }
   const title = romanzo?.title ?? slug;
 
   return (

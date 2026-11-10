@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
-import { getOctokit } from "@/lib/github";
+import { auth, signIn } from "@/auth";
+import { getOctokit, isUnauthorizedError } from "@/lib/github";
 import { listCapitoli } from "@/lib/domain";
 import { Header } from "@/components/Header";
 import { ChapterEditor } from "@/components/ChapterEditor";
@@ -16,8 +16,18 @@ export default async function CapitoloPage({
   const decodedFile = decodeURIComponent(file);
 
   const octokit = getOctokit(session.accessToken);
-  const capitoli = await listCapitoli(octokit, owner, repo, slug);
-  const title = capitoli.find((c) => c.file === decodedFile)?.title ?? decodedFile;
+  let title = decodedFile;
+  try {
+    const capitoli = await listCapitoli(octokit, owner, repo, slug);
+    title = capitoli.find((c) => c.file === decodedFile)?.title ?? decodedFile;
+  } catch (error) {
+    if (isUnauthorizedError(error)) {
+      await signIn("github", {
+        redirectTo: `/saga/${owner}/${repo}/romanzo/${slug}/capitolo/${file}`,
+      });
+    }
+    throw error;
+  }
 
   return (
     <div className="flex flex-1 flex-col">

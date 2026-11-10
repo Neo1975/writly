@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireSessionOctokit } from "@/lib/session-github";
 import { getFileAtRef } from "@/lib/github";
 import { capitoliDirFor, isSafeSlug } from "@/lib/domain";
+import { withGithubAuthHandling } from "@/lib/api-error-handler";
 
 interface RouteParams {
   params: Promise<{ owner: string; repo: string; slug: string; file: string; sha: string }>;
@@ -10,7 +11,7 @@ interface RouteParams {
 const SAFE_FILENAME = /^[\w.-]+\.md$/;
 const SAFE_SHA = /^[0-9a-f]{7,40}$/i;
 
-export async function GET(_request: Request, { params }: RouteParams) {
+export const GET = withGithubAuthHandling(async (_request: Request, { params }: RouteParams) => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -27,4 +28,4 @@ export async function GET(_request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Versione non trovata" }, { status: 404 });
   }
   return NextResponse.json({ content });
-}
+});

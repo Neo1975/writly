@@ -10,8 +10,9 @@ import {
 import { emptyJsonArray, sagaJsonTemplate, slugify } from "@/lib/templates";
 import { CHARACTERS_PATH } from "@/lib/domain";
 import { editorCommentSkillTemplate } from "@/lib/skill-template";
+import { withGithubAuthHandling } from "@/lib/api-error-handler";
 
-export async function GET() {
+export const GET = withGithubAuthHandling(async () => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -19,9 +20,9 @@ export async function GET() {
   const username = await getAuthenticatedUsername(auth.octokit);
   const sagas = await listSagas(auth.octokit, username);
   return NextResponse.json({ sagas });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withGithubAuthHandling(async (request: Request) => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -88,4 +89,4 @@ export async function POST(request: Request) {
     }
     throw error;
   }
-}
+});

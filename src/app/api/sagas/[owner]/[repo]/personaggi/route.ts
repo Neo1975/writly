@@ -4,12 +4,13 @@ import { parseJsonBody } from "@/lib/api-request";
 import { getCharacters, saveCharacters } from "@/lib/domain";
 import { isCharacter } from "@/lib/validation";
 import type { Character } from "@/lib/types";
+import { withGithubAuthHandling } from "@/lib/api-error-handler";
 
 interface RouteParams {
   params: Promise<{ owner: string; repo: string }>;
 }
 
-export async function GET(request: Request, { params }: RouteParams) {
+export const GET = withGithubAuthHandling(async (request: Request, { params }: RouteParams) => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -18,9 +19,9 @@ export async function GET(request: Request, { params }: RouteParams) {
   const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
   const { characters } = await getCharacters(auth.octokit, owner, repo, branch);
   return NextResponse.json({ characters });
-}
+});
 
-export async function PUT(request: Request, { params }: RouteParams) {
+export const PUT = withGithubAuthHandling(async (request: Request, { params }: RouteParams) => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -48,4 +49,4 @@ export async function PUT(request: Request, { params }: RouteParams) {
   await saveCharacters(auth.octokit, owner, repo, characters, sha, message, branch);
 
   return NextResponse.json({ characters });
-}
+});

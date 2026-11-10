@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import { requireSessionOctokit } from "@/lib/session-github";
 import { parseJsonBody } from "@/lib/api-request";
 import { mergeBranches } from "@/lib/github";
+import { withGithubAuthHandling } from "@/lib/api-error-handler";
 
 interface RouteParams {
   params: Promise<{ owner: string; repo: string }>;
 }
 
-export async function POST(request: Request, { params }: RouteParams) {
+export const POST = withGithubAuthHandling(async (request: Request, { params }: RouteParams) => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -49,4 +50,4 @@ export async function POST(request: Request, { params }: RouteParams) {
   }
 
   return NextResponse.json({ status: result.status, sha: result.sha });
-}
+});

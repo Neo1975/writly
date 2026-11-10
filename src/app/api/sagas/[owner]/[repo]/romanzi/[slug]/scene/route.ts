@@ -4,12 +4,13 @@ import { parseJsonBody } from "@/lib/api-request";
 import { getScenes, isSafeSlug, saveScenes } from "@/lib/domain";
 import { isScene } from "@/lib/validation";
 import type { Scene } from "@/lib/types";
+import { withGithubAuthHandling } from "@/lib/api-error-handler";
 
 interface RouteParams {
   params: Promise<{ owner: string; repo: string; slug: string }>;
 }
 
-export async function GET(request: Request, { params }: RouteParams) {
+export const GET = withGithubAuthHandling(async (request: Request, { params }: RouteParams) => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -21,9 +22,9 @@ export async function GET(request: Request, { params }: RouteParams) {
   const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
   const { scenes } = await getScenes(auth.octokit, owner, repo, slug, branch);
   return NextResponse.json({ scenes });
-}
+});
 
-export async function PUT(request: Request, { params }: RouteParams) {
+export const PUT = withGithubAuthHandling(async (request: Request, { params }: RouteParams) => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -54,4 +55,4 @@ export async function PUT(request: Request, { params }: RouteParams) {
   await saveScenes(auth.octokit, owner, repo, slug, scenes, sha, message, branch);
 
   return NextResponse.json({ scenes });
-}
+});

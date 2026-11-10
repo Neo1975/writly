@@ -317,3 +317,12 @@ function isConflictError(error: unknown): boolean {
     (error as { status?: number }).status === 409
   );
 }
+
+export function isUnauthorizedError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "status" in error &&
+    (error as { status?: number }).status === 401
+  );
+}

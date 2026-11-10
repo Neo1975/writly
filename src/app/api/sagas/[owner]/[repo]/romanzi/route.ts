@@ -4,12 +4,13 @@ import { parseJsonBody } from "@/lib/api-request";
 import { putFile } from "@/lib/github";
 import { listRomanzi } from "@/lib/domain";
 import { emptyJsonArray, romanzoJsonTemplate, slugify } from "@/lib/templates";
+import { withGithubAuthHandling } from "@/lib/api-error-handler";
 
 interface RouteParams {
   params: Promise<{ owner: string; repo: string }>;
 }
 
-export async function GET(request: Request, { params }: RouteParams) {
+export const GET = withGithubAuthHandling(async (request: Request, { params }: RouteParams) => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -18,9 +19,9 @@ export async function GET(request: Request, { params }: RouteParams) {
   const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
   const romanzi = await listRomanzi(auth.octokit, owner, repo, branch);
   return NextResponse.json({ romanzi });
-}
+});
 
-export async function POST(request: Request, { params }: RouteParams) {
+export const POST = withGithubAuthHandling(async (request: Request, { params }: RouteParams) => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -78,4 +79,4 @@ export async function POST(request: Request, { params }: RouteParams) {
     { slug, title, order, description, status: "bozza" },
     { status: 201 }
   );
-}
+});

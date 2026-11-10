@@ -1,3 +1,5 @@
+import { signIn } from "next-auth/react";
+
 export function withBranch(url: string, branch?: string | null): string {
   if (!branch) return url;
   const separator = url.includes("?") ? "&" : "?";
@@ -9,6 +11,10 @@ export async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
+  if (res.status === 401) {
+    void signIn("github");
+    throw new Error("Sessione GitHub scaduta: reindirizzamento al login...");
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error ?? `Richiesta fallita (${res.status})`);

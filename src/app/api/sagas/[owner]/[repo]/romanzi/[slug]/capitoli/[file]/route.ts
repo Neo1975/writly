@@ -10,6 +10,7 @@ import {
   isSafeSlug,
   removeComment,
 } from "@/lib/domain";
+import { withGithubAuthHandling } from "@/lib/api-error-handler";
 
 interface RouteParams {
   params: Promise<{ owner: string; repo: string; slug: string; file: string }>;
@@ -24,7 +25,7 @@ function resolveMdPath(slug: string, file: string): string | null {
   return `${capitoliDirFor(slug)}/${name}`;
 }
 
-export async function GET(request: Request, { params }: RouteParams) {
+export const GET = withGithubAuthHandling(async (request: Request, { params }: RouteParams) => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -47,9 +48,9 @@ export async function GET(request: Request, { params }: RouteParams) {
     sha: chapterFile.sha,
     comments,
   });
-}
+});
 
-export async function PUT(request: Request, { params }: RouteParams) {
+export const PUT = withGithubAuthHandling(async (request: Request, { params }: RouteParams) => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -128,4 +129,4 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 
   return NextResponse.json({ error: "action non valida" }, { status: 400 });
-}
+});

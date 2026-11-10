@@ -5,6 +5,7 @@ import { findPersonalRepo, getAuthenticatedUsername, putFile } from "@/lib/githu
 import { getNoteIndex, notePathFor, saveNoteIndex } from "@/lib/domain";
 import { slugify } from "@/lib/templates";
 import type { NoteCategory, NoteMeta } from "@/lib/types";
+import { withGithubAuthHandling } from "@/lib/api-error-handler";
 
 const CATEGORIES: NoteCategory[] = [
   "personaggio",
@@ -14,7 +15,7 @@ const CATEGORIES: NoteCategory[] = [
   "generale",
 ];
 
-export async function GET() {
+export const GET = withGithubAuthHandling(async () => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -26,9 +27,9 @@ export async function GET() {
   }
   const { notes } = await getNoteIndex(auth.octokit, repo.owner, repo.repo);
   return NextResponse.json({ notes });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withGithubAuthHandling(async (request: Request) => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -77,4 +78,4 @@ export async function POST(request: Request) {
   await saveNoteIndex(auth.octokit, repo.owner, repo.repo, updated, sha, `Crea nota "${title}"`);
 
   return NextResponse.json({ note: meta }, { status: 201 });
-}
+});

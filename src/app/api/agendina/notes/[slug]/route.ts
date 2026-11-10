@@ -12,6 +12,7 @@ import {
   saveNoteIndex,
 } from "@/lib/domain";
 import type { NoteCategory } from "@/lib/types";
+import { withGithubAuthHandling } from "@/lib/api-error-handler";
 
 const CATEGORIES: NoteCategory[] = [
   "personaggio",
@@ -30,7 +31,7 @@ async function resolveRepo(octokit: Octokit) {
   return findPersonalRepo(octokit, username);
 }
 
-export async function GET(_request: Request, { params }: RouteParams) {
+export const GET = withGithubAuthHandling(async (_request: Request, { params }: RouteParams) => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -54,9 +55,9 @@ export async function GET(_request: Request, { params }: RouteParams) {
   const meta = notes.find((n) => n.slug === slug) ?? null;
 
   return NextResponse.json({ content: note.content, meta });
-}
+});
 
-export async function PUT(request: Request, { params }: RouteParams) {
+export const PUT = withGithubAuthHandling(async (request: Request, { params }: RouteParams) => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -106,9 +107,9 @@ export async function PUT(request: Request, { params }: RouteParams) {
   return NextResponse.json({
     meta: updatedNotes.find((n) => n.slug === slug) ?? null,
   });
-}
+});
 
-export async function DELETE(_request: Request, { params }: RouteParams) {
+export const DELETE = withGithubAuthHandling(async (_request: Request, { params }: RouteParams) => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -142,4 +143,4 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
   );
 
   return NextResponse.json({ ok: true });
-}
+});

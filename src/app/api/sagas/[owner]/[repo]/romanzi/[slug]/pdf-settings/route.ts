@@ -3,12 +3,13 @@ import { requireSessionOctokit } from "@/lib/session-github";
 import { parseJsonBody } from "@/lib/api-request";
 import { getPdfSettings, isSafeSlug, savePdfSettings } from "@/lib/domain";
 import type { PdfSettings } from "@/lib/types";
+import { withGithubAuthHandling } from "@/lib/api-error-handler";
 
 interface RouteParams {
   params: Promise<{ owner: string; repo: string; slug: string }>;
 }
 
-export async function GET(request: Request, { params }: RouteParams) {
+export const GET = withGithubAuthHandling(async (request: Request, { params }: RouteParams) => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -20,9 +21,9 @@ export async function GET(request: Request, { params }: RouteParams) {
   const branch = new URL(request.url).searchParams.get("branch") ?? undefined;
   const { settings } = await getPdfSettings(auth.octokit, owner, repo, slug, branch);
   return NextResponse.json({ settings });
-}
+});
 
-export async function PUT(request: Request, { params }: RouteParams) {
+export const PUT = withGithubAuthHandling(async (request: Request, { params }: RouteParams) => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -50,4 +51,4 @@ export async function PUT(request: Request, { params }: RouteParams) {
   await savePdfSettings(auth.octokit, owner, repo, slug, settings, sha, message, branch);
 
   return NextResponse.json({ settings });
-}
+});

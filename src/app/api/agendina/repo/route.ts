@@ -8,8 +8,9 @@ import {
 } from "@/lib/github";
 import { NOTE_INDEX_PATH } from "@/lib/domain";
 import { emptyJsonArray } from "@/lib/templates";
+import { withGithubAuthHandling } from "@/lib/api-error-handler";
 
-export async function GET() {
+export const GET = withGithubAuthHandling(async () => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -17,9 +18,9 @@ export async function GET() {
   const username = await getAuthenticatedUsername(auth.octokit);
   const repo = await findPersonalRepo(auth.octokit, username);
   return NextResponse.json({ repo });
-}
+});
 
-export async function POST() {
+export const POST = withGithubAuthHandling(async () => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -41,4 +42,4 @@ export async function POST() {
   );
 
   return NextResponse.json({ repo }, { status: 201 });
-}
+});

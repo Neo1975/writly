@@ -7,6 +7,7 @@ import { buildBookPdf } from "@/lib/pdf/document";
 import { imposeBooklet } from "@/lib/pdf/booklet";
 import { slugify } from "@/lib/templates";
 import type { PdfSettings, Romanzo } from "@/lib/types";
+import { withGithubAuthHandling } from "@/lib/api-error-handler";
 
 export const runtime = "nodejs";
 
@@ -14,7 +15,7 @@ interface RouteParams {
   params: Promise<{ owner: string; repo: string; slug: string }>;
 }
 
-export async function POST(request: Request, { params }: RouteParams) {
+export const POST = withGithubAuthHandling(async (request: Request, { params }: RouteParams) => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -97,4 +98,4 @@ export async function POST(request: Request, { params }: RouteParams) {
       "Content-Disposition": `attachment; filename="${filename}"`,
     },
   });
-}
+});

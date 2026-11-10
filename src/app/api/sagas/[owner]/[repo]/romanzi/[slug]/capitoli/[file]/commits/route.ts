@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireSessionOctokit } from "@/lib/session-github";
 import { listFileCommits } from "@/lib/github";
 import { capitoliDirFor, isSafeSlug } from "@/lib/domain";
+import { withGithubAuthHandling } from "@/lib/api-error-handler";
 
 interface RouteParams {
   params: Promise<{ owner: string; repo: string; slug: string; file: string }>;
@@ -9,7 +10,7 @@ interface RouteParams {
 
 const SAFE_FILENAME = /^[\w.-]+\.md$/;
 
-export async function GET(request: Request, { params }: RouteParams) {
+export const GET = withGithubAuthHandling(async (request: Request, { params }: RouteParams) => {
   const auth = await requireSessionOctokit();
   if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
@@ -24,4 +25,4 @@ export async function GET(request: Request, { params }: RouteParams) {
   const path = `${capitoliDirFor(slug)}/${name}`;
   const commits = await listFileCommits(auth.octokit, owner, repo, path, { branch });
   return NextResponse.json({ commits });
-}
+});
