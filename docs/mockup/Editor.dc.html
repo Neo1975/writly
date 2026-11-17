@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Writly · Editor capitolo</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F2;color:#1F2328;font-family:Inter,system-ui,sans-serif}
+a{color:#2E4A7D}a:hover{color:#1D3460}
+.nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#3D434C;text-decoration:none;font-size:14px;min-height:24px}
+.nav a:hover{background:#ECEAE4;color:#1F2328}
+.nav a.on{background:#E8EDF6;color:#1D3460;font-weight:600}
+.pg{margin:0 0 1.1em;text-indent:1.4em}
+.who{font:inherit;color:inherit;background:#FBF1DF;border:0;border-bottom:2px dotted #9A5B13;padding:0 2px;border-radius:3px;cursor:pointer}
+.who:hover{background:#F6E2BD}
+.typo{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-decoration:underline wavy #C0392B;text-underline-offset:4px}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; font-family: Inter, system-ui, sans-serif; background: #F6F5F2">
+  <nav class="nav" aria-label="Navigazione principale" style="flex: 1 1 200px; max-width: 220px; box-sizing: border-box; padding: 20px 12px; background: #FFFFFF; border-right: 1px solid #E3E1DC; display: flex; flex-direction: column; gap: 4px">
+    <div style="font-family: Literata, Georgia, serif; font-size: 24px; font-weight: 600; padding: 4px 12px 18px">Writly</div>
+    <a href="Main.dc.html">Libreria</a>
+    <div style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #5C6370; padding: 16px 12px 6px">Il porto delle nebbie</div>
+    <a class="on" href="Editor.dc.html">Scrivi</a>
+    <a href="Struttura.dc.html">Struttura</a>
+    <a href="Scena.dc.html">Scene</a>
+    <a href="Personaggi.dc.html">Personaggi</a>
+    <a href="Mondo.dc.html">Mondo</a>
+    <a href="Appunti.dc.html">Appunti e glossario</a>
+    <a href="Versioni.dc.html">Versioni</a>
+    <a href="Export.dc.html">Esporta PDF</a>
+    <div style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #5C6370; padding: 20px 12px 6px">Capitoli</div>
+    <div style="font-size: 13px; color: #5C6370; padding: 6px 12px">5 · La chiatta</div>
+    <div style="font-size: 13px; color: #5C6370; padding: 6px 12px">6 · Debiti</div>
+    <div style="font-size: 13px; color: #1D3460; font-weight: 600; padding: 6px 12px">7 · Le lanterne del molo</div>
+    <div style="font-size: 13px; color: #5C6370; padding: 6px 12px">8 · (pianificato)</div>
+  </nav>
+
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 24px; background: #FFFFFF; border-bottom: 1px solid #E3E1DC">
+      <div style="flex: 1 1 260px; min-width: 0">
+        <div style="font-size: 12px; color: #5C6370">Tappa 6 · Prove, alleati e nemici → Scena «Incontro al molo»</div>
+        <div style="font-size: 16px; font-weight: 600">Cap. 7 — Le lanterne del molo</div>
+      </div>
+      <dl aria-label="Statistiche del capitolo" style="display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; font-size: 13px; color: #5C6370">
+        <div style="display: flex; gap: 4px"><dt>Parole</dt><dd style="margin: 0; font-weight: 600; color: #1F2328">2.418</dd></div>
+        <div style="display: flex; gap: 4px"><dt>Battute con spazi</dt><dd style="margin: 0; font-weight: 600; color: #1F2328">14.026</dd></div>
+        <div style="display: flex; gap: 4px"><dt>senza spazi</dt><dd style="margin: 0; font-weight: 600; color: #1F2328">11.609</dd></div>
+        <div style="display: flex; gap: 4px"><dt>Errori</dt><dd style="margin: 0; font-weight: 600; color: #8E2A1F">3</dd></div>
+      </dl>
+      <div style="font-size: 13px; color: #5C6370; display: flex; align-items: center; gap: 6px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #C77B12"></span>Salvato in locale · non ancora in versione</div>
+      <a href="Versioni.dc.html" style="height: 40px; display: inline-flex; align-items: center; padding: 0 14px; border: 1px solid #D5D2CA; border-radius: 8px; text-decoration: none; color: #1F2328; font-size: 14px">Storico</a>
+      <button type="button" style="height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: #2E4A7D; color: #FFFFFF; font: 600 14px Inter, sans-serif">Salva versione</button>
+    </header>
+    <div role="toolbar" aria-label="Formattazione" style="display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 24px; background: #FBFAF8; border-bottom: 1px solid #E3E1DC">
+      <button type="button" aria-label="Grassetto" style="width: 40px; height: 36px; border: 0; background: none; font: 700 15px Inter, sans-serif; border-radius: 6px">G</button>
+      <button type="button" aria-label="Corsivo" style="width: 40px; height: 36px; border: 0; background: none; font: italic 15px Literata, serif; border-radius: 6px">C</button>
+      <button type="button" style="height: 36px; padding: 0 10px; border: 0; background: none; font: 14px Inter, sans-serif; border-radius: 6px">Titolo</button>
+      <button type="button" style="height: 36px; padding: 0 10px; border: 0; background: none; font: 14px Inter, sans-serif; border-radius: 6px">Citazione</button>
+      <button type="button" style="height: 36px; padding: 0 10px; border: 0; background: none; font: 14px Inter, sans-serif; border-radius: 6px">✱ Cambio scena</button>
+      <span style="width: 1px; background: #E3E1DC; margin: 4px 6px"></span>
+      <button type="button" style="height: 36px; padding: 0 10px; border: 0; background: #E8EDF6; color: #1D3460; font: 600 14px Inter, sans-serif; border-radius: 6px">Ortografia: italiano</button>
+      <button type="button" style="height: 36px; padding: 0 10px; border: 0; background: none; font: 14px Inter, sans-serif; border-radius: 6px">Ripetizioni</button>
+      <button type="button" style="height: 36px; padding: 0 10px; border: 0; background: none; font: 14px Inter, sans-serif; border-radius: 6px">Concentrazione</button>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; flex: 1">
+      <article style="flex: 999 1 480px; min-width: 0; padding: 40px 24px 60px; display: flex; justify-content: center">
+        <div style="position: relative; max-width: 640px; width: 100%; font-family: Literata, Georgia, serif; font-size: 18px; line-height: 1.75; color: #22262B">
+          <h2 style="font-family: Literata, Georgia, serif; font-weight: 600; font-size: 28px; margin: 0 0 28px; text-align: center">VII<br><span style="font-size: 22px">Le lanterne del molo</span></h2>
+          <p class="pg"><button type="button" class="who" onClick="{{ pickIris }}">Iris</button> scese al molo quando le lanterne erano già accese. Il vento portava odore di salmastro e di corde bagnate, e <span class="typo">sopratutto</span> quel silenzio che precede le partenze.</p>
+          <p class="pg"><button type="button" class="who" onClick="{{ pickTeo }}">Teodoro</button> la aspettava sotto la tettoia, il cappello calato sugli occhi, come se il buio potesse proteggerlo dagli sguardi dei pescatori. Non si voltò quando lei gli fu accanto.</p>
+          <p class="pg">«Hai portato le carte?» chiese, senza staccare gli occhi dall'acqua.</p>
+          <p class="pg">«Ho portato <button type="button" class="typo" onClick="{{ toggleSpell }}">un'altro</button> problema» rispose <button type="button" class="who" onClick="{{ pickIris }}">Iris</button>. «<button type="button" class="who" onClick="{{ pickMorvan }}">Il Capitano</button> sa che siamo qui.»</p>
+          <sc-if value="{{ spellOpen }}" hint-placeholder-val="{{ false }}">
+            <div role="dialog" aria-label="Suggerimenti ortografici" style="position: absolute; left: 150px; top: 420px; width: 260px; background: #FFFFFF; border: 1px solid #D5D2CA; border-radius: 10px; box-shadow: 0 8px 24px rgba(31,35,40,.14); font-family: Inter, sans-serif; font-size: 14px; line-height: 1.4; padding: 6px; z-index: 2">
+              <div style="padding: 8px 10px; font-size: 12px; color: #5C6370">«un'altro»: davanti a un maschile non si apostrofa</div>
+              <button type="button" onClick="{{ toggleSpell }}" style="display: block; width: 100%; text-align: left; height: 40px; padding: 0 10px; border: 0; border-radius: 6px; background: #E8EDF6; color: #1D3460; font: 600 14px Inter, sans-serif">un altro</button>
+              <button type="button" onClick="{{ toggleSpell }}" style="display: block; width: 100%; text-align: left; height: 40px; padding: 0 10px; border: 0; border-radius: 6px; background: none; font: 14px Inter, sans-serif">un'altra</button>
+              <div style="height: 1px; background: #ECEAE4; margin: 4px 0"></div>
+              <button type="button" onClick="{{ toggleSpell }}" style="display: block; width: 100%; text-align: left; height: 40px; padding: 0 10px; border: 0; border-radius: 6px; background: none; font: 14px Inter, sans-serif">Aggiungi al dizionario del progetto</button>
+              <button type="button" onClick="{{ toggleSpell }}" style="display: block; width: 100%; text-align: left; height: 40px; padding: 0 10px; border: 0; border-radius: 6px; background: none; font: 14px Inter, sans-serif">Ignora in questo capitolo</button>
+            </div>
+          </sc-if>
+          <p class="pg">Il molo scricchiolò sotto i passi di qualcuno. <button type="button" class="who" onClick="{{ pickTeo }}">Teodoro</button> le prese il polso e la tirò nell'ombra delle reti stese ad asciugare, dove l'odore di pesce era così forte da <span class="typo">tolgiere</span> il fiato.</p>
+          <p class="pg" style="color: #8A8F98">|</p>
+        </div>
+      </article>
+
+      <aside aria-label="Pannello di contesto" style="flex: 1 1 300px; max-width: 360px; box-sizing: border-box; background: #FFFFFF; border-left: 1px solid #E3E1DC; padding: 20px; display: flex; flex-direction: column; gap: 16px">
+        <div style="display: flex; gap: 4px; background: #F1EFEA; padding: 4px; border-radius: 8px">
+          <button type="button" style="flex: 1; height: 36px; border: 0; border-radius: 6px; background: #FFFFFF; font: 600 13px Inter, sans-serif">Personaggi</button>
+          <button type="button" style="flex: 1; height: 36px; border: 0; border-radius: 6px; background: none; font: 13px Inter, sans-serif; color: #3D434C">Scena</button>
+          <button type="button" style="flex: 1; height: 36px; border: 0; border-radius: 6px; background: none; font: 13px Inter, sans-serif; color: #3D434C">Note</button>
+        </div>
+        <div style="font-size: 12px; color: #5C6370">Riconosciuti in questo capitolo</div>
+        <sc-for list="{{ people }}" as="p" hint-placeholder-count="3">
+          <button type="button" onClick="{{ p.pick }}" style="{{ p.rowStyle }}">
+            <span style="width: 36px; height: 36px; border-radius: 50%; background: {{ p.tint }}; display: inline-flex; align-items: center; justify-content: center; font: 600 14px Inter, sans-serif; color: #1F2328">{{ p.initial }}</span>
+            <span style="flex: 1; text-align: left"><span style="display: block; font: 600 14px Inter, sans-serif; color: #1F2328">{{ p.name }}</span><span style="display: block; font: 12px Inter, sans-serif; color: #5C6370">{{ p.role }}</span></span>
+            <span style="font: 12px Inter, sans-serif; color: #5C6370">{{ p.count }}</span>
+          </button>
+        </sc-for>
+
+        <section aria-label="Scheda personaggio" style="border: 1px solid #E3E1DC; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; background: #FDFCFA">
+          <div style="display: flex; justify-content: space-between; align-items: baseline"><div style="font-family: Literata, Georgia, serif; font-size: 20px; font-weight: 600">{{ card.name }}</div><a href="Personaggi.dc.html" style="font-size: 13px">Scheda completa</a></div>
+          <div style="font-size: 12px; color: #5C6370">Alias: {{ card.alias }}</div>
+          <div><div style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #5C6370">Fisico</div><div style="font-size: 14px; line-height: 1.5">{{ card.fisico }}</div></div>
+          <div><div style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #5C6370">Morale</div><div style="font-size: 14px; line-height: 1.5">{{ card.morale }}</div></div>
+          <div><div style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #5C6370">Comportamento</div><div style="font-size: 14px; line-height: 1.5">{{ card.comp }}</div></div>
+          <div><div style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #5C6370">Relazioni</div><div style="font-size: 14px; line-height: 1.5">{{ card.rel }}</div></div>
+          <sc-if value="{{ card.warn }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size: 13px; line-height: 1.45; background: #FBF1DF; color: #6B4A12; padding: 10px; border-radius: 8px">Continuità: nel cap. 3 «occhi grigi», nella scheda «occhi verdi».</div>
+          </sc-if>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { who: 'iris', spell: true }; }
+  renderVals() {
+    const cards = {
+      iris: { name: 'Iris Valden', alias: 'la ragazza del faro, Iri', fisico: 'Ventitré anni, magra, capelli corti color rame, cicatrice sul dorso della mano sinistra. Occhi verdi.', morale: 'Leale fino all’ostinazione; teme di diventare come la madre. Segreto: ha bruciato lei il registro del porto.', comp: 'Parla poco e a frasi spezzate; quando mente si tocca la cicatrice.', rel: 'Figlia di Lena Valden · alleata riluttante di Teodoro · inseguita dal Capitano Morvan', warn: true },
+      teo: { name: 'Teodoro Arrighi', alias: 'Teo, il notaio', fisico: 'Quarant’anni, alto, curvo, barba grigia ben curata. Porta sempre il cappello.', morale: 'Pragmatico, crede che ogni cosa abbia un prezzo. Desidera ricomprare la casa di famiglia.', comp: 'Cortese e formale; non guarda mai negli occhi chi gli parla.', rel: 'Mentore (ambiguo) di Iris · debitore del Capitano Morvan', warn: false },
+      morvan: { name: 'Capitano Morvan', alias: 'il Capitano, il Vecchio', fisico: 'Sessant’anni, massiccio, zoppica dalla gamba destra.', morale: 'Ordine sopra ogni cosa; disprezza la debolezza ma protegge l’equipaggio.', comp: 'Voce bassa, non alza mai i toni; fischietta quando è nervoso.', rel: 'Antagonista · creditore di Teodoro', warn: false }
+    };
+    const who = this.state.who;
+    const mk = (id, name, role, count, tint) => ({
+      name, role, count, tint, initial: name.charAt(0),
+      pick: () => this.setState({ who: id }),
+      rowStyle: 'display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 8px 10px; border-radius: 10px; cursor: pointer; border: 1px solid ' + (who === id ? '#2E4A7D' : '#E3E1DC') + '; background: ' + (who === id ? '#E8EDF6' : '#FFFFFF')
+    });
+    return {
+      people: [
+        mk('iris', 'Iris Valden', 'Protagonista · POV', '6 menzioni', '#F3D9C4'),
+        mk('teo', 'Teodoro Arrighi', 'Mentore', '4 menzioni', '#D6E0EF'),
+        mk('morvan', 'Capitano Morvan', 'Antagonista · via alias', '1 menzione', '#DCE9DF')
+      ],
+      card: cards[who],
+      spellOpen: this.state.spell,
+      toggleSpell: () => this.setState({ spell: !this.state.spell }),
+      pickIris: () => this.setState({ who: 'iris' }),
+      pickTeo: () => this.setState({ who: 'teo' }),
+      pickMorvan: () => this.setState({ who: 'morvan' })
+    };
+  }
+}
+</script>
+</body>
+</html>

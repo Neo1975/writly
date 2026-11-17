@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Writly · Appunti e glossario</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Literata:opsz,wght@7..72,400;7..72,600&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F2;color:#1F2328;font-family:Inter,system-ui,sans-serif}
+a{color:#2E4A7D}a:hover{color:#1D3460}
+.nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#3D434C;text-decoration:none;font-size:14px;min-height:24px}
+.nav a:hover{background:#ECEAE4;color:#1F2328}
+.nav a.on{background:#E8EDF6;color:#1D3460;font-weight:600}
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:12px;background:#F1EFEA;font-size:12px;color:#3D434C}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; font-family: Inter, system-ui, sans-serif; background: #F6F5F2">
+  <nav class="nav" aria-label="Navigazione principale" style="flex: 1 1 200px; max-width: 220px; box-sizing: border-box; padding: 20px 12px; background: #FFFFFF; border-right: 1px solid #E3E1DC; display: flex; flex-direction: column; gap: 4px">
+    <div style="font-family: Literata, Georgia, serif; font-size: 24px; font-weight: 600; padding: 4px 12px 18px">Writly</div>
+    <a href="Main.dc.html">Libreria</a>
+    <div style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #5C6370; padding: 16px 12px 6px">Il porto delle nebbie</div>
+    <a href="Editor.dc.html">Scrivi</a>
+    <a href="Struttura.dc.html">Struttura</a>
+    <a href="Scena.dc.html">Scene</a>
+    <a href="Personaggi.dc.html">Personaggi</a>
+    <a href="Mondo.dc.html">Mondo</a>
+    <a class="on" href="Appunti.dc.html">Appunti e glossario</a>
+    <a href="Versioni.dc.html">Versioni</a>
+    <a href="Export.dc.html">Esporta PDF</a>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 18px">
+    <header style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between">
+      <h1 style="margin: 0; font-family: Literata, Georgia, serif; font-size: 30px; font-weight: 600">Appunti e glossario</h1>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap">
+        <label for="q" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Cerca</label>
+        <input id="q" type="search" placeholder="Cerca in appunti, glossario, capitoli…" style="width: 300px; max-width: 100%; height: 40px; box-sizing: border-box; padding: 0 12px; border: 1px solid #D5D2CA; border-radius: 8px; font: 14px Inter, sans-serif">
+        <button type="button" style="height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: #2E4A7D; color: #FFFFFF; font: 600 14px Inter, sans-serif">{{ newLabel }}</button>
+      </div>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center">
+      <div role="tablist" aria-label="Sezione" style="display: flex; gap: 4px; background: #ECEAE4; padding: 4px; border-radius: 10px">
+        <button type="button" role="tab" aria-selected="{{ notesSel }}" onClick="{{ showNotes }}" style="{{ notesStyle }}">Appunti</button>
+        <button type="button" role="tab" aria-selected="{{ glossSel }}" onClick="{{ showGloss }}" style="{{ glossStyle }}">Glossario</button>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; font-size: 13px">
+        <span style="height: 32px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 16px; background: #2E4A7D; color: #FFFFFF">Tutti</span>
+        <span style="height: 32px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 16px; background: #FFFFFF; border: 1px solid #D5D2CA">Globali (nessun libro)</span>
+        <span style="height: 32px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 16px; background: #FFFFFF; border: 1px solid #D5D2CA">Saga di Vael</span>
+        <span style="height: 32px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 16px; background: #FFFFFF; border: 1px solid #D5D2CA">Da smistare · 3</span>
+      </div>
+    </div>
+
+    <sc-if value="{{ isNotes }}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+        <div style="flex: 1 1 300px; max-width: 380px; display: flex; flex-direction: column; gap: 10px">
+          <article style="background: #FFFFFF; border: 2px solid #2E4A7D; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #5C6370"><span>Idea · globale</span><span>oggi</span></div>
+            <div style="font-size: 15px; font-weight: 600">Il faro che si accende per chi non torna</div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap"><span class="tag">#faro</span><span class="tag">#libro-3?</span></div>
+          </article>
+          <article style="background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #5C6370"><span>Ricerca · Il porto delle nebbie</span><span>3 giorni fa</span></div>
+            <div style="font-size: 15px; font-weight: 600">Il registro del porto: chi l'ha visto per ultimo</div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap"><span class="tag">#trama</span><span class="tag">scena: Incontro al molo</span></div>
+          </article>
+          <article style="background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #5C6370"><span>Spunto · Saga di Vael</span><span>2 settimane fa</span></div>
+            <div style="font-size: 15px; font-weight: 600">Lena e Morvan si conoscevano da giovani?</div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap"><span class="tag">#backstory</span><span class="tag">Lena</span><span class="tag">Morvan</span></div>
+          </article>
+          <article style="background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #5C6370"><span>Citazione · globale</span><span>1 mese fa</span></div>
+            <div style="font-size: 15px; font-weight: 600">«Il mare non restituisce, scambia.»</div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap"><span class="tag">#epigrafe</span></div>
+          </article>
+        </div>
+        <article style="flex: 999 1 400px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 24px 28px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px">
+            <label for="tipo" style="color: #5C6370">Tipo</label>
+            <select id="tipo" style="height: 36px; border: 1px solid #D5D2CA; border-radius: 8px; padding: 0 8px; font: 13px Inter, sans-serif; background: #FFFFFF"><option>Idea</option><option>Spunto</option><option>Ricerca</option><option>Citazione</option></select>
+            <label for="dove" style="color: #5C6370; margin-left: 8px">Appartiene a</label>
+            <select id="dove" style="height: 36px; border: 1px solid #D5D2CA; border-radius: 8px; padding: 0 8px; font: 13px Inter, sans-serif; background: #FFFFFF"><option>Nessun libro (globale)</option><option>Saga di Vael</option><option>Neve d'agosto</option></select>
+            <button type="button" style="height: 36px; padding: 0 12px; border: 1px solid #D5D2CA; border-radius: 8px; background: #FFFFFF; font: 13px Inter, sans-serif">Collega a…</button>
+          </div>
+          <h2 style="margin: 0; font-family: Literata, Georgia, serif; font-size: 24px; font-weight: 600">Il faro che si accende per chi non torna</h2>
+          <div style="font-family: Literata, Georgia, serif; font-size: 17px; line-height: 1.7; color: #22262B">
+            <p style="margin: 0 0 12px">Un faro che si accende da solo, ma solo per le navi che non torneranno. I pescatori lo sanno e quando lo vedono acceso non escono.</p>
+            <p style="margin: 0 0 12px">Potrebbe essere il <a href="Personaggi.dc.html">[[faro di Lena]]</a> molti anni dopo? Oppure un altro libro, fuori dalla saga.</p>
+            <p style="margin: 0">Collegato a: <a href="Appunti.dc.html">[[Il mare non restituisce, scambia]]</a></p>
+          </div>
+        </article>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isGloss }}" hint-placeholder-val="{{ false }}">
+      <div style="background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; overflow-x: auto">
+        <table style="width: 100%; min-width: 720px; border-collapse: collapse; font-size: 14px">
+          <thead><tr style="text-align: left; color: #5C6370; font-size: 12px; text-transform: uppercase; letter-spacing: .06em"><th style="padding: 14px 18px; font-weight: 600">Termine</th><th style="padding: 14px 18px; font-weight: 600">Categoria</th><th style="padding: 14px 18px; font-weight: 600">Definizione</th><th style="padding: 14px 18px; font-weight: 600">Uso</th><th style="padding: 14px 18px; font-weight: 600">Dizionario</th></tr></thead>
+          <tbody>
+            <tr style="border-top: 1px solid #ECEAE4"><td style="padding: 14px 18px; font-weight: 600">salmastro</td><td style="padding: 14px 18px">Gergo dei contrabbandieri</td><td style="padding: 14px 18px; line-height: 1.5">Bugia detta per proteggere qualcuno.</td><td style="padding: 14px 18px; color: #5C6370">12 volte · cap. 3, 7</td><td style="padding: 14px 18px; color: #245C3C">accettato</td></tr>
+            <tr style="border-top: 1px solid #ECEAE4"><td style="padding: 14px 18px; font-weight: 600">Vael</td><td style="padding: 14px 18px">Luogo</td><td style="padding: 14px 18px; line-height: 1.5">Città portuale a nord, sede del faro.</td><td style="padding: 14px 18px; color: #5C6370">87 volte</td><td style="padding: 14px 18px; color: #245C3C">accettato</td></tr>
+            <tr style="border-top: 1px solid #ECEAE4"><td style="padding: 14px 18px; font-weight: 600">lanternaio</td><td style="padding: 14px 18px">Mestiere</td><td style="padding: 14px 18px; line-height: 1.5">Chi accende e cura le lanterne del molo.</td><td style="padding: 14px 18px; color: #5C6370">5 volte</td><td style="padding: 14px 18px; color: #245C3C">accettato</td></tr>
+            <tr style="border-top: 1px solid #ECEAE4"><td style="padding: 14px 18px; font-weight: 600">chiatta nera</td><td style="padding: 14px 18px">Oggetto</td><td style="padding: 14px 18px; line-height: 1.5">Imbarcazione di Morvan, senza nome sullo scafo.</td><td style="padding: 14px 18px; color: #5C6370">9 volte</td><td style="padding: 14px 18px; color: #5C6370">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tab: 'notes' }; }
+  renderVals() {
+    const t = this.state.tab;
+    const st = (on) => 'height: 36px; padding: 0 18px; border: 0; border-radius: 7px; cursor: pointer; font: ' + (on ? '600' : '500') + ' 14px Inter, sans-serif; background: ' + (on ? '#FFFFFF' : 'transparent') + '; color: #1F2328';
+    return {
+      isNotes: t === 'notes', isGloss: t === 'gloss',
+      notesSel: t === 'notes' ? 'true' : 'false', glossSel: t === 'gloss' ? 'true' : 'false',
+      notesStyle: st(t === 'notes'), glossStyle: st(t === 'gloss'),
+      newLabel: t === 'notes' ? 'Nuovo appunto' : 'Nuovo termine',
+      showNotes: () => this.setState({ tab: 'notes' }),
+      showGloss: () => this.setState({ tab: 'gloss' })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Writly · Editor di scena</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Literata:opsz,wght@7..72,400;7..72,600&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F2;color:#1F2328;font-family:Inter,system-ui,sans-serif}
+a{color:#2E4A7D}a:hover{color:#1D3460}
+.nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#3D434C;text-decoration:none;font-size:14px;min-height:24px}
+.nav a:hover{background:#ECEAE4;color:#1F2328}
+.nav a.on{background:#E8EDF6;color:#1D3460;font-weight:600}
+.lbl{display:block;font-size:12px;font-weight:600;color:#3D434C;margin-bottom:6px}
+.fld{width:100%;box-sizing:border-box;border:1px solid #D5D2CA;border-radius:8px;padding:10px 12px;font:15px Inter,sans-serif;color:#1F2328;background:#FFFFFF}
+textarea.fld{line-height:1.5;resize:vertical}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; font-family: Inter, system-ui, sans-serif; background: #F6F5F2">
+  <nav class="nav" aria-label="Navigazione principale" style="flex: 1 1 200px; max-width: 220px; box-sizing: border-box; padding: 20px 12px; background: #FFFFFF; border-right: 1px solid #E3E1DC; display: flex; flex-direction: column; gap: 4px">
+    <div style="font-family: Literata, Georgia, serif; font-size: 24px; font-weight: 600; padding: 4px 12px 18px">Writly</div>
+    <a href="Main.dc.html">Libreria</a>
+    <div style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #5C6370; padding: 16px 12px 6px">Il porto delle nebbie</div>
+    <a href="Editor.dc.html">Scrivi</a>
+    <a href="Struttura.dc.html">Struttura</a>
+    <a class="on" href="Scena.dc.html">Scene</a>
+    <a href="Personaggi.dc.html">Personaggi</a>
+    <a href="Mondo.dc.html">Mondo</a>
+    <a href="Appunti.dc.html">Appunti e glossario</a>
+    <a href="Versioni.dc.html">Versioni</a>
+    <a href="Export.dc.html">Esporta PDF</a>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 20px">
+    <header style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between">
+      <div>
+        <a href="Struttura.dc.html" style="font-size: 13px">← Struttura · Tappa 6 · Prove, alleati e nemici</a>
+        <h1 style="margin: 6px 0 0; font-family: Literata, Georgia, serif; font-size: 30px; font-weight: 600">Incontro al molo</h1>
+      </div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap">
+        <button type="button" style="height: 40px; padding: 0 14px; border: 1px solid #D5D2CA; border-radius: 8px; background: #FFFFFF; font: 500 14px Inter, sans-serif">Duplica</button>
+        <a href="Editor.dc.html" style="height: 40px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 8px; background: #2E4A7D; color: #FFFFFF; text-decoration: none; font-weight: 600; font-size: 14px">Apri nel capitolo 7</a>
+      </div>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+      <form style="flex: 999 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px">
+        <div style="grid-column: 1 / -1"><label class="lbl" for="t">Titolo</label><input id="t" class="fld" type="text" value="Incontro al molo"></div>
+        <div style="grid-column: 1 / -1"><label class="lbl" for="sin">Sinossi</label><textarea id="sin" class="fld" rows="3">Iris raggiunge Teodoro al molo per consegnargli le carte del registro, ma scopre che il Capitano li ha fatti seguire. Si nascondono tra le reti mentre gli uomini di Morvan perquisiscono la chiatta.</textarea></div>
+        <div><label class="lbl" for="ob">Obiettivo del POV</label><textarea id="ob" class="fld" rows="2">Ottenere da Teodoro il nome di chi ha comprato il faro.</textarea></div>
+        <div><label class="lbl" for="co">Conflitto</label><textarea id="co" class="fld" rows="2">Teodoro vuole le carte prima di parlare; gli uomini di Morvan stanno arrivando.</textarea></div>
+        <div><label class="lbl" for="es">Esito</label><textarea id="es" class="fld" rows="2">Sì, ma: ottiene il nome, ma perde le carte.</textarea></div>
+        <div><label class="lbl" for="cam">Cosa cambia</label><textarea id="cam" class="fld" rows="2">Iris capisce che Teodoro è indebitato con Morvan: non può più fidarsi del tutto.</textarea></div>
+        <div><label class="lbl" for="pov">Punto di vista</label><select id="pov" class="fld" style="height: 44px"><option>Iris Valden</option><option>Teodoro Arrighi</option></select></div>
+        <div><label class="lbl" for="luo">Luogo</label><select id="luo" class="fld" style="height: 44px"><option>Molo vecchio, porto di Vael</option></select></div>
+        <div><label class="lbl" for="qd">Quando (cronologia interna)</label><input id="qd" class="fld" type="text" value="Giorno 9 · notte, dopo il cap. 6"></div>
+        <div><label class="lbl" for="st">Stato</label><select id="st" class="fld" style="height: 44px"><option>In stesura</option><option>Idea</option><option>Pianificata</option><option>Scritta</option><option>Revisionata</option></select></div>
+        <div style="grid-column: 1 / -1">
+          <span class="lbl">Personaggi presenti</span>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <span style="display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 18px; background: #F3D9C4; font-size: 14px">Iris Valden · POV</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 18px; background: #D6E0EF; font-size: 14px">Teodoro Arrighi</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 18px; background: #DCE9DF; font-size: 14px">Uomini di Morvan (gruppo)</span>
+            <button type="button" style="height: 36px; padding: 0 12px; border-radius: 18px; border: 1px dashed #A9A59B; background: none; font: 14px Inter, sans-serif">+ Aggiungi</button>
+          </div>
+        </div>
+      </form>
+
+      <aside aria-label="Collegamenti della scena" style="flex: 1 1 280px; max-width: 360px; display: flex; flex-direction: column; gap: 16px">
+        <section style="background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Posizione nell'architettura</h2>
+          <div style="font-size: 14px; line-height: 1.5"><span style="color: #5C6370">Sezione:</span> 6 · Prove, alleati e nemici</div>
+          <div style="font-size: 14px; line-height: 1.5"><span style="color: #5C6370">Ordine:</span> scena 2 di 3 nella sezione</div>
+          <div style="font-size: 14px; line-height: 1.5"><span style="color: #5C6370">Capitolo:</span> <a href="Editor.dc.html">7 · Le lanterne del molo</a> (insieme a «La locanda dei pescatori»)</div>
+          <div style="font-size: 14px; line-height: 1.5"><span style="color: #5C6370">Scritto:</span> 1.620 parole su ~2.000 previste</div>
+          <div style="height: 6px; background: #ECEAE4; border-radius: 3px"><div style="width: 81%; height: 6px; background: #C77B12; border-radius: 3px"></div></div>
+        </section>
+        <section style="background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Appunti collegati</h2>
+          <a href="Appunti.dc.html" style="font-size: 14px; line-height: 1.5">Il registro del porto: chi l'ha visto per ultimo</a>
+          <a href="Appunti.dc.html" style="font-size: 14px; line-height: 1.5">Glossario: «salmastro» (gergo)</a>
+        </section>
+        <section style="background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Guida della tappa</h2>
+          <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #3D434C">L'eroe impara le regole del mondo nuovo: chi è alleato, chi nemico. Ogni scena dovrebbe rivelare qualcosa su una relazione.</p>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

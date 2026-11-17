@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Writly · Worldbuilding</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Literata:opsz,wght@7..72,400;7..72,600&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F2;color:#1F2328;font-family:Inter,system-ui,sans-serif}
+a{color:#2E4A7D}a:hover{color:#1D3460}
+.nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#3D434C;text-decoration:none;font-size:14px;min-height:24px}
+.nav a:hover{background:#ECEAE4;color:#1F2328}
+.nav a.on{background:#E8EDF6;color:#1D3460;font-weight:600}
+.cap{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#5C6370}
+.chip{display:inline-flex;align-items:center;height:30px;padding:0 10px;border-radius:15px;font-size:13px;text-decoration:none;color:#1F2328}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; font-family: Inter, system-ui, sans-serif; background: #F6F5F2">
+  <nav class="nav" aria-label="Navigazione principale" style="flex: 1 1 200px; max-width: 220px; box-sizing: border-box; padding: 20px 12px; background: #FFFFFF; border-right: 1px solid #E3E1DC; display: flex; flex-direction: column; gap: 4px">
+    <div style="font-family: Literata, Georgia, serif; font-size: 24px; font-weight: 600; padding: 4px 12px 18px">Writly</div>
+    <a href="Main.dc.html">Libreria</a>
+    <div style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #5C6370; padding: 16px 12px 6px">Le cronache di Vael</div>
+    <a href="Editor.dc.html">Scrivi</a>
+    <a href="Struttura.dc.html">Struttura</a>
+    <a href="Scena.dc.html">Scene</a>
+    <a href="Personaggi.dc.html">Personaggi</a>
+    <a class="on" href="Mondo.dc.html">Mondo</a>
+    <a href="Appunti.dc.html">Appunti e glossario</a>
+    <a href="Versioni.dc.html">Versioni</a>
+    <a href="Export.dc.html">Esporta PDF</a>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 18px">
+    <header style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between">
+      <div>
+        <div style="font-size: 13px; color: #5C6370">Condiviso da tutti i romanzi della saga</div>
+        <h1 style="margin: 4px 0 0; font-family: Literata, Georgia, serif; font-size: 30px; font-weight: 600">Mondo</h1>
+      </div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap">
+        <button type="button" style="height: 40px; padding: 0 14px; border: 1px solid #D5D2CA; border-radius: 8px; background: #FFFFFF; font: 500 14px Inter, sans-serif">Campi della categoria</button>
+        <button type="button" style="height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: #2E4A7D; color: #FFFFFF; font: 600 14px Inter, sans-serif">Nuova voce</button>
+      </div>
+    </header>
+
+    <div role="tablist" aria-label="Categorie del mondo" style="display: flex; flex-wrap: wrap; gap: 8px">
+      <sc-for list="{{ cats }}" as="c" hint-placeholder-count="6">
+        <button type="button" role="tab" aria-selected="{{ c.on }}" onClick="{{ c.pick }}" style="{{ c.style }}">{{ c.label }} <span style="opacity: .75; font-weight: 500">{{ c.n }}</span></button>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+      <div role="list" aria-label="Voci" style="flex: 1 1 240px; max-width: 280px; display: flex; flex-direction: column; gap: 6px">
+        <sc-for list="{{ entries }}" as="e" hint-placeholder-count="4">
+          <button type="button" role="listitem" onClick="{{ e.pick }}" style="{{ e.style }}"><span style="display: block; font: 600 14px Inter, sans-serif; padding-left: {{ e.indent }}">{{ e.name }}</span><span style="display: block; font: 12px Inter, sans-serif; color: #5C6370; padding-left: {{ e.indent }}">{{ e.kind }}</span></button>
+        </sc-for>
+        <button type="button" style="height: 40px; border: 1px dashed #A9A59B; border-radius: 8px; background: none; font: 13px Inter, sans-serif; color: #3D434C">+ Aggiungi in «{{ catName }}»</button>
+      </div>
+
+      <article aria-label="Scheda della voce" style="flex: 999 1 400px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 18px">
+        <div>
+          <div style="font-size: 12px; color: #5C6370">{{ cur.path }}</div>
+          <h2 style="margin: 4px 0 0; font-family: Literata, Georgia, serif; font-size: 26px; font-weight: 600">{{ cur.name }}</h2>
+        </div>
+        <p style="margin: 0; font-family: Literata, Georgia, serif; font-size: 16px; line-height: 1.7; color: #22262B">{{ cur.desc }}</p>
+        <div>
+          <div class="cap" style="margin-bottom: 8px">Campi · modello «{{ catName }}»</div>
+          <dl style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 0">
+            <sc-for list="{{ cur.fields }}" as="f" hint-placeholder-count="4">
+              <div style="background: #F6F5F2; border-radius: 8px; padding: 10px 12px"><dt style="font-size: 12px; color: #5C6370">{{ f.k }}</dt><dd style="margin: 2px 0 0; font-size: 14px; font-weight: 500">{{ f.v }}</dd></div>
+            </sc-for>
+          </dl>
+        </div>
+        <div>
+          <div class="cap" style="margin-bottom: 8px">Regole del mondo collegate</div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <sc-for list="{{ cur.rules }}" as="r" hint-placeholder-count="2">
+              <div style="font-size: 14px; line-height: 1.5; background: #FBF1DF; color: #6B4A12; padding: 10px 12px; border-radius: 8px">{{ r }}</div>
+            </sc-for>
+          </div>
+        </div>
+        <div>
+          <div class="cap" style="margin-bottom: 8px">Collegamenti</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <sc-for list="{{ cur.links }}" as="l" hint-placeholder-count="3">
+              <a href="{{ l.href }}" class="chip" style="background: {{ l.bg }}">{{ l.label }}</a>
+            </sc-for>
+          </div>
+        </div>
+      </article>
+
+      <aside aria-label="Mappa e presenza nel testo" style="flex: 1 1 300px; max-width: 380px; display: flex; flex-direction: column; gap: 16px">
+        <section style="background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; justify-content: space-between; align-items: center"><h2 style="margin: 0; font-size: 15px; font-weight: 600">Mappa · Costa di Vael</h2><button type="button" style="height: 32px; padding: 0 10px; border: 1px solid #D5D2CA; border-radius: 6px; background: #FFFFFF; font: 12px Inter, sans-serif">Carica mappa</button></div>
+          <div style="position: relative; height: 260px; border-radius: 10px; background: #DCE6EE; overflow: hidden">
+            <div aria-hidden="true" style="position: absolute; left: -40px; top: 30px; width: 260px; height: 260px; border-radius: 46% 54% 40% 60%; background: #EFE8D6"></div>
+            <div aria-hidden="true" style="position: absolute; right: -60px; top: -40px; width: 200px; height: 160px; border-radius: 50% 40% 60% 50%; background: #EFE8D6"></div>
+            <sc-for list="{{ pins }}" as="p" hint-placeholder-count="3">
+              <button type="button" onClick="{{ p.pick }}" aria-label="{{ p.name }}" style="position: absolute; left: {{ p.x }}; top: {{ p.y }}; display: flex; align-items: center; gap: 6px; border: 0; background: none; padding: 0; cursor: pointer; font: 600 12px Inter, sans-serif; color: #1F2328">
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: {{ p.color }}; border: 2px solid #FFFFFF; box-shadow: 0 1px 3px rgba(31,35,40,.3)"></span><span style="background: rgba(255,255,255,.85); padding: 2px 6px; border-radius: 4px">{{ p.name }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <div style="font-size: 12px; color: #5C6370">Clic su un segnaposto per aprire la voce</div>
+        </section>
+        <section style="background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Nel testo</h2>
+          <div style="font-size: 14px; line-height: 1.5">{{ cur.usage }}</div>
+          <div style="font-size: 13px; line-height: 1.5; color: #3D434C; background: #F1EFEA; padding: 10px; border-radius: 8px">Da completare: «la Torre di sale» è citata 4 volte ma la scheda è ancora in bozza.</div>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { cat: 'luoghi', sel: 'porto' }; }
+  renderVals() {
+    const P = '#F3D9C4', W = '#DCE9DF', S = '#E8EDF6';
+    const E = {
+      porto: { cat: 'luoghi', depth: 1, name: 'Porto di Vael', kind: 'Città portuale', path: 'Luoghi › Costa di Vael › Porto di Vael',
+        desc: 'Il porto più a nord della costa, costruito su tre moli di pietra nera. D’inverno la nebbia sale dal mare ogni sera e le lanterne del molo restano accese fino all’alba.',
+        fields: [{ k: 'Clima', v: 'Freddo e umido, nebbia serale' }, { k: 'Popolazione', v: 'circa 6.000 abitanti' }, { k: 'Governo', v: 'Consiglio dei Pesatori' }, { k: 'Economia', v: 'Pesca, sale, contrabbando' }],
+        rules: ['Le navi non salpano con la nebbia: chi lo fa è considerato perduto.', 'Da Vael alla Torre di sale servono 3 giorni di nave.'],
+        links: [{ label: 'Iris Valden · nata qui', href: 'Personaggi.dc.html', bg: P }, { label: 'Consiglio dei Pesatori', href: 'Mondo.dc.html', bg: W }, { label: 'Scena · Incontro al molo', href: 'Scena.dc.html', bg: S }],
+        usage: '87 menzioni · 19 capitoli · luogo di 12 scene', pin: ['56%', '58%'] },
+      faro: { cat: 'luoghi', depth: 2, name: 'Il faro di Vael', kind: 'Edificio', path: 'Luoghi › Costa di Vael › Porto di Vael › Il faro',
+        desc: 'Spento da undici anni, da quando Lena Valden lo ha abbandonato. La lanterna è ancora al suo posto.',
+        fields: [{ k: 'Stato', v: 'In rovina' }, { k: 'Proprietario', v: 'Sconosciuto (comprato all’asta)' }, { k: 'Altezza', v: '42 metri' }, { k: 'Ultima accensione', v: 'Anno 311 del Sale' }],
+        rules: ['Il faro si accende solo con l’olio di balena bianca.'],
+        links: [{ label: 'Lena Valden · guardiana', href: 'Personaggi.dc.html', bg: P }, { label: 'Scena · Il faro spento', href: 'Scena.dc.html', bg: S }],
+        usage: '41 menzioni · 11 capitoli', pin: ['40%', '30%'] },
+      torre: { cat: 'luoghi', depth: 1, name: 'La Torre di sale', kind: 'Fortezza · scheda in bozza', path: 'Luoghi › Isole del Sale › La Torre',
+        desc: 'Sede dei Salinari. Ambientazione principale del secondo romanzo.',
+        fields: [{ k: 'Clima', v: '—' }, { k: 'Popolazione', v: '—' }, { k: 'Governo', v: 'I Salinari' }, { k: 'Economia', v: 'Sale' }],
+        rules: ['Da Vael alla Torre di sale servono 3 giorni di nave.'],
+        links: [{ label: 'Libro 2 · La torre di sale', href: 'Struttura.dc.html', bg: S }],
+        usage: '4 menzioni · 2 capitoli', pin: ['66%', '14%'] },
+      pesatori: { cat: 'culture', depth: 0, name: 'Consiglio dei Pesatori', kind: 'Fazione politica', path: 'Culture e fazioni › Consiglio dei Pesatori',
+        desc: 'I sette mercanti che pesano e tassano tutto il pescato. Governano il porto di fatto.',
+        fields: [{ k: 'Capo', v: 'Mastro Ilario Dente' }, { k: 'Obiettivo', v: 'Mantenere il monopolio del sale' }, { k: 'Alleati', v: 'Capitano Morvan' }, { k: 'Simbolo', v: 'Una bilancia con un pesce' }],
+        rules: ['Nessuno può vendere pesce non pesato dal Consiglio.'],
+        links: [{ label: 'Capitano Morvan · alleato', href: 'Personaggi.dc.html', bg: P }, { label: 'Porto di Vael', href: 'Mondo.dc.html', bg: W }],
+        usage: '23 menzioni · 9 capitoli' },
+      sale: { cat: 'sistemi', depth: 0, name: 'La magia del sale', kind: 'Sistema di magia', path: 'Sistemi e regole › La magia del sale',
+        desc: 'Pochi sanno «leggere» il sale: dai cristalli ricavano ricordi di chi li ha toccati. Costa fatica e sete.',
+        fields: [{ k: 'Chi può usarla', v: 'I Salinari e pochi altri' }, { k: 'Costo', v: 'Sete intensa, perdita di memoria' }, { k: 'Limiti', v: 'Non funziona sull’acqua dolce' }, { k: 'Conoscenza pubblica', v: 'Considerata superstizione' }],
+        rules: ['La magia del sale non funziona sull’acqua dolce.', 'Ogni lettura fa perdere un ricordo a chi legge.'],
+        links: [{ label: 'Iris Valden · la scopre nel cap. 9', href: 'Personaggi.dc.html', bg: P }],
+        usage: '6 menzioni · 3 capitoli' },
+      registro: { cat: 'oggetti', depth: 0, name: 'Il registro del porto', kind: 'Oggetto chiave', path: 'Oggetti › Il registro del porto',
+        desc: 'Il libro in cui il Consiglio annota ogni nave, carico e debito da trent’anni.',
+        fields: [{ k: 'Dove si trova', v: 'Distrutto (cap. 3)' }, { k: 'Chi lo cerca', v: 'Morvan, Teodoro' }, { k: 'Importanza', v: 'Motore della trama del libro 1' }, { k: 'Copie', v: 'Una, forse' }],
+        rules: [],
+        links: [{ label: 'Appunto · chi l’ha visto per ultimo', href: 'Appunti.dc.html', bg: W }, { label: 'Scena · Il registro scomparso', href: 'Scena.dc.html', bg: S }],
+        usage: '34 menzioni · 12 capitoli' },
+      era: { cat: 'storia', depth: 0, name: 'La grande nebbia', kind: 'Evento · anno 300 del Sale', path: 'Storia del mondo › Anno 300 del Sale',
+        desc: 'Un inverno in cui la nebbia non si alzò per quaranta giorni. Metà della flotta non tornò.',
+        fields: [{ k: 'Data', v: 'Anno 300 del Sale' }, { k: 'Durata', v: '40 giorni' }, { k: 'Conseguenze', v: 'Nasce il Consiglio dei Pesatori' }, { k: 'Nella trama', v: 'Backstory, citata nel cap. 2' }],
+        rules: [],
+        links: [{ label: 'Consiglio dei Pesatori', href: 'Mondo.dc.html', bg: W }],
+        usage: '5 menzioni · 3 capitoli' },
+      gergo: { cat: 'lingue', depth: 0, name: 'Gergo dei contrabbandieri', kind: 'Lingua · 14 termini nel glossario', path: 'Lingue › Gergo dei contrabbandieri',
+        desc: 'Parlato sui moli di notte. Usa nomi di pesci e di venti per dire cose che non si possono dire.',
+        fields: [{ k: 'Parlanti', v: 'Contrabbandieri, alcuni pescatori' }, { k: 'Termini', v: '14 (nel glossario)' }, { k: 'Esempio', v: '«salmastro» = bugia' }, { k: 'Regole di formazione', v: 'Nomi di pesci al posto dei verbi' }],
+        rules: [],
+        links: [{ label: 'Glossario · 14 termini', href: 'Appunti.dc.html', bg: W }],
+        usage: '31 occorrenze di termini del gergo' }
+    };
+    const catDefs = [['luoghi', 'Luoghi'], ['culture', 'Culture e fazioni'], ['sistemi', 'Sistemi e regole'], ['oggetti', 'Oggetti'], ['storia', 'Storia del mondo'], ['lingue', 'Lingue']];
+    const counts = { luoghi: 14, culture: 5, sistemi: 3, oggetti: 8, storia: 22, lingue: 2 };
+    const firstOf = (k) => Object.keys(E).find((id) => E[id].cat === k);
+    const cats = catDefs.map(([k, label]) => {
+      const on = this.state.cat === k;
+      return { label, n: counts[k], on: on ? 'true' : 'false',
+        pick: () => this.setState({ cat: k, sel: firstOf(k) }),
+        style: 'height: 40px; padding: 0 14px; border-radius: 20px; cursor: pointer; font: 600 13px Inter, sans-serif; border: 1px solid ' + (on ? '#2E4A7D' : '#D5D2CA') + '; background: ' + (on ? '#2E4A7D' : '#FFFFFF') + '; color: ' + (on ? '#FFFFFF' : '#1F2328') };
+    });
+    const sel = this.state.sel;
+    const entries = Object.keys(E).filter((id) => E[id].cat === this.state.cat).map((id) => ({
+      name: E[id].name, kind: E[id].kind, indent: (E[id].depth * 14) + 'px', pick: () => this.setState({ sel: id }),
+      style: 'width: 100%; min-height: 52px; text-align: left; padding: 8px 12px; border-radius: 10px; cursor: pointer; color: #1F2328; border: 1px solid ' + (sel === id ? '#2E4A7D' : '#E3E1DC') + '; background: ' + (sel === id ? '#E8EDF6' : '#FFFFFF') }));
+    const pins = ['porto', 'faro', 'torre'].map((id) => ({ name: E[id].name, x: E[id].pin[0], y: E[id].pin[1], color: sel === id ? '#2E4A7D' : '#C77B12', pick: () => this.setState({ cat: 'luoghi', sel: id }) }));
+    const catName = catDefs.find((c) => c[0] === this.state.cat)[1];
+    return { cats, entries, cur: E[sel], pins, catName };
+  }
+}
+</script>
+</body>
+</html>

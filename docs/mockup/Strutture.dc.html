@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Writly · Editor di strutture narrative</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Literata:opsz,wght@7..72,400;7..72,600&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F2;color:#1F2328;font-family:Inter,system-ui,sans-serif}
+a{color:#2E4A7D}a:hover{color:#1D3460}
+.nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#3D434C;text-decoration:none;font-size:14px;min-height:24px}
+.nav a:hover{background:#ECEAE4;color:#1F2328}
+.nav a.on{background:#E8EDF6;color:#1D3460;font-weight:600}
+.lbl{display:block;font-size:12px;font-weight:600;color:#3D434C;margin-bottom:6px}
+.fld{width:100%;box-sizing:border-box;border:1px solid #D5D2CA;border-radius:8px;padding:8px 10px;font:14px Inter,sans-serif;color:#1F2328;background:#FFFFFF}
+.ib{width:36px;height:36px;border:1px solid #E3E1DC;border-radius:8px;background:#FFFFFF;font:15px Inter,sans-serif;color:#3D434C;cursor:pointer}
+.ib:hover{background:#F1EFEA}
+.cap{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#5C6370}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; font-family: Inter, system-ui, sans-serif; background: #F6F5F2">
+  <nav class="nav" aria-label="Navigazione principale" style="flex: 1 1 200px; max-width: 220px; box-sizing: border-box; padding: 20px 12px; background: #FFFFFF; border-right: 1px solid #E3E1DC; display: flex; flex-direction: column; gap: 4px">
+    <div style="font-family: Literata, Georgia, serif; font-size: 24px; font-weight: 600; padding: 4px 12px 18px">Writly</div>
+    <a href="Main.dc.html">Libreria</a>
+    <a class="on" href="Strutture.dc.html">Strutture narrative</a>
+    <div style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #5C6370; padding: 16px 12px 6px">Il porto delle nebbie</div>
+    <a href="Editor.dc.html">Scrivi</a>
+    <a href="Struttura.dc.html">Struttura</a>
+    <a href="Scena.dc.html">Scene</a>
+    <a href="Personaggi.dc.html">Personaggi</a>
+    <a href="Mondo.dc.html">Mondo</a>
+    <a href="Appunti.dc.html">Appunti e glossario</a>
+    <a href="Versioni.dc.html">Versioni</a>
+    <a href="Export.dc.html">Esporta PDF</a>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 20px">
+    <header style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between">
+      <div>
+        <a href="Struttura.dc.html" style="font-size: 13px">← Struttura del romanzo</a>
+        <h1 style="margin: 6px 0 0; font-family: Literata, Georgia, serif; font-size: 30px; font-weight: 600">Strutture narrative</h1>
+        <div style="font-size: 14px; color: #5C6370; margin-top: 4px">Le strutture valgono per tutti i progetti. Le predefinite non si modificano: clonale e personalizzale.</div>
+      </div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap">
+        <button type="button" onClick="{{ newBlank }}" style="height: 40px; padding: 0 14px; border: 1px solid #D5D2CA; border-radius: 8px; background: #FFFFFF; font: 500 14px Inter, sans-serif; cursor: pointer">Nuova da zero</button>
+        <button type="button" onClick="{{ cloneCurrent }}" style="height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: #2E4A7D; color: #FFFFFF; font: 600 14px Inter, sans-serif; cursor: pointer">Clona questa struttura</button>
+      </div>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+      <aside aria-label="Libreria delle strutture" style="flex: 1 1 240px; max-width: 280px; display: flex; flex-direction: column; gap: 8px">
+        <div class="cap" style="padding: 0 4px">Predefinite</div>
+        <sc-for list="{{ builtins }}" as="t" hint-placeholder-count="3">
+          <div style="{{ t.style }}">
+            <button type="button" onClick="{{ t.pick }}" style="flex: 1; min-height: 44px; text-align: left; border: 0; background: none; padding: 0; cursor: pointer; font: 14px Inter, sans-serif; color: #1F2328"><span style="display: block; font-weight: 600">{{ t.name }}</span><span style="display: block; font-size: 12px; color: #5C6370">{{ t.meta }}</span></button>
+            <button type="button" onClick="{{ t.clone }}" style="height: 32px; padding: 0 10px; border: 1px solid #2E4A7D; border-radius: 6px; background: #FFFFFF; color: #2E4A7D; font: 600 12px Inter, sans-serif; cursor: pointer">Clona</button>
+          </div>
+        </sc-for>
+        <div class="cap" style="padding: 14px 4px 0">Le mie strutture</div>
+        <sc-for list="{{ mine }}" as="t" hint-placeholder-count="1">
+          <div style="{{ t.style }}">
+            <button type="button" onClick="{{ t.pick }}" style="flex: 1; min-height: 44px; text-align: left; border: 0; background: none; padding: 0; cursor: pointer; font: 14px Inter, sans-serif; color: #1F2328"><span style="display: block; font-weight: 600">{{ t.name }}</span><span style="display: block; font-size: 12px; color: #5C6370">{{ t.meta }}</span></button>
+            <button type="button" onClick="{{ t.clone }}" style="height: 32px; padding: 0 10px; border: 1px solid #D5D2CA; border-radius: 6px; background: #FFFFFF; color: #3D434C; font: 500 12px Inter, sans-serif; cursor: pointer">Clona</button>
+          </div>
+        </sc-for>
+        <div style="font-size: 12px; color: #5C6370; line-height: 1.5; padding: 8px 4px">Le strutture personali sono salvate come file YAML nel repository personale e si possono esportare/importare.</div>
+      </aside>
+
+      <section aria-label="Struttura selezionata" style="flex: 999 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 22px; display: flex; flex-direction: column; gap: 16px">
+        <sc-if value="{{ readOnly }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; background: #E8EDF6; color: #1D3460; padding: 12px 14px; border-radius: 10px; font-size: 14px">
+            <span>Struttura predefinita, in sola lettura. Clonala per adattarla al tuo modo di lavorare.</span>
+            <button type="button" onClick="{{ cloneCurrent }}" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: #2E4A7D; color: #FFFFFF; font: 600 13px Inter, sans-serif; cursor: pointer">Clona e modifica</button>
+          </div>
+          <div>
+            <h2 style="margin: 0; font-family: Literata, Georgia, serif; font-size: 24px; font-weight: 600">{{ cur.name }}</h2>
+            <div style="font-size: 14px; color: #5C6370; margin-top: 4px; line-height: 1.5">{{ cur.desc }}</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ editable }}" hint-placeholder-val="{{ true }}">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px">
+            <div><label class="lbl" for="nome">Nome della struttura</label><input id="nome" class="fld" type="text" value="{{ cur.name }}" onChange="{{ onTitle }}" style="height: 40px"></div>
+            <div><span class="lbl">Basata su</span><div style="height: 40px; display: flex; align-items: center; font-size: 14px; color: #3D434C">{{ cur.base }}</div></div>
+            <div style="grid-column: 1 / -1"><label class="lbl" for="desc">Descrizione</label><textarea id="desc" class="fld" rows="2" style="line-height: 1.5; resize: vertical">{{ cur.desc }}</textarea></div>
+          </div>
+        </sc-if>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center">
+          <h3 style="margin: 0; font-size: 15px; font-weight: 600">Sezioni · {{ count }}</h3>
+          <div style="{{ totalStyle }}">{{ totalLabel }}</div>
+        </div>
+
+        <div role="list" style="display: flex; flex-direction: column; gap: 8px">
+          <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+            <sc-if value="{{ r.showAct }}" hint-placeholder-val="{{ false }}">
+              <div class="cap" style="padding: 10px 2px 2px; color: #1D3460">{{ r.act }}</div>
+            </sc-if>
+            <div role="listitem" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid #E3E1DC; border-left: 4px solid {{ r.tint }}; border-radius: 10px; background: #FDFCFA">
+              <div style="width: 28px; padding-top: 8px; font: 600 13px Inter, sans-serif; color: #5C6370">{{ r.num }}</div>
+              <sc-if value="{{ r.ro }}" hint-placeholder-val="{{ false }}">
+                <div style="flex: 1 1 300px; min-width: 0"><div style="font-size: 14px; font-weight: 600; padding-top: 6px">{{ r.name }}</div><div style="font-size: 13px; color: #5C6370; line-height: 1.45; margin-top: 2px">{{ r.guide }}</div></div>
+                <div style="width: 70px; padding-top: 6px; text-align: right; font-size: 14px; color: #3D434C">{{ r.pct }}%</div>
+              </sc-if>
+              <sc-if value="{{ r.rw }}" hint-placeholder-val="{{ true }}">
+                <div style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+                  <input class="fld" type="text" aria-label="Nome sezione" value="{{ r.name }}" onChange="{{ r.onName }}" style="height: 36px; font-weight: 600">
+                  <input class="fld" type="text" aria-label="Guida della sezione" value="{{ r.guide }}" onChange="{{ r.onGuide }}" style="height: 34px; font-size: 13px; color: #3D434C">
+                </div>
+                <div style="display: flex; align-items: center; gap: 4px"><input class="fld" type="number" min="0" max="100" aria-label="Peso percentuale sul libro" value="{{ r.pct }}" onChange="{{ r.onPct }}" style="width: 66px; height: 36px; text-align: right"><span style="font-size: 13px; color: #5C6370">%</span></div>
+                <div style="display: flex; gap: 4px">
+                  <button type="button" class="ib" aria-label="Sposta su" onClick="{{ r.up }}">↑</button>
+                  <button type="button" class="ib" aria-label="Sposta giù" onClick="{{ r.down }}">↓</button>
+                  <button type="button" class="ib" aria-label="Elimina sezione" onClick="{{ r.del }}">✕</button>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ editable }}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; gap: 10px; flex-wrap: wrap">
+            <button type="button" onClick="{{ addSection }}" style="height: 40px; padding: 0 14px; border: 1px dashed #A9A59B; border-radius: 8px; background: none; font: 14px Inter, sans-serif; cursor: pointer">+ Aggiungi sezione</button>
+            <button type="button" onClick="{{ addAct }}" style="height: 40px; padding: 0 14px; border: 1px dashed #A9A59B; border-radius: 8px; background: none; font: 14px Inter, sans-serif; cursor: pointer">+ Nuovo atto / gruppo</button>
+            <button type="button" onClick="{{ rebalance }}" style="height: 40px; padding: 0 14px; border: 1px solid #D5D2CA; border-radius: 8px; background: #FFFFFF; font: 14px Inter, sans-serif; cursor: pointer">Ribilancia al 100%</button>
+          </div>
+        </sc-if>
+      </section>
+
+      <aside aria-label="Anteprima e utilizzo" style="flex: 1 1 260px; max-width: 320px; display: flex; flex-direction: column; gap: 16px">
+        <section style="background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Proporzioni nel libro</h2>
+          <div aria-hidden="true" style="display: flex; height: 18px; border-radius: 5px; overflow: hidden; gap: 2px">
+            <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+              <div style="flex: {{ r.pct }} 1 0; background: {{ r.tint }}"></div>
+            </sc-for>
+          </div>
+          <div style="font-size: 13px; color: #3D434C; line-height: 1.5">Con un obiettivo di 90.000 parole: {{ hint }}</div>
+        </section>
+        <section style="background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Dove è usata</h2>
+          <div style="font-size: 14px; line-height: 1.5">{{ usedBy }}</div>
+          <sc-if value="{{ editable }}" hint-placeholder-val="{{ true }}">
+            <div style="font-size: 13px; line-height: 1.5; color: #6B4A12; background: #FBF1DF; padding: 10px; border-radius: 8px">Modificando le sezioni di una struttura già in uso, le scene delle sezioni eliminate finiscono in «Non assegnate»: nessuna scena va persa.</div>
+          </sc-if>
+          <a href="Struttura.dc.html" style="height: 40px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid #2E4A7D; text-decoration: none; font-weight: 600; font-size: 14px">Applica a «Il porto delle nebbie»</a>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const s = (act, name, pct, guide) => ({ act, name, pct, guide });
+    this.T = {
+      hero: { name: 'Viaggio dell’eroe', base: 'Christopher Vogler', desc: 'Le 12 tappe del viaggio dell’eroe, raggruppate nei tre atti.', secs: [
+        s('Atto I · Partenza', 'Mondo ordinario', 8, 'La vita dell’eroe prima del cambiamento.'), s('Atto I · Partenza', 'Chiamata all’avventura', 5, 'L’evento che rompe l’equilibrio.'), s('Atto I · Partenza', 'Rifiuto della chiamata', 4, 'Paura, dubbio, resistenza.'), s('Atto I · Partenza', 'Incontro con il mentore', 4, 'Chi offre aiuto, consiglio, un dono.'), s('Atto I · Partenza', 'Superamento della prima soglia', 4, 'Non si torna indietro.'),
+        s('Atto II · Iniziazione', 'Prove, alleati e nemici', 15, 'Il nuovo mondo mette alla prova.'), s('Atto II · Iniziazione', 'Avvicinamento alla caverna più profonda', 10, 'Preparazione alla prova più dura.'), s('Atto II · Iniziazione', 'Prova centrale', 10, 'Morte e rinascita simbolica.'), s('Atto II · Iniziazione', 'Ricompensa', 15, 'Ciò che si conquista.'),
+        s('Atto III · Ritorno', 'La via del ritorno', 8, 'Le conseguenze inseguono.'), s('Atto III · Ritorno', 'Resurrezione', 10, 'L’ultima prova, la trasformazione.'), s('Atto III · Ritorno', 'Ritorno con l’elisir', 7, 'Il mondo ordinario, cambiato.')
+      ]},
+      cat: { name: 'Save the Cat! Writes a Novel', base: 'Jessica Brody', desc: 'I 15 beat di Save the Cat adattati al romanzo.', secs: [
+        s('Atto 1', 'Immagine d’apertura', 1, 'Un’istantanea del «prima».'), s('Atto 1', 'Tema enunciato', 1, 'Qualcuno dice ciò che l’eroe deve imparare.'), s('Atto 1', 'Setup', 8, 'Il mondo, i difetti, la posta in gioco.'), s('Atto 1', 'Catalizzatore', 1, 'L’evento che cambia tutto.'), s('Atto 1', 'Dibattito', 9, 'L’eroe esita.'),
+        s('Atto 2', 'Passaggio al secondo atto', 1, 'La scelta di entrare nel mondo nuovo.'), s('Atto 2', 'Storia B', 2, 'Una relazione che porterà il tema.'), s('Atto 2', 'Divertimento e giochi', 26, 'La promessa della premessa.'), s('Atto 2', 'Punto centrale', 1, 'Falsa vittoria o falsa sconfitta.'), s('Atto 2', 'I cattivi si avvicinano', 23, 'Pressioni esterne e interne.'), s('Atto 2', 'Tutto è perduto', 1, 'Il punto più basso.'), s('Atto 2', 'Notte buia dell’anima', 4, 'L’eroe elabora la perdita.'),
+        s('Atto 3', 'Passaggio al terzo atto', 1, 'L’intuizione.'), s('Atto 3', 'Finale', 19, 'L’eroe dimostra di essere cambiato.'), s('Atto 3', 'Immagine finale', 2, 'Un’istantanea del «dopo».')
+      ]},
+      marks: { name: 'Dara Marks · arco trasformativo', base: 'Dara Marks, Inside Story', desc: 'Tre atti con l’arco interiore del protagonista. Sezioni da validare con l’autore.', secs: [
+        s('Atto I', 'Lo status quo', 12, 'Il difetto fatale è già all’opera.'), s('Atto I', 'Primo punto di svolta', 3, 'La trama esterna costringe a muoversi.'),
+        s('Atto II', 'Resistenza', 20, 'Il protagonista si aggrappa a ciò che conosce.'), s('Atto II', 'Punto centrale', 5, 'Il conflitto interiore viene a galla.'), s('Atto II', 'Il difetto messo a nudo', 22, 'Il vecchio sé non funziona più.'), s('Atto II', 'Secondo punto di svolta', 3, 'La scelta.'),
+        s('Atto III', 'Climax', 25, 'Trama esterna e interiore convergono.'), s('Atto III', 'Risoluzione', 10, 'Il sé trasformato.')
+      ]}
+    };
+    const mine = this.copy('hero', 'Viaggio dell’eroe in 9 passi (mio)');
+    mine.secs = mine.secs.filter((x, i) => [0, 1, 3, 5, 7, 8, 9, 10, 11].indexOf(i) >= 0);
+    mine.secs[0].pct = 12; mine.secs[1].pct = 8; mine.secs[2].pct = 5; mine.secs[3].pct = 20; mine.secs[4].pct = 15; mine.secs[5].pct = 12; mine.secs[6].pct = 8; mine.secs[7].pct = 12; mine.secs[8].pct = 8;
+    mine.secs[1].name = 'La chiamata (e il rifiuto)';
+    mine.id = 'm1';
+    this.state = { mine: [mine], sel: 'm1', seq: 2 };
+  }
+  copy(key, name) {
+    const src = this.T[key] || (this.state && this.state.mine.find((m) => m.id === key));
+    return { name: name || ('Copia di ' + src.name), base: 'Clonata da «' + src.name + '»', desc: src.desc, secs: src.secs.map((x) => Object.assign({}, x)) };
+  }
+  cloneFrom(key) {
+    const c = this.copy(key);
+    c.id = 'm' + this.state.seq;
+    this.setState({ mine: this.state.mine.concat([c]), sel: c.id, seq: this.state.seq + 1 });
+  }
+  editSecs(fn) {
+    const mine = this.state.mine.map((m) => m.id === this.state.sel ? Object.assign({}, m, { secs: fn(m.secs.slice()) }) : m);
+    this.setState({ mine });
+  }
+  renderVals() {
+    const sel = this.state.sel;
+    const isBuiltin = !!this.T[sel];
+    const cur = isBuiltin ? Object.assign({ base: this.T[sel].base }, this.T[sel]) : this.state.mine.find((m) => m.id === sel);
+    const tints = ['#8EA3C7', '#C9A26B', '#7FAE92', '#B79AC8', '#D08C7A'];
+    const acts = [];
+    cur.secs.forEach((x) => { if (acts.indexOf(x.act) < 0) acts.push(x.act); });
+    const rows = cur.secs.map((x, i) => ({
+      num: String(i + 1).padStart(2, '0'), name: x.name, guide: x.guide, pct: x.pct, act: x.act,
+      showAct: i === 0 || cur.secs[i - 1].act !== x.act, tint: tints[acts.indexOf(x.act) % tints.length],
+      ro: isBuiltin, rw: !isBuiltin,
+      onName: (e) => { const v = e.target.value; this.editSecs((a) => { a[i] = Object.assign({}, a[i], { name: v }); return a; }); },
+      onGuide: (e) => { const v = e.target.value; this.editSecs((a) => { a[i] = Object.assign({}, a[i], { guide: v }); return a; }); },
+      onPct: (e) => { const v = Math.max(0, parseInt(e.target.value, 10) || 0); this.editSecs((a) => { a[i] = Object.assign({}, a[i], { pct: v }); return a; }); },
+      up: () => this.editSecs((a) => { if (i > 0) { const t = a[i - 1]; a[i - 1] = Object.assign({}, a[i], { act: t.act }); a[i] = t; } return a; }),
+      down: () => this.editSecs((a) => { if (i < a.length - 1) { const t = a[i + 1]; a[i + 1] = Object.assign({}, a[i], { act: t.act }); a[i] = t; } return a; }),
+      del: () => this.editSecs((a) => { a.splice(i, 1); return a; })
+    }));
+    const total = cur.secs.reduce((n, x) => n + x.pct, 0);
+    const ok = total === 100;
+    const card = (id, name, meta) => ({ name, meta, pick: () => this.setState({ sel: id }), clone: () => this.cloneFrom(id),
+      style: 'display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 12px; border-radius: 10px; border: 1px solid ' + (sel === id ? '#2E4A7D' : '#E3E1DC') + '; background: ' + (sel === id ? '#E8EDF6' : '#FFFFFF') });
+    const biggest = cur.secs.slice().sort((a, b) => b.pct - a.pct)[0];
+    return {
+      cur, rows, count: cur.secs.length, readOnly: isBuiltin, editable: !isBuiltin,
+      totalLabel: ok ? 'Totale 100%' : 'Totale ' + total + '% · deve fare 100%',
+      totalStyle: 'font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 6px; ' + (ok ? 'background: #E3F1E8; color: #245C3C' : 'background: #FBE3E1; color: #8E2A1F'),
+      hint: biggest ? '«' + biggest.name + '» vale circa ' + Math.round(900 * biggest.pct).toLocaleString('it-IT') + ' parole.' : '',
+      usedBy: isBuiltin ? (sel === 'hero' ? 'Neve d’agosto (racconto)' : 'Nessun progetto') : (sel === 'm1' ? 'Il porto delle nebbie' : 'Nessun progetto, ancora'),
+      builtins: [card('hero', 'Viaggio dell’eroe', '12 tappe · Vogler'), card('cat', 'Save the Cat! Writes a Novel', '15 beat · Brody'), card('marks', 'Dara Marks', '8 sezioni · arco trasformativo')],
+      mine: this.state.mine.map((m) => card(m.id, m.name, m.secs.length + ' sezioni · ' + m.base)),
+      cloneCurrent: () => this.cloneFrom(sel),
+      newBlank: () => { const id = 'm' + this.state.seq; this.setState({ mine: this.state.mine.concat([{ id, name: 'Nuova struttura', base: 'Da zero', desc: '', secs: [{ act: 'Parte prima', name: 'Nuova sezione', pct: 100, guide: '' }] }]), sel: id, seq: this.state.seq + 1 }); },
+      onTitle: (e) => { const v = e.target.value; this.setState({ mine: this.state.mine.map((m) => m.id === sel ? Object.assign({}, m, { name: v }) : m) }); },
+      addSection: () => this.editSecs((a) => a.concat([{ act: a.length ? a[a.length - 1].act : 'Parte prima', name: 'Nuova sezione', pct: 0, guide: '' }])),
+      addAct: () => this.editSecs((a) => a.concat([{ act: 'Nuovo atto', name: 'Nuova sezione', pct: 0, guide: '' }])),
+      rebalance: () => this.editSecs((a) => { const t = a.reduce((n, x) => n + x.pct, 0) || 1; let acc = 0; return a.map((x, i) => { const p = i === a.length - 1 ? 100 - acc : Math.round(x.pct * 100 / t); acc += p; return Object.assign({}, x, { pct: p }); }); })
+    };
+  }
+}
+</script>
+</body>
+</html>
