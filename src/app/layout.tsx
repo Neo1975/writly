@@ -17,6 +17,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <Link href="/" className="brand">
             Writly
           </Link>
+          {session?.user && (
+            <nav aria-label="Sezioni" className="topnav">
+              <Link href="/">Libreria</Link>
+              <Link href="/strutture">Strutture</Link>
+            </nav>
+          )}
           <span className="spacer" />
           {session?.user && (
             <form

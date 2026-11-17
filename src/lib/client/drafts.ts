@@ -81,3 +81,42 @@ export async function clearDraft(owner: string, repo: string, path: string): Pro
     // niente da fare
   }
 }
+
+/**
+ * Copia locale di un documento strutturato (es. struttura e scene di un'opera)
+ * non ancora salvato su GitHub. Stesse regole delle bozze dei capitoli.
+ */
+export interface LocalCopy<T> {
+  data: T;
+  baseSha: string | null;
+  updatedAt: number;
+}
+
+function docKey(kind: string, owner: string, repo: string, id: string) {
+  return `writly:${kind}:${owner}/${repo}/${id}`;
+}
+
+export async function loadLocalCopy<T>(kind: string, owner: string, repo: string, id: string): Promise<LocalCopy<T> | null> {
+  try {
+    return ((await get(docKey(kind, owner, repo, id))) as LocalCopy<T> | undefined) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveLocalCopy<T>(kind: string, owner: string, repo: string, id: string, copy: LocalCopy<T>): Promise<boolean> {
+  try {
+    await set(docKey(kind, owner, repo, id), copy);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function clearLocalCopy(kind: string, owner: string, repo: string, id: string): Promise<void> {
+  try {
+    await del(docKey(kind, owner, repo, id));
+  } catch {
+    // niente da fare
+  }
+}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api, ClientApiError, projectApi } from "@/lib/client/api";
+import ProjectNav from "./ProjectNav";
 import type { ProjectData, WorkSummary } from "@/lib/server/projects";
 
 const TYPE_LABEL = { racconto: "Racconto", romanzo: "Romanzo", saga: "Saga" } as const;
@@ -68,17 +69,16 @@ export default function ProjectView({ owner, repo }: { owner: string; repo: stri
   const { manifest } = data;
   return (
     <main className="page">
-      <div className="page-head">
-        <div>
-          <Link href="/" className="small">
-            ← Libreria
-          </Link>
-          <h1>{manifest.titolo}</h1>
-          <div className="small muted">
-            {TYPE_LABEL[manifest.tipo]} · {owner}/{repo} · dizionario di progetto: {data.dizionario.length} parole
-          </div>
-        </div>
-        <a className="btn" href={`https://github.com/${owner}/${repo}`} target="_blank" rel="noreferrer">
+      <ProjectNav
+        owner={owner}
+        repo={repo}
+        title={manifest.titolo}
+        current="opere"
+        asHeading
+        subtitle={`${TYPE_LABEL[manifest.tipo]} · ${owner}/${repo} · dizionario di progetto: ${data.dizionario.length} parole`}
+      />
+      <div className="row">
+        <a className="btn btn-small" href={`https://github.com/${owner}/${repo}`} target="_blank" rel="noreferrer">
           Apri su GitHub
         </a>
       </div>
@@ -162,9 +162,14 @@ function WorkCard({
 
   return (
     <section className="card" aria-labelledby={`opera-${work.slug}`} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <h2 id={`opera-${work.slug}`} className="serif" style={{ margin: 0, fontSize: 22 }}>
-        {work.titolo}
-      </h2>
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <h2 id={`opera-${work.slug}`} className="serif" style={{ margin: 0, fontSize: 22 }}>
+          {work.titolo}
+        </h2>
+        <Link className="btn btn-small" href={`/progetto/${owner}/${repo}/struttura/${work.slug}`}>
+          Struttura e scene
+        </Link>
+      </div>
       <ol className="list" style={{ paddingLeft: 0 }}>
         {work.capitoli.map((c, i) => (
           <li key={c.file}>

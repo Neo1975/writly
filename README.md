@@ -5,7 +5,7 @@ Applicazione di supporto alla stesura di racconti, romanzi e saghe. Ogni progett
 - Analisi e pianificazione: [docs/analisi-e-pianificazione.md](docs/analisi-e-pianificazione.md)
 - Mock-up delle schermate: [docs/mockup/](docs/mockup/)
 
-## Cosa fa oggi (fasi 0 e 1)
+## Cosa fa oggi (fasi 0–3)
 
 - Accesso con GitHub; libreria dei progetti (repository con topic `writly-progetto`).
 - Nuovo progetto (racconto, romanzo, saga): crea un repository privato e i file iniziali. Oppure collega un repository esistente.
@@ -15,6 +15,11 @@ Applicazione di supporto alla stesura di racconti, romanzi e saghe. Ogni progett
 - Statistiche sempre visibili: parole, battute con e senza spazi, anche sulla selezione.
 - Bozza salvata in continuazione nel browser; «Salva versione» = commit con messaggio; protezione dai conflitti.
 - Storico delle versioni con anteprima e ripristino nell'editor.
+- **Strutture narrative**: Viaggio dell'eroe (12 tappe), Save the Cat! (15 beat), arco trasformativo di Dara Marks, Libero. Editor di strutture a livello di libreria: le predefinite si clonano, le personali si salvano nel repository privato `writly-libreria`; atti e sezioni con guida e peso, controllo del 100% con «Ribilancia», stima delle parole per sezione.
+- **Scene**: per ogni opera una bacheca per sezioni con trascinamento, editor di scena (sinossi, obiettivo, conflitto, esito, POV, luogo, momento, personaggi, stato, capitolo), vista d'insieme con sezioni scoperte, parole e battute per capitolo e per opera.
+- **Personaggi**: schede con alias, tratti fisici, morali e di comportamento, arco e biografia; relazioni orientate (anche per singolo libro della saga) e grafo.
+- **Mondo**: voci per categoria (luoghi, culture e fazioni, sistemi, oggetti, storia, lingue, più quelle che aggiungi) con campi personalizzati, gerarchia («si trova in») e collegamenti a personaggi e altre voci.
+- **Nel capitolo**: nomi e alias di personaggi e voci del mondo riconosciuti ed evidenziati, scheda al passaggio del mouse, pannello laterale con scene del capitolo e citazioni; i nomi non risultano errori di ortografia.
 
 ## Avvio in locale
 
@@ -38,7 +43,15 @@ Applicazione di supporto alla stesura di racconti, romanzi e saghe. Ogni progett
 writly.yaml                          titolo, tipo, lingua, ordine delle opere
 opere/<opera>/opera.yaml             titolo dell'opera, ordine e titoli dei capitoli
 opere/<opera>/capitoli/<file>.md     front-matter (id, stato) + testo Markdown
+opere/<opera>/struttura.yaml         modello, atti e sezioni dell'opera + scene
+personaggi/<slug>.md                 scheda (front-matter) + biografia
+relazioni.yaml                       relazioni tra personaggi
+mondo/categorie.yaml                 categorie del mondo e loro campi
+mondo/<categoria>/<slug>.md          voce del mondo (front-matter) + descrizione
 dizionario.txt                       parole accettate dal controllo ortografico
+
+Repository personale writly-libreria:
+strutture/<id>.yaml                  strutture narrative personali
 ```
 
 Il dizionario italiano in `public/dictionaries/` è distribuito con licenza GPL-3.0 (vedi `LICENSE-it.txt`).

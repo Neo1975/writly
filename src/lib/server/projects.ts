@@ -15,6 +15,7 @@ import {
   DICTIONARY_PATH,
   MANIFEST_PATH,
   PROJECT_TOPIC,
+  RESERVED_WORK_SLUGS,
   chapterPath,
   isChapterFile,
   isSlug,
@@ -59,7 +60,7 @@ export async function loadProject(gh: GitHub, owner: string, repo: string): Prom
 }
 
 function initialFiles(titolo: string, tipo: ProjectType, titoloOpera: string) {
-  const work = slugify(titoloOpera);
+  const work = uniqueSlug(slugify(titoloOpera), RESERVED_WORK_SLUGS);
   const firstChapter: WorkManifest["capitoli"][number] = { file: "capitolo-1.md", titolo: "Capitolo 1" };
   const manifest: ProjectManifest = { writly: FORMAT_VERSION, titolo, tipo, lingua: "it", opere: [work] };
   return [
@@ -110,7 +111,7 @@ export async function connectProject(
 
 export async function addWork(gh: GitHub, owner: string, repo: string, titolo: string): Promise<string> {
   const { manifest } = await readManifest(gh, owner, repo);
-  const slug = uniqueSlug(slugify(titolo), manifest.opere);
+  const slug = uniqueSlug(slugify(titolo), [...manifest.opere, ...RESERVED_WORK_SLUGS]);
   const next = { ...manifest, opere: [...manifest.opere, slug] };
   const first = { file: "capitolo-1.md", titolo: "Capitolo 1" };
   await commitFiles(gh, owner, repo, `Aggiunge l'opera «${titolo}»`, [

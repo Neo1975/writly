@@ -192,21 +192,37 @@ Alternativa da valutare per il PDF: **Typst** (tipografia eccellente, molto velo
 
 ### Stato dell'implementazione (branch `preview`)
 
-Fasi 0 e 1 completate. Scostamenti rispetto all'architettura proposta, decisi durante lo sviluppo:
+Fasi 0, 1, 2 e 3 completate. Scostamenti rispetto all'architettura proposta, decisi durante lo sviluppo:
 
 - **Login**: OAuth App GitHub tramite Auth.js v5, non ancora GitHub App. Il token resta nel JWT di sessione cifrato e si legge solo lato server; `/api/auth/session` non lo espone.
 - **Ortografia**: Hunspell (`hunspell-asm`, WebAssembly) sul thread principale, non in un Web Worker: con un capitolo di qualche migliaio di parole e la cache per parola il ricalcolo resta impercettibile. Da spostare in un worker se emergono rallentamenti su capitoli molto lunghi. Le elisioni («dell'acqua», «c'è») si controllano intere: il dizionario italiano le riconosce così e segnala anche «un'altro».
 - **Bozze locali**: IndexedDB (`idb-keyval`) più una copia sincrona in `localStorage` scritta quando la pagina si chiude, perché una scrittura IndexedDB avviata in quel momento può non completarsi.
 - **UI**: CSS semplice con variabili (tema chiaro/scuro), senza Tailwind/Radix per ora.
 - **Titolo dei capitoli**: vive solo in `opera.yaml` (unica fonte); il front-matter del capitolo contiene `id` e `stato`.
+- **Scene**: vivono solo in `opere/<opera>/struttura.yaml`, insieme alla copia della struttura usata dall'opera (atti, sezioni, pesi). Il collegamento scena → capitolo è il campo `capitolo` della scena: il front-matter dei capitoli non elenca le scene, così c'è una sola fonte.
+- **Strutture personali**: file `strutture/<id>.yaml` nel repository privato `writly-libreria` dell'autore, creato al primo salvataggio. Ogni opera ne tiene una copia: modificare la struttura di libreria non cambia le opere già avviate.
+- **Salvataggi**: struttura e scene si modificano in locale (copia in IndexedDB, ripresa dopo una chiusura) e diventano una versione con «Salva struttura», come i capitoli. Schede personaggio e voci del mondo si salvano una alla volta («Salva scheda»); relazioni e categorie si salvano subito a ogni modifica. Tutti i salvataggi usano lo sha letto: in caso di conflitto non si sovrascrive.
+- **Caricamento delle schede**: un solo albero Git (`git/trees`, ricorsivo) e un blob per file, invece di elencare le cartelle una per una.
+- **Riconoscimento nel testo**: nel browser, per nome e alias, sensibile alle maiuscole e ai confini di parola; i nomi più lunghi hanno la precedenza («Torre del Sale» prima di «Sale»). I nomi condivisi da più schede sono segnalati nel pannello. Le parole dei nomi sono accettate dal controllo ortografico.
+- **Grafo delle relazioni**: disposizione circolare in SVG, senza librerie; la tabella delle relazioni è l'alternativa testuale.
+- **Dara Marks**: le sezioni precaricate sono una proposta (difetto fatale → trasformazione su tre atti), da validare (vedi domande aperte).
+
+Rimandati rispetto ai requisiti delle fasi 2 e 3 (restano nel piano):
+
+- ritratto del personaggio (immagine nel repository) e collegamento dell'arco alle sezioni del modello;
+- elenco dei progetti che usano una struttura di libreria;
+- conferma manuale dei nomi ambigui (oggi c'è solo l'avviso) e comparse per capitolo (S);
+- mappatura assistita delle scene al cambio di modello (S): oggi le scene di sezioni che non esistono più vanno in «Non assegnate»;
+- indicatori di «debito di worldbuilding» (S) e collegamento delle voci agli appunti (fase 4);
+- modifica di una relazione esistente: oggi si toglie e si aggiunge di nuovo.
 
 
 | Fase | Contenuto | Esito |
 |---|---|---|
 | **0 — Fondamenta** ✅ | Repo, stack, login GitHub, creazione/collegamento progetto, formato file | Si apre un progetto vuoto da GitHub |
 | **1 — Scrivere** ✅ | Editor capitolo, autosalvataggio, controllo ortografico, statistiche (parole e battute), salva versione, storico | MVP usabile per un racconto |
-| **2 — Strutturare** | Modelli narrativi, sezioni, editor di scena, collegamento scene↔capitoli, vista d'insieme | MVP per un romanzo |
-| **3 — Personaggi e mondo** | Schede personaggio, relazioni, grafo; voci del mondo con campi personalizzati; riconoscimento nel testo e pannello laterale | |
+| **2 — Strutturare** ✅ | Modelli narrativi, sezioni, editor di scena, collegamento scene↔capitoli, vista d'insieme | MVP per un romanzo |
+| **3 — Personaggi e mondo** ✅ | Schede personaggio, relazioni, grafo; voci del mondo con campi personalizzati; riconoscimento nel testo e pannello laterale | |
 | **3b — Mondo avanzato** | Mappe con segnaposti, storia del mondo con calendario proprio, regole del mondo | |
 | **4 — Appunti** | Appunti globali e di progetto, glossario, collegamenti, cattura rapida | |
 | **5 — Export** | Template PDF, export capitolo/selezione/opera, opuscolo e segnature | |

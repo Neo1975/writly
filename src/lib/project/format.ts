@@ -58,14 +58,14 @@ export class FormatError extends Error {
   }
 }
 
-function asRecord(value: unknown, what: string): Record<string, unknown> {
+export function asRecord(value: unknown, what: string): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new FormatError(`${what}: atteso un oggetto YAML`);
   }
   return value as Record<string, unknown>;
 }
 
-function requireString(obj: Record<string, unknown>, key: string, what: string): string {
+export function requireString(obj: Record<string, unknown>, key: string, what: string): string {
   const v = obj[key];
   if (typeof v !== "string" || v.trim() === "") {
     throw new FormatError(`${what}: campo «${key}» mancante o vuoto`);
@@ -73,7 +73,7 @@ function requireString(obj: Record<string, unknown>, key: string, what: string):
   return v;
 }
 
-function parseYaml(text: string, what: string): Record<string, unknown> {
+export function parseYaml(text: string, what: string): Record<string, unknown> {
   let data: unknown;
   try {
     data = YAML.parse(text);
@@ -152,27 +152,33 @@ export function serializeWorkManifest(w: WorkManifest): string {
 
 const FRONT_MATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 
-export function parseChapter(text: string): ChapterDocument {
+/** Separa il front-matter YAML dal testo Markdown; `data` è null se il file non ne ha. */
+export function splitFrontMatter(text: string, what: string): { data: Record<string, unknown> | null; body: string } {
   const match = FRONT_MATTER.exec(text);
-  if (!match) {
-    // File scritto a mano senza front-matter: lo accettiamo come testo puro.
-    return { meta: { id: "", stato: "bozza" }, body: text };
-  }
-  const obj = parseYaml(match[1], "front-matter del capitolo");
+  if (!match) return { data: null, body: text };
+  return { data: parseYaml(match[1], what), body: text.slice(match[0].length).replace(/^\r?\n/, "") };
+}
+
+/** Front-matter + riga vuota + testo, con a capo finale. */
+export function joinFrontMatter(data: Record<string, unknown>, body: string): string {
+  const fm = YAML.stringify(data).trimEnd();
+  const trimmed = body.replace(/^\n+/, "");
+  const text = trimmed.endsWith("\n") || trimmed === "" ? trimmed : `${trimmed}\n`;
+  return `---\n${fm}\n---\n\n${text}`;
+}
+
+export function parseChapter(text: string): ChapterDocument {
+  const { data: obj, body } = splitFrontMatter(text, "front-matter del capitolo");
+  // File scritto a mano senza front-matter: lo accettiamo come testo puro.
+  if (!obj) return { meta: { id: "", stato: "bozza" }, body };
   const stato = CHAPTER_STATUSES.includes(obj.stato as ChapterStatus)
     ? (obj.stato as ChapterStatus)
     : "bozza";
-  return {
-    meta: { id: typeof obj.id === "string" ? obj.id : "", stato },
-    body: text.slice(match[0].length).replace(/^\r?\n/, ""),
-  };
+  return { meta: { id: typeof obj.id === "string" ? obj.id : "", stato }, body };
 }
 
 export function serializeChapter(doc: ChapterDocument): string {
-  const fm = YAML.stringify({ id: doc.meta.id, stato: doc.meta.stato }).trimEnd();
-  const trimmed = doc.body.replace(/^\n+/, "");
-  const body = trimmed.endsWith("\n") || trimmed === "" ? trimmed : `${trimmed}\n`;
-  return `---\n${fm}\n---\n\n${body}`;
+  return joinFrontMatter({ id: doc.meta.id, stato: doc.meta.stato }, doc.body);
 }
 
 export function parseDictionary(text: string): string[] {

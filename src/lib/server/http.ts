@@ -70,11 +70,14 @@ export function assertRepoRef(owner: string, repo: string) {
   if (!isValidRepoRef(owner, repo)) throw new ApiError(400, "Repository non valido.");
 }
 
-export async function readJson(req: Request): Promise<Record<string, unknown>> {
+export async function readJson(req: Request, maxBytes = 2_500_000): Promise<Record<string, unknown>> {
   let data: unknown;
   try {
-    data = await req.json();
-  } catch {
+    const raw = await req.text();
+    if (Buffer.byteLength(raw, "utf8") > maxBytes) throw new ApiError(413, "Contenuto troppo grande.");
+    data = JSON.parse(raw);
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
     throw new ApiError(400, "Corpo della richiesta non valido.");
   }
   if (typeof data !== "object" || data === null || Array.isArray(data)) {
@@ -95,4 +98,18 @@ export function optionalText(body: Record<string, unknown>, key: string, max = 2
   if (v === undefined || v === null || v === "") return undefined;
   if (typeof v !== "string" || v.length > max) throw new ApiError(400, `Campo «${key}» non valido.`);
   return v.trim();
+}
+
+/** Sha Git (40 cifre esadecimali) facoltativo: null se assente. */
+export function optionalSha(body: Record<string, unknown>, key = "sha"): string | null {
+  const v = body[key];
+  if (v === undefined || v === null || v === "") return null;
+  if (typeof v !== "string" || !/^[0-9a-f]{40}$/.test(v)) throw new ApiError(400, "Versione di partenza non valida.");
+  return v;
+}
+
+export function requireSha(body: Record<string, unknown>, key = "sha"): string {
+  const v = optionalSha(body, key);
+  if (!v) throw new ApiError(400, "Versione di partenza mancante.");
+  return v;
 }

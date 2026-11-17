@@ -160,3 +160,63 @@ export async function addTopic(gh: GitHub, owner: string, repo: string, topic: s
   if (data.names.includes(topic)) return;
   await gh.rest.repos.replaceAllTopics({ owner, repo, names: [...data.names, topic] });
 }
+
+export interface TreeEntry {
+  path: string;
+  sha: string;
+}
+
+/** Tutti i file del branch predefinito (un'unica richiesta); vuoto se il repository non ha commit. */
+export async function listTree(gh: GitHub, owner: string, repo: string): Promise<TreeEntry[]> {
+  const { data: info } = await gh.rest.repos.get({ owner, repo });
+  try {
+    const { data } = await gh.rest.git.getTree({ owner, repo, tree_sha: info.default_branch, recursive: "1" });
+    if (data.truncated) console.warn(`Albero di ${owner}/${repo} troncato da GitHub`);
+    return data.tree.filter((e) => e.type === "blob" && e.path && e.sha).map((e) => ({ path: e.path!, sha: e.sha! }));
+  } catch (err) {
+    if (isStatus(err, 409) || isStatus(err, 404)) return [];
+    throw err;
+  }
+}
+
+export async function readBlob(gh: GitHub, owner: string, repo: string, sha: string): Promise<string> {
+  const { data } = await gh.rest.git.getBlob({ owner, repo, file_sha: sha });
+  return Buffer.from(data.content, "base64").toString("utf8");
+}
+
+/** Legge più blob in parallelo, al massimo `limit` richieste alla volta. */
+export async function readBlobs(gh: GitHub, owner: string, repo: string, entries: TreeEntry[], limit = 8): Promise<string[]> {
+  const out: string[] = new Array(entries.length);
+  let next = 0;
+  async function worker() {
+    while (next < entries.length) {
+      const i = next++;
+      out[i] = await readBlob(gh, owner, repo, entries[i].sha);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, entries.length) }, worker));
+  return out;
+}
+
+/** Elimina un file; con `sha` GitHub rifiuta (409) se è cambiato nel frattempo. */
+export async function deleteFile(
+  gh: GitHub,
+  args: { owner: string; repo: string; path: string; sha: string; message: string },
+): Promise<void> {
+  await gh.rest.repos.deleteFile(args);
+}
+
+export async function getLogin(gh: GitHub): Promise<string> {
+  const { data } = await gh.rest.users.getAuthenticated();
+  return data.login;
+}
+
+export async function repoExists(gh: GitHub, owner: string, repo: string): Promise<boolean> {
+  try {
+    await gh.rest.repos.get({ owner, repo });
+    return true;
+  } catch (err) {
+    if (isStatus(err, 404)) return false;
+    throw err;
+  }
+}

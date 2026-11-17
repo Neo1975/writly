@@ -4,8 +4,8 @@ import { Markdown } from "@tiptap/markdown";
 import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import Modal from "@/components/ui/Modal";
+import { useCallback, useEffect, useRef, useState } from "react";
+import SaveDialog from "@/components/ui/SaveDialog";
 import { api, ClientApiError, projectApi } from "@/lib/client/api";
 import { clearDraft, loadDraft, saveDraft, saveDraftNow, type Draft } from "@/lib/client/drafts";
 import {
@@ -19,7 +19,12 @@ import { chapterPath } from "@/lib/project/paths";
 import type { ProjectData } from "@/lib/server/projects";
 import { loadItalianSpellChecker, type SpellChecker } from "@/lib/spell/checker";
 import { formatCount, textStats, type TextStats } from "@/lib/text/stats";
+import type { SheetsData } from "@/lib/server/sheets";
+import type { Scene, WorkStructure } from "@/lib/project/structure";
+import { countMentions, createMentionMatcher, nameWords } from "@/lib/text/mentions";
+import ChapterSidePanel, { summarize, SummaryCard } from "./ChapterSidePanel";
 import HistoryDialog from "./HistoryDialog";
+import { Mentions, refreshMentions, type MentionsSource } from "./mentions";
 import { misspellingAt, refreshSpellcheck, Spellcheck } from "./spellcheck";
 
 const STATUS_LABEL: Record<ChapterStatus, string> = {
@@ -67,6 +72,13 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
   const [spellStatus, setSpellStatus] = useState<"loading" | "ready" | "error">("loading");
   const [spellMenu, setSpellMenu] = useState<SpellMenuState | null>(null);
   const [dialog, setDialog] = useState<"salva" | "storico" | null>(null);
+  const [sheets, setSheets] = useState<SheetsData | null>(null);
+  const [sheetsError, setSheetsError] = useState<string | null>(null);
+  const [structure, setStructure] = useState<{ state: "loading" | "none" | "ready" | "error"; scenes: Scene[] }>({ state: "loading", scenes: [] });
+  const [mentionCounts, setMentionCounts] = useState<Map<string, number>>(new Map());
+  const [mentionFocus, setMentionFocus] = useState<string | null>(null);
+  const [hover, setHover] = useState<{ id: string; top: number; left: number } | null>(null);
+  const [panelOpen, setPanelOpen] = useState(true);
 
   // Stato non reattivo usato dalle callback dell'editor.
   const shaRef = useRef("");
@@ -74,18 +86,21 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
   const committedRef = useRef<{ body: string; stato: ChapterStatus }>({ body: "", stato: "bozza" });
   // Contenitore stabile: ProseMirror legge il checker solo quando ricalcola le decorazioni.
   const [spell] = useState<{ checker: SpellChecker | null }>(() => ({ checker: null }));
+  const [ents] = useState<{ source: (MentionsSource & { ambiguous: string[] }) | null }>(() => ({ source: null }));
   const readyRef = useRef(false);
   const editorRef = useRef<Editor | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingDraft = useRef<(() => Promise<void>) | null>(null);
 
   const recompute = useCallback((editor: Editor) => {
-    setStats(textStats(plainText(editor)));
+    const plain = plainText(editor);
+    setStats(textStats(plain));
+    if (ents.source) setMentionCounts(countMentions(ents.source.matcher, plain));
     const body = editor.getMarkdown();
     const isDirty = body !== committedRef.current.body || metaRef.current.stato !== committedRef.current.stato;
     setDirty(isDirty);
     return { body, isDirty };
-  }, []);
+  }, [ents]);
 
   const scheduleDraft = useCallback(
     (editor: Editor) => {
@@ -139,6 +154,7 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
       }),
       Markdown,
       Spellcheck.configure({ getChecker: () => spell.checker }),
+      Mentions.configure({ getSource: () => ents.source }),
     ],
     editorProps: {
       attributes: { class: "prose-editor", spellcheck: "false", "aria-label": "Testo del capitolo", lang: "it" },
@@ -147,6 +163,12 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
         const el = target?.closest?.(".spell-error");
         if (!el || !spell.checker) {
           setSpellMenu(null);
+          const mention = target?.closest?.("[data-mention]")?.getAttribute("data-mention");
+          if (mention) {
+            setMentionFocus(mention);
+            setPanelOpen(true);
+            setHover(null);
+          }
           return false;
         }
         const ed = editorRef.current;
@@ -258,6 +280,47 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
       cancelled = true;
     };
   }, [editor, project, spell]);
+
+  // Schede (personaggi, mondo) e scene dell'opera: servono al pannello laterale
+  // e al riconoscimento dei nomi. Se non arrivano, l'editor funziona lo stesso.
+  useEffect(() => {
+    if (!project) return;
+    let cancelled = false;
+    api<SheetsData>(`${base}/schede`)
+      .then((d) => {
+        if (cancelled) return;
+        // Riconoscimento dei nomi: evidenziati nel testo, contati nel pannello.
+        const characterIds = new Set(d.personaggi.map((c) => c.data.id));
+        const matcher = createMentionMatcher([
+          ...d.personaggi.map((c) => ({ id: c.data.id, names: [c.data.nome, ...c.data.alias] })),
+          ...d.voci.map((v) => ({ id: v.data.id, names: [v.data.nome, ...v.data.alias] })),
+        ]);
+        ents.source = { matcher, kindOf: (id) => (characterIds.has(id) ? "personaggio" : "voce"), ambiguous: matcher.ambiguous };
+        const ed = editorRef.current;
+        if (ed) {
+          refreshMentions(ed);
+          setMentionCounts(countMentions(matcher, plainText(ed)));
+        }
+        setSheets(d);
+      })
+      .catch((err: Error) => !cancelled && setSheetsError(err.message));
+    api<{ struttura: WorkStructure | null }>(`${base}/opere/${work}/struttura`)
+      .then((d) => {
+        if (cancelled) return;
+        setStructure(d.struttura ? { state: "ready", scenes: d.struttura.scene.filter((s) => s.capitolo === file) } : { state: "none", scenes: [] });
+      })
+      .catch(() => !cancelled && setStructure({ state: "error", scenes: [] }));
+    return () => {
+      cancelled = true;
+    };
+  }, [project, base, work, file, ents]);
+
+  // I nomi delle schede sono accettati dal controllo ortografico.
+  useEffect(() => {
+    if (!editor || !sheets || spellStatus !== "ready" || !spell.checker) return;
+    spell.checker.accept(nameWords([...sheets.personaggi.flatMap((c) => [c.data.nome, ...c.data.alias]), ...sheets.voci.flatMap((v) => [v.data.nome, ...v.data.alias])]));
+    refreshSpellcheck(editor);
+  }, [editor, sheets, spellStatus, spell]);
 
   // Ctrl/Cmd+S apre "Salva versione".
   useEffect(() => {
@@ -460,6 +523,10 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
           ↷
         </button>
         <span className="tool-sep" aria-hidden="true" />
+        <button type="button" className="tool" aria-pressed={panelOpen} onClick={() => setPanelOpen((v) => !v)}>
+          Pannello
+        </button>
+        <span className="tool-sep" aria-hidden="true" />
         <span className="small muted">
           Ortografia (italiano):{" "}
           {spellStatus === "loading" ? "carico il dizionario…" : spellStatus === "ready" ? `attiva · ${project?.dizionario.length ?? 0} ${project?.dizionario.length === 1 ? "parola" : "parole"} di progetto` : "non disponibile"}
@@ -507,9 +574,49 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
         </div>
       )}
 
-      <main className="editor-paper">
-        <EditorContent editor={editor} />
-      </main>
+      <div className={`editor-body${panelOpen ? " with-panel" : ""}`}>
+        <main
+          className="editor-paper"
+          onMouseOver={(e) => {
+            const el = (e.target as HTMLElement).closest?.("[data-mention]");
+            const id = el?.getAttribute("data-mention");
+            if (!el || !id) return;
+            if (hover?.id === id) return;
+            const rect = el.getBoundingClientRect();
+            setHover({ id, top: rect.bottom + window.scrollY + 6, left: Math.max(8, Math.min(rect.left + window.scrollX, window.innerWidth - 320)) });
+          }}
+          onMouseOut={(e) => {
+            const to = e.relatedTarget as HTMLElement | null;
+            if (!to?.closest?.("[data-mention]")) setHover(null);
+          }}
+        >
+          <EditorContent editor={editor} />
+        </main>
+        {panelOpen && (
+          <ChapterSidePanel
+            projectHref={`/progetto/${owner}/${repo}`}
+            structureHref={`/progetto/${owner}/${repo}/struttura/${work}`}
+            sheets={sheets}
+            sheetsError={sheetsError}
+            scenes={structure.scenes}
+            structureState={structure.state}
+            counts={mentionCounts}
+            ambiguous={ents.source?.ambiguous ?? []}
+            focus={mentionFocus}
+            onFocus={setMentionFocus}
+          />
+        )}
+      </div>
+
+      {hover && sheets && !spellMenu && (() => {
+        const s = summarize(sheets, hover.id, `/progetto/${owner}/${repo}`);
+        return s ? (
+          <div className="mention-card" role="tooltip" style={{ top: hover.top, left: hover.left }}>
+            <SummaryCard s={s} compact />
+            <div className="small muted">Clic sul nome per la scheda completa nel pannello.</div>
+          </div>
+        ) : null;
+      })()}
 
       <nav className="chapter-nav" aria-label="Capitoli vicini">
         {prev ? <Link href={chapterHref(prev.file)}>← {prev.titolo}</Link> : <span />}
@@ -541,7 +648,7 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
         </div>
       )}
 
-      <SaveVersionDialog
+      <SaveDialog
         open={dialog === "salva"}
         onClose={() => setDialog(null)}
         defaultMessage={`${chapter?.titolo ?? file}: aggiornamento`}
@@ -558,70 +665,5 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
         }}
       />
     </div>
-  );
-}
-
-function SaveVersionDialog({
-  open,
-  onClose,
-  defaultMessage,
-  onSave,
-}: {
-  open: boolean;
-  onClose: () => void;
-  defaultMessage: string;
-  onSave: (message: string) => Promise<string | null>;
-}) {
-  return (
-    <Modal open={open} onClose={onClose} title="Salva versione">
-      <SaveVersionForm key={String(open)} defaultMessage={defaultMessage} onClose={onClose} onSave={onSave} />
-    </Modal>
-  );
-}
-
-function SaveVersionForm({
-  defaultMessage,
-  onClose,
-  onSave,
-}: {
-  defaultMessage: string;
-  onClose: () => void;
-  onSave: (message: string) => Promise<string | null>;
-}) {
-  const [message, setMessage] = useState(defaultMessage);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setError("");
-    const failure = await onSave(message);
-    setBusy(false);
-    if (failure) setError(failure);
-    else onClose();
-  }
-
-  return (
-    <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div className="field">
-        <label htmlFor="msg">Cosa è cambiato?</label>
-        <textarea id="msg" className="textarea" required maxLength={500} value={message} onChange={(e) => setMessage(e.target.value)} autoFocus />
-        <span className="hint">Diventa il messaggio del commit su GitHub: ti aiuta a ritrovare questa versione nello storico.</span>
-      </div>
-      {error && (
-        <div className="notice notice-error" role="alert">
-          {error}
-        </div>
-      )}
-      <div className="modal-actions">
-        <button type="button" className="btn" onClick={onClose} disabled={busy}>
-          Annulla
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={busy || !message.trim()}>
-          {busy ? "Salvo su GitHub…" : "Salva versione"}
-        </button>
-      </div>
-    </form>
   );
 }
