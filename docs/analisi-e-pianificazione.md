@@ -190,10 +190,21 @@ Alternativa da valutare per il PDF: **Typst** (tipografia eccellente, molto velo
 
 ## 7. Roadmap
 
+### Stato dell'implementazione (branch `preview`)
+
+Fasi 0 e 1 completate. Scostamenti rispetto all'architettura proposta, decisi durante lo sviluppo:
+
+- **Login**: OAuth App GitHub tramite Auth.js v5, non ancora GitHub App. Il token resta nel JWT di sessione cifrato e si legge solo lato server; `/api/auth/session` non lo espone.
+- **Ortografia**: Hunspell (`hunspell-asm`, WebAssembly) sul thread principale, non in un Web Worker: con un capitolo di qualche migliaio di parole e la cache per parola il ricalcolo resta impercettibile. Da spostare in un worker se emergono rallentamenti su capitoli molto lunghi. Le elisioni («dell'acqua», «c'è») si controllano intere: il dizionario italiano le riconosce così e segnala anche «un'altro».
+- **Bozze locali**: IndexedDB (`idb-keyval`) più una copia sincrona in `localStorage` scritta quando la pagina si chiude, perché una scrittura IndexedDB avviata in quel momento può non completarsi.
+- **UI**: CSS semplice con variabili (tema chiaro/scuro), senza Tailwind/Radix per ora.
+- **Titolo dei capitoli**: vive solo in `opera.yaml` (unica fonte); il front-matter del capitolo contiene `id` e `stato`.
+
+
 | Fase | Contenuto | Esito |
 |---|---|---|
-| **0 — Fondamenta** | Repo, stack, login GitHub, creazione/collegamento progetto, formato file | Si apre un progetto vuoto da GitHub |
-| **1 — Scrivere** | Editor capitolo, autosalvataggio, controllo ortografico, salva versione, storico | MVP usabile per un racconto |
+| **0 — Fondamenta** ✅ | Repo, stack, login GitHub, creazione/collegamento progetto, formato file | Si apre un progetto vuoto da GitHub |
+| **1 — Scrivere** ✅ | Editor capitolo, autosalvataggio, controllo ortografico, statistiche (parole e battute), salva versione, storico | MVP usabile per un racconto |
 | **2 — Strutturare** | Modelli narrativi, sezioni, editor di scena, collegamento scene↔capitoli, vista d'insieme | MVP per un romanzo |
 | **3 — Personaggi e mondo** | Schede personaggio, relazioni, grafo; voci del mondo con campi personalizzati; riconoscimento nel testo e pannello laterale | |
 | **3b — Mondo avanzato** | Mappe con segnaposti, storia del mondo con calendario proprio, regole del mondo | |
