@@ -9,7 +9,7 @@
  * testi qui sotto e alza MENTOR_SKILL_VERSION.
  */
 
-export const MENTOR_SKILL_VERSION = 1;
+export const MENTOR_SKILL_VERSION = 2;
 export const MENTOR_SKILL_DIR = ".claude/skills/writly-mentore";
 export const MENTOR_SKILL_PATH = `${MENTOR_SKILL_DIR}/SKILL.md`;
 
@@ -116,11 +116,14 @@ eliminato.
 
 \`\`\`yaml
 modello: { id: viaggio-eroe, nome: Viaggio dell'eroe }
+misura: battute                   # facoltativo: senza, le sezioni si misurano in percentuale (peso)
 atti:
   - id: atto-1
     nome: Partenza
     sezioni:
-      - { id: mondo-ordinario, nome: Mondo ordinario, guida: "…", peso: 10 }   # peso = % indicativa del libro
+      - { id: mondo-ordinario, nome: Mondo ordinario, guida: "…", peso: 10, battute: 1500 }
+        # peso = % indicativa del libro; con «misura: battute» vale invece «battute»,
+        # la lunghezza esatta della sezione in battute con spazi (un vincolo, non una stima)
 scene:
   - id: s1
     titolo: L'arrivo al molo
@@ -311,8 +314,12 @@ Guarda il libro dall'alto: architettura, scene, archi, coerenza. Il risultato
    chiedi su quale opera lavorare, o se rivedere la saga intera).
 2. Leggi \`struttura.yaml\`: modello, atti, sezioni con guida e peso, scene.
 3. Conta le parole di ogni capitolo (testo senza front-matter) e confrontale
-   con \`obiettivoParole\` dell'opera e con il peso di ogni sezione. Le scene
-   attribuiscono i capitoli alle sezioni.
+   con \`obiettivoParole\` dell'opera e con il peso di ogni sezione. Se la
+   struttura ha \`misura: battute\`, conta invece le battute con spazi (testo
+   visibile, senza segni Markdown né a capo) e confrontale con le \`battute\`
+   di ogni sezione: sono limiti precisi (spesso di un concorso), quindi segnala
+   ogni sforamento e quanto spazio resta. Le scene attribuiscono i capitoli
+   alle sezioni.
 4. Leggi le schede dei personaggi principali (arco: partenza → arrivo; difetto,
    desideri, paure), relazioni, regole del mondo e cronologia.
 5. Leggi i capitoli. Se sono molti, leggi per intero i capitoli che

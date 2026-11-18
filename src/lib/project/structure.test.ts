@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { FormatError } from "./format";
 import {
   applyTemplate,
+  changeMeasure,
+  scaleBattute,
+  sectionTargets,
+  totalBattute,
   moveScene,
   normalizeWorkStructure,
   parseTemplate,
@@ -117,5 +121,52 @@ describe("pesi", () => {
     const t = wordTargets(builtinTemplate("viaggio-eroe")!.atti, 80000);
     expect(t.get("prova-centrale")).toBe(12000);
     expect(t.get("mondo-ordinario")).toBe(4000);
+  });
+});
+
+describe("misura in battute esatte", () => {
+  const atti = [
+    { id: "a", nome: "Inizio", sezioni: [{ id: "x", nome: "X", guida: "", peso: 25 }] },
+    { id: "b", nome: "Fine", sezioni: [{ id: "y", nome: "Y", guida: "", peso: 50 }, { id: "z", nome: "Z", guida: "", peso: 25 }] },
+  ];
+  const doc: WorkStructure = { modello: { id: "libero", nome: "Libero" }, atti, scene: [] };
+
+  it("distribuisce un totale secondo i pesi, con somma esatta", () => {
+    const b = changeMeasure(doc, "battute", 10001);
+    expect(b.misura).toBe("battute");
+    expect(b.atti.flatMap((a) => a.sezioni.map((s) => s.battute))).toEqual([2500, 5001, 2500]);
+    expect(totalBattute(b.atti)).toBe(10001);
+    expect(sectionTargets(b, 80000)).toEqual({ unit: "battute", targets: new Map([["x", 2500], ["y", 5001], ["z", 2500]]) });
+  });
+
+  it("torna alla percentuale ricavando i pesi dalle battute, e conserva le battute per un ritorno", () => {
+    const b = changeMeasure(doc, "battute", 8000);
+    const edited = { ...b, atti: b.atti.map((a) => ({ ...a, sezioni: a.sezioni.map((s) => ({ ...s, battute: s.id === "x" ? 4000 : 2000 })) })) };
+    const p = changeMeasure(edited, "percentuale", 0);
+    expect(p.misura).toBeUndefined();
+    expect(p.atti.flatMap((a) => a.sezioni.map((s) => s.peso))).toEqual([50, 25, 25]);
+    // Le battute scritte a mano non vanno perse: tornando alle battute si ritrovano.
+    expect(changeMeasure(p, "battute", 99999).atti.flatMap((a) => a.sezioni.map((s) => s.battute))).toEqual([4000, 2000, 2000]);
+    expect(sectionTargets(p, 1000).unit).toBe("parole");
+  });
+
+  it("salva e rilegge misura e battute; le strutture senza misura restano in percentuale", () => {
+    const b = changeMeasure(doc, "battute", 12000);
+    const back = parseWorkStructure(serializeWorkStructure(b), "x");
+    expect(back.misura).toBe("battute");
+    expect(back.atti[1].sezioni[0].battute).toBe(6000);
+    expect(parseWorkStructure(serializeWorkStructure(doc), "x").misura).toBeUndefined();
+    const t = parseTemplate(serializeTemplate({ id: "t", nome: "Racconto 10k", descrizione: "", origine: "", misura: "battute", atti: b.atti }), "t");
+    expect(t.misura).toBe("battute");
+    expect(applyTemplate(null, t).misura).toBe("battute");
+    expect(() => normalizeWorkStructure({ atti: [{ id: "a", nome: "A", sezioni: [{ id: "s", nome: "S", battute: -3 }] }] })).toThrow(FormatError);
+  });
+});
+
+describe("ridistribuzione delle battute", () => {
+  it("porta il totale a un nuovo valore mantenendo le proporzioni", () => {
+    const atti = [{ id: "a", nome: "A", sezioni: [{ id: "x", nome: "X", guida: "", peso: 0, battute: 3000 }, { id: "y", nome: "Y", guida: "", peso: 0, battute: 1000 }] }];
+    expect(scaleBattute(atti, 10000)[0].sezioni.map((s) => s.battute)).toEqual([7500, 2500]);
+    expect(totalBattute(scaleBattute(atti, 9999))).toBe(9999);
   });
 });

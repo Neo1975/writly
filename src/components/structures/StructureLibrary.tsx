@@ -5,7 +5,7 @@ import { useState } from "react";
 import { api, ClientApiError } from "@/lib/client/api";
 import { useApiData, useBeforeUnload } from "@/lib/client/hooks";
 import type { StructureTemplate } from "@/lib/project/structure";
-import { allSections } from "@/lib/project/structure";
+import { allSections, battuteFromWords, changeMeasure, measureOf } from "@/lib/project/structure";
 import type { LibraryData, LibraryStructure } from "@/lib/server/structures";
 import ActsEditor from "./ActsEditor";
 
@@ -203,7 +203,7 @@ export default function StructureLibrary() {
               </div>
             )}
 
-            <div className="row">
+            {measureOf(shown) === "percentuale" && <div className="row">
               <label htmlFor="st-goal" className="small">
                 Anteprima su un libro di
               </label>
@@ -218,9 +218,19 @@ export default function StructureLibrary() {
                 onChange={(e) => setGoal(Math.max(0, Number(e.target.value) || 0))}
               />
               <span className="small">parole</span>
-            </div>
+            </div>}
 
-            <ActsEditor atti={shown.atti} goal={goal} readOnly={!editable} onChange={(atti) => edit({ atti })} />
+            <ActsEditor
+              atti={shown.atti}
+              misura={measureOf(shown)}
+              onMeasure={(m) => {
+                const next = changeMeasure(shown, m, battuteFromWords(goal));
+                edit({ misura: next.misura, atti: next.atti });
+              }}
+              goal={goal}
+              readOnly={!editable}
+              onChange={(atti) => edit({ atti })}
+            />
 
             <div className="row sticky-actions">
               {editable && (

@@ -18,8 +18,25 @@ export interface StructureSection {
   id: string;
   nome: string;
   guida: string;
-  /** Peso indicativo sul totale del libro, in percentuale. */
+  /** Peso indicativo sul totale del libro, in percentuale (misura «percentuale»). */
   peso: number;
+  /** Lunghezza esatta della sezione in battute con spazi (misura «battute»). */
+  battute?: number;
+}
+
+/**
+ * Come si misurano le sezioni: in percentuale del libro (stima, va bene per un
+ * romanzo) oppure in battute esatte (racconti per concorsi e riviste, dove la
+ * lunghezza è un vincolo). Assente = percentuale.
+ */
+export const MEASURES = ["percentuale", "battute"] as const;
+export type Measure = (typeof MEASURES)[number];
+
+/** Battute massime di una sezione: oltre un romanzo lungo non serve. */
+export const MAX_SECTION_BATTUTE = 5_000_000;
+
+export function measureOf(s: { misura?: Measure }): Measure {
+  return s.misura === "battute" ? "battute" : "percentuale";
 }
 
 export interface StructureAct {
@@ -34,6 +51,7 @@ export interface StructureTemplate {
   descrizione: string;
   /** Nome della struttura da cui è stata clonata, se c'è. */
   origine: string;
+  misura?: Measure;
   atti: StructureAct[];
 }
 
@@ -71,6 +89,7 @@ export interface Scene {
 
 export interface WorkStructure {
   modello: { id: string; nome: string };
+  misura?: Measure;
   atti: StructureAct[];
   /** Ordine dell'elenco = ordine delle scene dentro ogni sezione. */
   scene: Scene[];
@@ -97,11 +116,16 @@ function normalizeActs(value: unknown, what: string): StructureAct[] {
         const slabel = `${label}, sezione ${j + 1}`;
         const peso = sec.peso === undefined ? 0 : Number(sec.peso);
         if (!Number.isFinite(peso) || peso < 0 || peso > 100) throw new FormatError(`${slabel}: «peso» deve essere tra 0 e 100`);
+        const battute = sec.battute === undefined || sec.battute === null ? undefined : Number(sec.battute);
+        if (battute !== undefined && (!Number.isFinite(battute) || battute < 0 || battute > MAX_SECTION_BATTUTE)) {
+          throw new FormatError(`${slabel}: «battute» deve essere un numero tra 0 e ${MAX_SECTION_BATTUTE}`);
+        }
         return {
           id: unique(sec.id, slabel),
           nome: requiredText(sec, "nome", slabel),
           guida: text(sec, "guida", slabel, 4000),
           peso: Math.round(peso * 10) / 10,
+          ...(battute !== undefined ? { battute: Math.round(battute) } : {}),
         };
       }),
     };
@@ -115,6 +139,7 @@ export function normalizeTemplate(value: unknown, what = "struttura"): Structure
     nome: requiredText(obj, "nome", what),
     descrizione: text(obj, "descrizione", what, 4000),
     origine: text(obj, "origine", what),
+    ...(obj.misura === "battute" ? { misura: "battute" as const } : {}),
     atti: normalizeActs(obj.atti, what),
   };
 }
@@ -158,6 +183,7 @@ export function normalizeWorkStructure(value: unknown, what = "struttura.yaml"):
   });
   return {
     modello: { id: text(modello, "id", what), nome: text(modello, "nome", what) || "Libero" },
+    ...(obj.misura === "battute" ? { misura: "battute" as const } : {}),
     atti,
     scene,
   };
@@ -169,7 +195,7 @@ export function parseTemplate(text: string, id: string): StructureTemplate {
 
 export function serializeTemplate(t: StructureTemplate): string {
   return YAML.stringify(
-    compact({ nome: t.nome, descrizione: t.descrizione, origine: t.origine, atti: t.atti.map(serializeAct) }),
+    compact({ nome: t.nome, descrizione: t.descrizione, origine: t.origine, misura: measureOf(t) === "battute" ? "battute" : undefined, atti: t.atti.map(serializeAct) }),
   );
 }
 
@@ -177,7 +203,7 @@ function serializeAct(a: StructureAct) {
   return {
     id: a.id,
     nome: a.nome,
-    sezioni: a.sezioni.map((s) => compact({ id: s.id, nome: s.nome, guida: s.guida, peso: s.peso })),
+    sezioni: a.sezioni.map((s) => compact({ id: s.id, nome: s.nome, guida: s.guida, peso: s.peso, battute: s.battute })),
   };
 }
 
@@ -189,6 +215,7 @@ export function parseWorkStructure(text: string, work: string): WorkStructure {
 export function serializeWorkStructure(s: WorkStructure): string {
   return YAML.stringify({
     modello: s.modello,
+    ...(measureOf(s) === "battute" ? { misura: "battute" } : {}),
     atti: s.atti.map(serializeAct),
     scene: s.scene.map((sc) =>
       compact({
@@ -241,6 +268,86 @@ export function rebalance(atti: StructureAct[]): StructureAct[] {
   return atti.map((a) => ({ ...a, sezioni: a.sezioni.map((s) => ({ ...s, peso: byId.get(s.id) ?? s.peso })) }));
 }
 
+/** Battute di partenza quando si passa dalla percentuale alle battute: circa 6 battute con spazi per parola. */
+export function battuteFromWords(words: number): number {
+  return Math.max(1000, Math.round((words * 6) / 1000) * 1000);
+}
+
+/** Somma delle battute previste dalle sezioni (misura «battute»). */
+export function totalBattute(atti: StructureAct[]): number {
+  return allSections(atti).reduce((sum, s) => sum + (s.battute ?? 0), 0);
+}
+
+/** Interi che sommano esattamente `total`, in proporzione ai pesi (metodo dei resti maggiori). */
+function apportion(weights: number[], total: number): number[] {
+  if (weights.length === 0) return [];
+  const sum = weights.reduce((a, b) => a + b, 0);
+  const raw = weights.map((w) => (sum > 0 ? (w / sum) * total : total / weights.length));
+  const out = raw.map(Math.floor);
+  let rest = total - out.reduce((a, b) => a + b, 0);
+  const order = raw.map((r, i) => ({ i, frac: r - Math.floor(r) })).sort((a, b) => b.frac - a.frac);
+  for (const { i } of order) {
+    if (rest <= 0) break;
+    out[i] += 1;
+    rest -= 1;
+  }
+  return out;
+}
+
+/** Distribuisce un totale di battute sulle sezioni in proporzione ai pesi percentuali (la somma è esatta). */
+export function battuteFromWeights(atti: StructureAct[], total: number): StructureAct[] {
+  const sections = allSections(atti);
+  const values = apportion(
+    sections.map((s) => s.peso),
+    Math.max(0, Math.round(total)),
+  );
+  const byId = new Map(sections.map((s, i) => [s.id, values[i]]));
+  return atti.map((a) => ({ ...a, sezioni: a.sezioni.map((s) => ({ ...s, battute: byId.get(s.id) ?? 0 })) }));
+}
+
+/**
+ * Porta il totale delle battute a `total` mantenendo le proporzioni attuali fra
+ * le sezioni (o i pesi percentuali, se le battute sono ancora tutte a zero).
+ */
+export function scaleBattute(atti: StructureAct[], total: number): StructureAct[] {
+  if (totalBattute(atti) === 0) return battuteFromWeights(atti, total);
+  const sections = allSections(atti);
+  const values = apportion(
+    sections.map((s) => s.battute ?? 0),
+    Math.max(0, Math.round(total)),
+  );
+  const byId = new Map(sections.map((s, i) => [s.id, values[i]]));
+  return atti.map((a) => ({ ...a, sezioni: a.sezioni.map((s) => ({ ...s, battute: byId.get(s.id) ?? 0 })) }));
+}
+
+/** Pesi percentuali (interi, totale 100) ricavati dalle battute delle sezioni. */
+export function weightsFromBattute(atti: StructureAct[]): StructureAct[] {
+  return rebalance(atti.map((a) => ({ ...a, sezioni: a.sezioni.map((s) => ({ ...s, peso: s.battute ?? 0 })) })));
+}
+
+/**
+ * Cambia la misura delle sezioni senza perdere le proporzioni: verso le battute
+ * distribuisce `total` secondo i pesi (se le sezioni non hanno già battute),
+ * verso la percentuale ricava i pesi dalle battute.
+ */
+export function changeMeasure<T extends { misura?: Measure; atti: StructureAct[] }>(s: T, to: Measure, total: number): T {
+  if (measureOf(s) === to) return s;
+  if (to === "battute") {
+    const atti = totalBattute(s.atti) > 0 ? s.atti : battuteFromWeights(s.atti, total);
+    return { ...s, misura: "battute", atti };
+  }
+  return { ...s, misura: undefined, atti: totalBattute(s.atti) > 0 ? weightsFromBattute(s.atti) : s.atti };
+}
+
+/**
+ * Obiettivo di ogni sezione nella sua unità: parole stimate dalla percentuale e
+ * dall'obiettivo del libro, oppure battute esatte.
+ */
+export function sectionTargets(s: { misura?: Measure; atti: StructureAct[] }, goalWords: number): { unit: "parole" | "battute"; targets: Map<string, number> } {
+  if (measureOf(s) === "battute") return { unit: "battute", targets: new Map(allSections(s.atti).map((x) => [x.id, x.battute ?? 0])) };
+  return { unit: "parole", targets: wordTargets(s.atti, goalWords) };
+}
+
 /** Parole indicative per sezione dato l'obiettivo del libro. */
 export function wordTargets(atti: StructureAct[], goal: number): Map<string, number> {
   const total = totalWeight(atti);
@@ -255,6 +362,7 @@ export function applyTemplate(current: WorkStructure | null, template: Structure
   const sections = new Set(allSections(atti).map((s) => s.id));
   return {
     modello: { id: template.id, nome: template.nome },
+    ...(measureOf(template) === "battute" ? { misura: "battute" as const } : {}),
     atti,
     scene: (current?.scene ?? []).map((s) => (s.sezione && !sections.has(s.sezione) ? { ...s, sezione: null } : s)),
   };

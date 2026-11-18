@@ -12,11 +12,15 @@ import { shortId } from "@/lib/project/slug";
 import {
   allSections,
   applyTemplate,
+  battuteFromWords,
+  changeMeasure,
+  measureOf,
   moveScene,
+  sectionTargets,
+  totalBattute,
   scenesIn,
   SCENE_STATUS_LABEL,
   totalWeight,
-  wordTargets,
   type Scene,
   type StructureAct,
   type StructureTemplate,
@@ -119,20 +123,32 @@ export default function WorkStructureView({ owner, repo, work }: { owner: string
   const workInfo = project.data?.opere.find((o) => o.slug === work);
   const capitoli = useMemo(() => workInfo?.capitoli ?? [], [workInfo]);
   const effectiveGoal = goal ?? workInfo?.obiettivoParole ?? 80000;
+  /**
+   * Da dove partono le battute quando si passa a «battute esatte»: dall'obiettivo
+   * dell'opera se c'è, altrimenti 10.000 per un racconto (misura tipica dei
+   * concorsi) e la stima dell'obiettivo in parole per un romanzo.
+   */
+  const startBattute =
+    goal === null && !workInfo?.obiettivoParole && project.data?.manifest.tipo === "racconto" ? 10_000 : battuteFromWords(effectiveGoal);
 
   const chapterWords = useMemo(() => new Map((stats.data?.capitoli ?? []).map((c) => [c.file, c])), [stats.data]);
-  /** Parole attribuite a ogni scena: quelle del capitolo divise tra le sue scene. */
+  const measure = doc ? measureOf(doc) : "percentuale";
+  /**
+   * Quanto è già scritto di ogni scena: parole (o battute, se le sezioni si
+   * misurano in battute) del capitolo divise tra le sue scene.
+   */
   const sceneWords = useMemo(() => {
     const perChapter = new Map<string, number>();
     for (const s of doc?.scene ?? []) if (s.capitolo) perChapter.set(s.capitolo, (perChapter.get(s.capitolo) ?? 0) + 1);
     const out = new Map<string, number>();
     for (const s of doc?.scene ?? []) {
       if (!s.capitolo) continue;
-      const words = chapterWords.get(s.capitolo)?.parole ?? 0;
-      out.set(s.id, Math.round(words / (perChapter.get(s.capitolo) ?? 1)));
+      const st = chapterWords.get(s.capitolo);
+      const amount = (measure === "battute" ? st?.battute : st?.parole) ?? 0;
+      out.set(s.id, Math.round(amount / (perChapter.get(s.capitolo) ?? 1)));
     }
     return out;
-  }, [doc, chapterWords]);
+  }, [doc, chapterWords, measure]);
 
   const names = useMemo(() => {
     const m = new Map<string, string>();
@@ -329,7 +345,7 @@ export default function WorkStructureView({ owner, repo, work }: { owner: string
               names={names}
               capitoli={capitoli}
               sceneWords={sceneWords}
-              targets={wordTargets(doc.atti, effectiveGoal)}
+              {...sectionTargets(doc, effectiveGoal)}
               onOpen={(scene) => setEditing({ scene, isNew: false })}
               onAdd={(section) => setEditing({ scene: newScene(section), isNew: true })}
               onNudge={nudge}
@@ -360,6 +376,8 @@ export default function WorkStructureView({ owner, repo, work }: { owner: string
               </p>
               <ActsEditor
                 atti={doc.atti}
+                misura={measure}
+                onMeasure={(m) => update(changeMeasure(doc, m, startBattute))}
                 goal={effectiveGoal}
                 onChange={(atti) => update(withValidSections(doc, atti))}
                 countFor={(id) => doc.scene.filter((s) => s.sezione === id).length}
@@ -421,7 +439,11 @@ function TemplateChooser({ onChoose }: { onChoose: (t: StructureTemplate) => voi
             <span className="small muted">{t.descrizione || `${allSections(t.atti).length} sezioni`}</span>
             <span className="small muted">
               {t.atti.length} {t.atti.length === 1 ? "atto" : "atti"} · {allSections(t.atti).length} sezioni
-              {totalWeight(t.atti) !== 100 && allSections(t.atti).length > 0 ? ` · pesi ${totalWeight(t.atti)}%` : ""}
+              {measureOf(t) === "battute"
+                ? ` · ${formatCount(totalBattute(t.atti))} battute`
+                : totalWeight(t.atti) !== 100 && allSections(t.atti).length > 0
+                  ? ` · pesi ${totalWeight(t.atti)}%`
+                  : ""}
             </span>
             <button type="button" className="btn btn-small" style={{ alignSelf: "flex-start" }} onClick={() => onChoose(t)}>
               Usa «{t.nome}»
@@ -441,6 +463,7 @@ function SceneCard({
   names,
   chapterTitle,
   words,
+  unit,
   first,
   last,
   onOpen,
@@ -452,6 +475,7 @@ function SceneCard({
   names: Map<string, string>;
   chapterTitle: string | null;
   words: number | undefined;
+  unit: "parole" | "battute";
   first: boolean;
   last: boolean;
   onOpen: () => void;
@@ -478,7 +502,7 @@ function SceneCard({
           {scene.pov && <span>POV {names.get(scene.pov) ?? "(eliminato)"}</span>}
         </span>
         <span className="small muted">
-          {chapterTitle ? `${chapterTitle}${words ? ` · ≈ ${formatCount(words)} parole` : ""}` : "Non ancora in un capitolo"}
+          {chapterTitle ? `${chapterTitle}${words ? ` · ≈ ${formatCount(words)} ${unit}` : ""}` : "Non ancora in un capitolo"}
         </span>
       </button>
       <span className="scene-move">
@@ -499,6 +523,7 @@ function Board({
   capitoli,
   sceneWords,
   targets,
+  unit,
   onOpen,
   onAdd,
   onNudge,
@@ -510,6 +535,7 @@ function Board({
   capitoli: { file: string; titolo: string }[];
   sceneWords: Map<string, number>;
   targets: Map<string, number>;
+  unit: "parole" | "battute";
   onOpen: (s: Scene) => void;
   onAdd: (section: string | null) => void;
   onNudge: (s: Scene, dir: -1 | 1) => void;
@@ -533,7 +559,7 @@ function Board({
           <h3>{label}</h3>
           <span className="small muted">
             {extra}
-            {id && ` · ${formatCount(written)} / ${formatCount(targets.get(id) ?? 0)} parole`}
+            {id && `${extra ? " · " : ""}${formatCount(written)} / ${formatCount(targets.get(id) ?? 0)} ${unit}`}
           </span>
           {guide && <p className="board-guide">{guide}</p>}
           {id && list.length === 0 && <span className="small warn-text">Sezione scoperta</span>}
@@ -546,6 +572,7 @@ function Board({
               names={names}
               chapterTitle={titleOf(s.capitolo)}
               words={sceneWords.get(s.id)}
+              unit={unit}
               first={i === 0}
               last={i === list.length - 1}
               onOpen={() => onOpen(s)}
@@ -566,7 +593,7 @@ function Board({
   return (
     <div className="stack">
       <p className="small muted" style={{ margin: 0 }}>
-        Trascina le scene tra le sezioni (oppure usa ↑ ↓ e il campo «Sezione» nella scheda della scena). Le parole sono quelle dei capitoli salvati, divise tra le scene di ciascun capitolo.
+        Trascina le scene tra le sezioni (oppure usa ↑ ↓ e il campo «Sezione» nella scheda della scena). {unit === "battute" ? "Le battute (con spazi)" : "Le parole"} sono quelle dei capitoli salvati, divise tra le scene di ciascun capitolo.
       </p>
       {(unassigned.length > 0 || allSections(doc.atti).length === 0) && (
         <div className="board">{column(null, "Non assegnate", "Scene che non appartengono ancora a una sezione.", `${unassigned.length} scene`)}</div>
@@ -575,7 +602,7 @@ function Board({
         <div key={a.id} className="board-act">
           <h2 className={`board-act-title act-text-${i % 4}`}>{a.nome}</h2>
           {a.sezioni.length === 0 && <p className="small muted">Nessuna sezione: aggiungile in «Atti e sezioni».</p>}
-          <div className="board">{a.sezioni.map((s) => column(s.id, s.nome, s.guida, `${s.peso}%`))}</div>
+          <div className="board">{a.sezioni.map((s) => column(s.id, s.nome, s.guida, unit === "battute" ? "" : `${s.peso}%`))}</div>
         </div>
       ))}
     </div>
@@ -605,7 +632,8 @@ function Overview({
   onOpen: (s: Scene) => void;
   chapterHref: (file: string) => string;
 }) {
-  const targets = wordTargets(doc.atti, goal);
+  const { unit, targets } = sectionTargets(doc, goal);
+  const byBattute = unit === "battute";
   const totals = (stats ?? []).reduce(
     (t, c) => ({ parole: t.parole + c.parole, battute: t.battute + c.battute, battuteSenzaSpazi: t.battuteSenzaSpazi + c.battuteSenzaSpazi }),
     { parole: 0, battute: 0, battuteSenzaSpazi: 0 },
@@ -631,17 +659,36 @@ function Overview({
             <dt>senza spazi</dt>
             <dd>{stats ? formatCount(totals.battuteSenzaSpazi) : "…"}</dd>
           </div>
-          <div>
-            <dt>
-              <label htmlFor="ov-goal">Obiettivo parole</label>
-            </dt>
-            <dd>
-              <input id="ov-goal" type="number" className="input" style={{ width: 120 }} min={1000} step={1000} value={goal} onChange={(e) => onGoal(Math.max(0, Number(e.target.value) || 0))} />
-            </dd>
-          </div>
+          {byBattute ? (
+            <div>
+              <dt>Obiettivo battute</dt>
+              <dd>
+                {formatCount(totalBattute(doc.atti))}
+                {stats && (
+                  <span className={`small ${totals.battute > totalBattute(doc.atti) ? "warn-text" : "muted"}`}>
+                    {" "}
+                    ·{" "}
+                    {totals.battute > totalBattute(doc.atti)
+                      ? `oltre di ${formatCount(totals.battute - totalBattute(doc.atti))}`
+                      : `ne mancano ${formatCount(totalBattute(doc.atti) - totals.battute)}`}
+                  </span>
+                )}
+              </dd>
+            </div>
+          ) : (
+            <div>
+              <dt>
+                <label htmlFor="ov-goal">Obiettivo parole</label>
+              </dt>
+              <dd>
+                <input id="ov-goal" type="number" className="input" style={{ width: 120 }} min={1000} step={1000} value={goal} onChange={(e) => onGoal(Math.max(0, Number(e.target.value) || 0))} />
+              </dd>
+            </div>
+          )}
         </dl>
         <p className="small muted" style={{ marginBottom: 0 }}>
-          Conteggi sull&apos;ultima versione salvata di ogni capitolo. L&apos;obiettivo serve solo alle stime di questa pagina.
+          Conteggi sull&apos;ultima versione salvata di ogni capitolo.{" "}
+          {byBattute ? "L'obiettivo è la somma delle battute delle sezioni (in «Atti e sezioni»)." : "L'obiettivo serve solo alle stime di questa pagina."}
         </p>
       </section>
 
@@ -652,10 +699,10 @@ function Overview({
             <thead>
               <tr>
                 <th scope="col">Sezione</th>
-                <th scope="col">Peso</th>
+                <th scope="col">{byBattute ? "Battute previste" : "Peso"}</th>
                 <th scope="col">Scene</th>
                 <th scope="col">In un capitolo</th>
-                <th scope="col">Parole / obiettivo</th>
+                <th scope="col">{byBattute ? "Battute scritte / previste" : "Parole / obiettivo"}</th>
                 <th scope="col">Avvisi</th>
               </tr>
             </thead>
@@ -670,11 +717,20 @@ function Overview({
                   const list = scenesIn(doc.scene, s.id);
                   const words = list.reduce((sum, x) => sum + (sceneWords.get(x.id) ?? 0), 0);
                   const target = targets.get(s.id) ?? 0;
-                  const warn = list.length === 0 ? "Scoperta" : target > 0 && words > target * 1.5 ? "Più lunga del previsto" : "";
+                  const warn =
+                    list.length === 0
+                      ? "Scoperta"
+                      : byBattute
+                        ? target > 0 && words > target
+                          ? `Oltre di ${formatCount(words - target)} battute`
+                          : ""
+                        : target > 0 && words > target * 1.5
+                          ? "Più lunga del previsto"
+                          : "";
                   return (
                     <tr key={s.id}>
                       <td>{s.nome}</td>
-                      <td>{s.peso}%</td>
+                      <td>{byBattute ? formatCount(s.battute ?? 0) : `${s.peso}%`}</td>
                       <td>{list.length}</td>
                       <td>{list.filter((x) => x.capitolo).length}</td>
                       <td>

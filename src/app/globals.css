@@ -933,6 +933,9 @@ h1.project-title {
 .peso .input {
   width: 80px;
 }
+.peso-battute .input {
+  width: 110px;
+}
 .section-guide {
   min-height: 0;
 }
