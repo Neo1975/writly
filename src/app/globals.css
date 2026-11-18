@@ -27,6 +27,8 @@
   --style-long: rgba(46, 74, 125, 0.08);
   --style-adv: rgba(122, 79, 154, 0.22);
   --continuity: #b5651d;
+  --comment: rgba(46, 125, 96, 0.16);
+  --comment-strong: #2f7a68;
   --font-ui: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-prose: Literata, "Iowan Old Style", Charter, Georgia, "Times New Roman", serif;
   color-scheme: light;
@@ -61,6 +63,8 @@
     --style-long: rgba(143, 176, 230, 0.12);
     --style-adv: rgba(190, 150, 230, 0.28);
     --continuity: #f0a860;
+    --comment: rgba(110, 200, 170, 0.18);
+    --comment-strong: #7fd0b5;
     color-scheme: dark;
   }
 }
@@ -1883,4 +1887,95 @@ body.focus-mode .style-avverbio {
 }
 .stats dd {
   white-space: nowrap;
+}
+
+/* ——— Commenti ai capitoli ——— */
+.comment-mark {
+  background: var(--comment);
+  border-bottom: 2px solid var(--comment-strong);
+  cursor: pointer;
+}
+.comment-mark.is-active {
+  background: color-mix(in srgb, var(--comment-strong) 35%, transparent);
+}
+body.focus-mode .comment-mark {
+  background: none;
+  border-bottom-color: transparent;
+}
+.comment-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.comment {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: 0 8px 8px 0;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+}
+.comment.is-mentor {
+  border-left-color: var(--comment-strong);
+}
+.comment.is-active {
+  box-shadow: 0 0 0 2px var(--comment-strong);
+}
+.comment.is-resolved {
+  opacity: 0.7;
+}
+.comment-new {
+  margin: 8px 0;
+}
+.comment-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.comment-badge {
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+.comment-badge.mentor {
+  background: var(--comment);
+  color: var(--comment-strong);
+}
+.comment-quote {
+  text-align: left;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text-2);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+div.comment-quote {
+  cursor: default;
+}
+.comment-text {
+  white-space: pre-wrap;
+}
+.comment-replies {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 10px;
+  border-left: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.comment-actions {
+  gap: 4px;
 }

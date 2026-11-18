@@ -51,6 +51,11 @@ export function chapterPath(work: string, file: string): string {
   return `${workDir(work)}/capitoli/${file}`;
 }
 
+/** File dei commenti di un capitolo: opere/<opera>/commenti/<capitolo>.yaml. */
+export function commentsPath(work: string, file: string): string {
+  return `${workDir(work)}/commenti/${file.replace(/\.md$/, "")}.yaml`;
+}
+
 export function workStructurePath(work: string): string {
   return `${workDir(work)}/struttura.yaml`;
 }

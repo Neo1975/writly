@@ -33,7 +33,9 @@ import HistoryDialog from "./HistoryDialog";
 import MergeDialog, { type MergeRequest } from "./MergeDialog";
 import { Mentions, refreshMentions, type MentionsSource } from "./mentions";
 import { misspellingAt, refreshSpellcheck, Spellcheck } from "./spellcheck";
-import { checkText, refreshTextChecks, TextChecks, type TextMark } from "./textchecks";
+import { checkText, posToTextOffset, refreshTextChecks, textOffsetToPos, TextChecks, type TextMark } from "./textchecks";
+import CommentsPanel, { type CommentActions, type CommentDraft, type CommentsState } from "./CommentsPanel";
+import { anchorComment, quoteContext, type ChapterComment } from "@/lib/project/comments";
 
 const STATUS_LABEL: Record<ChapterStatus, string> = {
   bozza: "Bozza",
@@ -68,14 +70,17 @@ interface ChecksState {
   continuity: { characters: ContinuityCharacter[]; matcher: MentionMatcher } | null;
   /** Parole dei nomi e termini del glossario: non contano come ripetizioni o parole abusate. */
   ignore: string[];
-  cache: { text: string; style: StyleIssue[]; continuity: ContinuityWarning[] } | null;
+  comments: ChapterComment[];
+  activeComment: string | null;
+  cache: { text: string; style: StyleIssue[]; continuity: ContinuityWarning[]; anchors: Record<string, { start: number; end: number } | null> } | null;
 }
 
 function runChecks(checks: ChecksState, text: string) {
   if (checks.cache?.text === text) return checks.cache;
   const style = checks.style.ripetizioni || checks.style.frasiLunghe || checks.style.avverbi ? analyzeStyle(text, { ...checks.style, ignora: checks.ignore }) : [];
   const continuity = checks.continuity ? continuityWarnings(text, checks.continuity.characters, checks.continuity.matcher) : [];
-  checks.cache = { text, style, continuity };
+  const anchors = Object.fromEntries(checks.comments.map((c) => [c.id, anchorComment(text, c)]));
+  checks.cache = { text, style, continuity, anchors };
   return checks.cache;
 }
 
@@ -84,11 +89,18 @@ function marksFor(checks: ChecksState, text: string): TextMark[] {
   return [
     ...r.style.map((i) => ({ start: i.start, end: i.end, className: `style-mark style-${i.kind}`, note: i.note })),
     ...r.continuity.map((w) => ({ start: w.start, end: w.end, className: "continuity-mark", note: `Nella scheda di ${w.nome}: ${w.parte} ${w.atteso.join(", ")}` })),
+    ...checks.comments.flatMap((c) => {
+      const a = r.anchors[c.id];
+      if (!a || c.risolto) return [];
+      return [{ ...a, className: `comment-mark comment-${c.tipo}${checks.activeComment === c.id ? " is-active" : ""}`, attrs: { "data-comment": c.id } }];
+    }),
   ];
 }
 
 export interface ChecksReport {
   counts: Record<StyleKind, number>;
+  /** Commento → il passaggio citato c'è ancora nel testo. */
+  anchored: Record<string, boolean>;
   continuity: ContinuityWarning[];
   overused: WordFrequency[];
 }
@@ -138,7 +150,11 @@ export default function ChapterEditor({
   const [hover, setHover] = useState<{ id: string; top: number; left: number } | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
   const [merge, setMerge] = useState<{ request: MergeRequest; onApply: (merged: string) => void } | null>(null);
-  const [report, setReport] = useState<ChecksReport>({ counts: { ripetizione: 0, "frase-lunga": 0, avverbio: 0 }, continuity: [], overused: [] });
+  const [report, setReport] = useState<ChecksReport>({ counts: { ripetizione: 0, "frase-lunga": 0, avverbio: 0 }, anchored: {}, continuity: [], overused: [] });
+  const [comments, setComments] = useState<CommentsState>({ status: "loading", commenti: [], errori: [] });
+  const [commentDraft, setCommentDraft] = useState<CommentDraft | null | undefined>(undefined);
+  const [activeComment, setActiveComment] = useState<string | null>(null);
+  const [commentBusy, setCommentBusy] = useState(false);
   const [stylePrefs, setStylePrefs] = usePref<StylePrefs>("writly:stile", STYLE_OFF);
   const [focusMode, setFocusMode] = usePref<boolean>("writly:concentrazione", false);
   const [sessionGoal, setSessionGoal] = usePref<number>("writly:obiettivo-sessione", 0);
@@ -151,7 +167,7 @@ export default function ChapterEditor({
   // Contenitore stabile: ProseMirror legge il checker solo quando ricalcola le decorazioni.
   const [spell] = useState<{ checker: SpellChecker | null }>(() => ({ checker: null }));
   const [ents] = useState<{ source: (MentionsSource & { ambiguous: string[] }) | null }>(() => ({ source: null }));
-  const [checks] = useState<ChecksState>(() => ({ style: STYLE_OFF, continuity: null, ignore: [], cache: null }));
+  const [checks] = useState<ChecksState>(() => ({ style: STYLE_OFF, continuity: null, ignore: [], comments: [], activeComment: null, cache: null }));
   const readyRef = useRef(false);
   const editorRef = useRef<Editor | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -165,7 +181,8 @@ export default function ChapterEditor({
     const r = runChecks(checks, checkText(editor.state.doc));
     const counts = { ripetizione: 0, "frase-lunga": 0, avverbio: 0 };
     for (const i of r.style) counts[i.kind]++;
-    setReport({ counts, continuity: r.continuity, overused: overusedWords(plain, { ignora: checks.ignore }) });
+    const anchored = Object.fromEntries(Object.entries(r.anchors).map(([id, a]) => [id, !!a]));
+    setReport({ counts, anchored, continuity: r.continuity, overused: overusedWords(plain, { ignora: checks.ignore }) });
     if (readyRef.current) recordWriting(owner, repo, draftKey, s.parole);
     const body = editor.getMarkdown();
     const isDirty = body !== committedRef.current.body || metaRef.current.stato !== committedRef.current.stato;
@@ -235,7 +252,13 @@ export default function ChapterEditor({
         const el = target?.closest?.(".spell-error");
         if (!el || !spell.checker) {
           setSpellMenu(null);
-          const mention = target?.closest?.("[data-mention]")?.getAttribute("data-mention");
+          const commentId = target?.closest?.("[data-comment]")?.getAttribute("data-comment");
+          if (commentId) {
+            setActiveComment(commentId);
+            setPanelOpen(true);
+            requestAnimationFrame(() => document.getElementById(`commento-${commentId}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
+          }
+          const mention = commentId ? null : target?.closest?.("[data-mention]")?.getAttribute("data-mention");
           if (mention) {
             setMentionFocus(mention);
             setPanelOpen(true);
@@ -410,6 +433,37 @@ export default function ChapterEditor({
       if (readyRef.current) recompute(editor);
     }
   }, [stylePrefs, checks, editor, recompute]);
+
+  // Commenti del capitolo (dell'autore e del mentore AI), sullo stesso ramo del capitolo.
+  const commentsUrl = `${base}/commenti?opera=${encodeURIComponent(work)}&file=${encodeURIComponent(file)}${ramoQuery}`;
+  const applyComments = useCallback(
+    (list: ChapterComment[], errori: string[] = []) => {
+      checks.comments = list;
+      checks.cache = null;
+      setComments({ status: "ready", commenti: list, errori });
+      const ed = editorRef.current;
+      if (ed) {
+        refreshTextChecks(ed);
+        if (readyRef.current) recompute(ed);
+      }
+    },
+    [checks, recompute],
+  );
+  useEffect(() => {
+    if (!ready) return;
+    let cancelled = false;
+    api<{ commenti: ChapterComment[]; errori: string[] }>(commentsUrl)
+      .then((d) => !cancelled && applyComments(d.commenti, d.errori))
+      .catch((err: Error) => !cancelled && setComments({ status: "error", commenti: [], errori: [], message: err.message }));
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, commentsUrl, applyComments]);
+  useEffect(() => {
+    if (checks.activeComment === activeComment) return;
+    checks.activeComment = activeComment;
+    if (editor) refreshTextChecks(editor);
+  }, [activeComment, checks, editor]);
 
   // Modalità concentrazione: nasconde barra in alto, pannello e strumenti.
   useEffect(() => {
@@ -600,6 +654,59 @@ export default function ChapterEditor({
   }
 
   const work_ = project?.opere.find((o) => o.slug === work);
+  async function commentAction(json: Record<string, unknown>): Promise<boolean> {
+    setCommentBusy(true);
+    try {
+      const d = await api<{ commenti: ChapterComment[] }>(`${base}/commenti`, { method: "POST", json: { opera: work, file, ...(variant ? { ramo: variant } : {}), ...json } });
+      applyComments(d.commenti);
+      return true;
+    } catch (err) {
+      setNotice({ kind: "error", text: (err as Error).message });
+      return false;
+    } finally {
+      setCommentBusy(false);
+    }
+  }
+
+  const commentActions: CommentActions = {
+    add: async (draft, testo) => {
+      const ok = await commentAction({ azione: "aggiungi", testo, ...(draft ?? {}) });
+      if (ok) setCommentDraft(undefined);
+      return ok;
+    },
+    reply: (id, testo) => commentAction({ azione: "rispondi", id, testo }),
+    resolve: (id, risolto) => commentAction({ azione: "risolvi", id, risolto }),
+    remove: (id) => commentAction({ azione: "elimina", id }),
+    reveal: (id) => {
+      const a = checks.cache?.anchors[id];
+      if (!editor || !a) return;
+      const doc = editor.state.doc;
+      editor.chain().focus().setTextSelection({ from: textOffsetToPos(doc, a.start), to: textOffsetToPos(doc, a.end) }).scrollIntoView().run();
+    },
+  };
+
+  /** Nuovo commento sul passaggio selezionato (o sul capitolo intero, senza selezione). */
+  function startComment() {
+    if (!editor) return;
+    const { from, to } = editor.state.selection;
+    setPanelOpen(true);
+    if (focusMode) setFocusMode(false);
+    if (from === to) {
+      setCommentDraft(null);
+      return;
+    }
+    const text = checkText(editor.state.doc);
+    const start = posToTextOffset(editor.state.doc, from);
+    const end = posToTextOffset(editor.state.doc, to);
+    const citazione = text.slice(start, end).trim();
+    if (citazione.length > 2000) {
+      setNotice({ kind: "warn", text: "Il passaggio selezionato è troppo lungo per un commento: scegline uno più breve (al massimo un paio di paragrafi)." });
+      return;
+    }
+    const lead = text.slice(start, end).length - text.slice(start, end).trimStart().length;
+    setCommentDraft({ citazione, ...quoteContext(text, start + lead, start + lead + citazione.length) });
+  }
+
   const sessionWords = stats.parole - (sessionStart ?? stats.parole);
   const index = work_?.capitoli.findIndex((c) => c.file === file) ?? -1;
   const chapter = index >= 0 ? work_!.capitoli[index] : null;
@@ -721,6 +828,9 @@ export default function ChapterEditor({
         <span className="tool-sep" aria-hidden="true" />
         <button type="button" className="tool" aria-pressed={panelOpen} onClick={() => setPanelOpen((v) => !v)}>
           Pannello
+        </button>
+        <button type="button" className="tool" onClick={startComment} disabled={!ready} title="Commenta il passaggio selezionato (senza selezione: il capitolo intero)">
+          Commenta
         </button>
         <span className="tool-sep" aria-hidden="true" />
         <span className="small muted">
@@ -866,6 +976,19 @@ export default function ChapterEditor({
             sessionGoal={sessionGoal}
             onSessionGoal={setSessionGoal}
             overviewHref={`/progetto/${owner}/${repo}/panoramica`}
+            commentsSlot={
+              <CommentsPanel
+                state={comments}
+                anchored={report.anchored}
+                active={activeComment}
+                onActivate={setActiveComment}
+                draft={commentDraft}
+                onDraftCancel={() => setCommentDraft(undefined)}
+                actions={commentActions}
+                busy={commentBusy}
+                readOnly={!ready}
+              />
+            }
           />
         )}
       </div>

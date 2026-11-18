@@ -96,6 +96,8 @@ export default function ProjectView({ owner, repo }: { owner: string; repo: stri
 
       <VariantsCard base={base} owner={owner} repo={repo} works={data.opere} />
 
+      <MentorCard base={base} owner={owner} repo={repo} mentore={data.mentore} onInstalled={load} />
+
       {manifest.tipo === "saga" && (
         <form className="card row" onSubmit={addWork}>
           <label htmlFor="nuova-opera" className="small" style={{ fontWeight: 600 }}>
@@ -242,6 +244,73 @@ function WorkCard({
           Nuovo capitolo
         </button>
       </form>
+    </section>
+  );
+}
+
+/**
+ * Il mentore AI è Claude Code aperto sul repository del progetto, con la skill
+ * «writly-mentore»: rivede i capitoli lasciando commenti ancorati al testo,
+ * fa revisioni strutturali e coaching. Qui si installa o aggiorna la skill.
+ */
+function MentorCard({ base, owner, repo, mentore, onInstalled }: { base: string; owner: string; repo: string; mentore: ProjectData["mentore"]; onInstalled: () => Promise<void> }) {
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const state = mentore.installata === 0 ? "assente" : mentore.installata < mentore.attuale ? "vecchio" : "aggiornato";
+
+  async function install() {
+    setBusy(true);
+    setNotice(null);
+    try {
+      await api(base, { method: "POST", json: { azione: "installa-mentore" } });
+      await onInstalled();
+      setNotice({ kind: "ok", text: "Mentore AI installato nel repository. Se lo hai già clonato, fai «git pull» prima di aprire Claude Code." });
+    } catch (err) {
+      setNotice({ kind: "error", text: (err as ClientApiError).message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="card stack" aria-labelledby="mentore-title">
+      <div>
+        <h2 id="mentore-title" className="serif" style={{ margin: 0, fontSize: 22 }}>
+          Mentore AI
+        </h2>
+        <p className="small muted" style={{ margin: "4px 0 0" }}>
+          Claude Code, aperto sul repository del progetto, fa da editor e mentore: rivede un capitolo lasciando commenti sui passaggi (li trovi nel pannello «Commenti» del capitolo),
+          fa una revisione strutturale dell&apos;opera o una sessione di coaching quando sei bloccato. Non riscrive il tuo testo.
+        </p>
+      </div>
+      {notice && (
+        <div className={`notice notice-${notice.kind}`} role={notice.kind === "error" ? "alert" : "status"}>
+          {notice.text}
+        </div>
+      )}
+      <div className="row">
+        <span className="small">
+          {state === "assente" ? "Non ancora installato in questo progetto." : state === "vecchio" ? `Installata la versione ${mentore.installata}: c'è la versione ${mentore.attuale}.` : `Installato (versione ${mentore.installata}).`}
+        </span>
+        {state !== "aggiornato" && (
+          <button type="button" className="btn btn-small btn-primary" onClick={install} disabled={busy}>
+            {busy ? "Installo…" : state === "assente" ? "Installa il mentore AI" : "Aggiorna il mentore AI"}
+          </button>
+        )}
+      </div>
+      <details>
+        <summary className="small">Come si usa</summary>
+        <ol className="small" style={{ margin: "8px 0 0", paddingLeft: 20 }}>
+          <li>
+            Clona il repository: <code>git clone https://github.com/{owner}/{repo}.git</code> (o <code>git pull</code> se lo hai già).
+          </li>
+          <li>Apri Claude Code nella cartella del progetto.</li>
+          <li>
+            Chiedi, per esempio: «rivedi il capitolo 3», «fai una revisione strutturale del libro», «sono bloccato sulla scena del faro, facciamo coaching».
+          </li>
+          <li>Claude salva commenti e appunti con un commit: ricarica il capitolo in Writly per vederli.</li>
+        </ol>
+      </details>
     </section>
   );
 }

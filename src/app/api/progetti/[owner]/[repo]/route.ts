@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isChapterFile, isSlug } from "@/lib/project/paths";
 import { ApiError, assertRepoRef, readJson, requireText, withGitHub } from "@/lib/server/http";
-import { addChapter, addDictionaryWord, addWork, loadProject, renameChapter } from "@/lib/server/projects";
+import { addChapter, addDictionaryWord, addWork, loadProject, renameChapter, installMentor } from "@/lib/server/projects";
 
 type Ctx = { params: Promise<{ owner: string; repo: string }> };
 
@@ -45,6 +45,8 @@ export async function POST(req: Request, { params }: Ctx) {
         if (/\s/.test(parola)) throw new ApiError(400, "Una parola alla volta, senza spazi.");
         return NextResponse.json({ dizionario: await addDictionaryWord(gh, owner, repo, parola) });
       }
+      case "installa-mentore":
+        return NextResponse.json({ versione: await installMentor(gh, owner, repo) });
       default:
         throw new ApiError(400, "Azione non riconosciuta.");
     }

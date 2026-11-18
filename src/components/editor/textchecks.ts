@@ -8,7 +8,8 @@ export interface TextMark {
   start: number;
   end: number;
   className: string;
-  note: string;
+  note?: string;
+  attrs?: Record<string, string>;
 }
 
 export type TextCheck = (text: string) => TextMark[];
@@ -33,26 +34,53 @@ export function checkText(doc: PMNode): string {
     .join("\n");
 }
 
-function build(doc: PMNode, check: TextCheck | null): DecorationSet {
-  if (!check) return DecorationSet.empty;
-  const list = blocks(doc);
+function offsets(list: { text: string }[]): number[] {
   const starts: number[] = [];
   let offset = 0;
   for (const b of list) {
     starts.push(offset);
     offset += b.text.length + 1;
   }
+  return starts;
+}
+
+/** Posizione nel documento di un carattere del testo dei controlli. */
+export function textOffsetToPos(doc: PMNode, offset: number): number {
+  const list = blocks(doc);
+  const starts = offsets(list);
+  let i = 0;
+  while (i < list.length - 1 && starts[i + 1] <= offset) i++;
+  return list[i] ? list[i].pos + Math.min(offset - starts[i], list[i].text.length) : 0;
+}
+
+/** Il contrario: posizione nel testo dei controlli di una posizione del documento. */
+export function posToTextOffset(doc: PMNode, pos: number): number {
+  const list = blocks(doc);
+  const starts = offsets(list);
+  for (let i = list.length - 1; i >= 0; i--) {
+    if (pos >= list[i].pos) return starts[i] + Math.min(pos - list[i].pos, list[i].text.length);
+  }
+  return 0;
+}
+
+function build(doc: PMNode, check: TextCheck | null): DecorationSet {
+  if (!check) return DecorationSet.empty;
+  const list = blocks(doc);
+  const starts = offsets(list);
   const marks = check(list.map((b) => b.text).join("\n"));
   const decorations: Decoration[] = [];
-  let i = 0;
-  for (const m of [...marks].sort((a, b) => a.start - b.start)) {
-    while (i < list.length - 1 && starts[i + 1] <= m.start) i++;
-    const b = list[i];
-    if (!b) break;
-    const from = m.start - starts[i];
-    const to = Math.min(m.end - starts[i], b.text.length);
-    if (to <= from) continue;
-    decorations.push(Decoration.inline(b.pos + from, b.pos + to, { class: m.className, title: m.note }));
+  for (const m of marks) {
+    // Un intervallo può attraversare più paragrafi (una citazione lunga): una decorazione per blocco.
+    for (let i = 0; i < list.length; i++) {
+      const bStart = starts[i];
+      const bEnd = bStart + list[i].text.length;
+      if (bEnd < m.start) continue;
+      if (bStart >= m.end) break;
+      const from = Math.max(m.start, bStart) - bStart;
+      const to = Math.min(m.end, bEnd) - bStart;
+      if (to <= from) continue;
+      decorations.push(Decoration.inline(list[i].pos + from, list[i].pos + to, { class: m.className, ...(m.note ? { title: m.note } : {}), ...m.attrs }));
+    }
   }
   return DecorationSet.create(doc, decorations);
 }

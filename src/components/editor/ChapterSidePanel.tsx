@@ -89,6 +89,7 @@ export default function ChapterSidePanel({
   sessionGoal,
   onSessionGoal,
   overviewHref,
+  commentsSlot,
 }: {
   projectHref: string;
   structureHref: string;
@@ -109,6 +110,8 @@ export default function ChapterSidePanel({
   sessionGoal: number;
   onSessionGoal: (n: number) => void;
   overviewHref: string;
+  /** Sezione dei commenti, gestita dall'editor. */
+  commentsSlot?: React.ReactNode;
 }) {
   const found = [...counts.entries()].sort((a, b) => b[1] - a[1]);
   const isCharacter = (id: string) => !!sheets?.personaggi.some((c) => c.data.id === id);
@@ -148,6 +151,7 @@ export default function ChapterSidePanel({
 
   return (
     <aside className="side-panel" aria-label="Nel capitolo">
+      {commentsSlot}
       <section>
         <h2 className="panel-title">Scene del capitolo</h2>
         {structureState === "loading" && <p className="small muted">Carico la struttura…</p>}

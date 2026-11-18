@@ -11,7 +11,7 @@ import { LONG, compact, idList, isId, list, oneOf, record, requiredText, text, t
  *   glossario.yaml       termini del progetto (entrano nel dizionario ortografico)
  */
 
-export const NOTE_TYPES = ["idea", "spunto", "ricerca", "citazione", "lista"] as const;
+export const NOTE_TYPES = ["idea", "spunto", "ricerca", "citazione", "lista", "revisione"] as const;
 export type NoteType = (typeof NOTE_TYPES)[number];
 
 export const NOTE_TYPE_LABEL: Record<NoteType, string> = {
@@ -20,6 +20,7 @@ export const NOTE_TYPE_LABEL: Record<NoteType, string> = {
   ricerca: "Ricerca",
   citazione: "Citazione",
   lista: "Lista",
+  revisione: "Revisione",
 };
 
 const REPO_REF = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\/[A-Za-z0-9._-]{1,100}$/;

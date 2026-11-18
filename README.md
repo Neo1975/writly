@@ -28,6 +28,7 @@ Applicazione di supporto alla stesura di racconti, romanzi e saghe. Ogni progett
 - **Stile e continuità** (nel browser, disattivabili): ripetizioni ravvicinate, frasi molto lunghe, avverbi in *-mente*, parole più usate; avviso quando il testo contraddice la scheda di un personaggio (occhi, capelli, barba, pelle).
 - **Obiettivi e concentrazione**: parole della sessione con obiettivo, modalità concentrazione (solo testo), diario delle parole scritte ogni giorno (in questo browser).
 - **Panoramica**: parole per capitolo e per opera con l'obiettivo del libro, presenze di personaggi e luoghi capitolo per capitolo e, nelle saghe, libro per libro con la prima comparsa; avvisi di continuità e schede mai citate.
+- **Commenti e mentore AI**: commenti sui passaggi del capitolo, ancorati alla frase citata (nessun segno nel testo), con risposte e «risolto». Ogni progetto contiene la skill di Claude Code `writly-mentore`: aprendo Claude Code sul repository si chiede una revisione di capitolo (commenti che compaiono nell'app), una revisione strutturale o una sessione di coaching (appunti di tipo «Revisione»). Il mentore non riscrive il testo.
 - **EPUB e DOCX**: ebook per i lettori digitali e dattiloscritto Word (Times 12, interlinea 1,5) per editori e concorsi, composti nel browser.
 
 ## Avvio in locale
@@ -53,6 +54,7 @@ writly.yaml                          titolo, tipo, lingua, ordine delle opere
 opere/<opera>/opera.yaml             titolo dell'opera, ordine e titoli dei capitoli
 opere/<opera>/capitoli/<file>.md     front-matter (id, stato) + testo Markdown
 opere/<opera>/struttura.yaml         modello, atti e sezioni dell'opera + scene
+opere/<opera>/commenti/<file>.yaml   commenti al capitolo (autore e mentore AI)
 personaggi/<slug>.md                 scheda (front-matter) + biografia
 relazioni.yaml                       relazioni tra personaggi
 mondo/categorie.yaml                 categorie del mondo e loro campi
@@ -64,6 +66,7 @@ appunti/<slug>.md                    appunto (front-matter) + testo Markdown
 glossario.yaml                       termini del progetto
 template-pdf/<id>.yaml               template di impaginazione PDF
 dizionario.txt                       parole accettate dal controllo ortografico
+.claude/skills/writly-mentore/       skill del mentore AI per Claude Code (installata e aggiornata da Writly)
 
 Repository personale writly-libreria:
 strutture/<id>.yaml                  strutture narrative personali

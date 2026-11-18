@@ -22,6 +22,7 @@ import {
   workManifestPath,
 } from "@/lib/project/paths";
 import { shortId, slugify, uniqueSlug } from "@/lib/project/slug";
+import { MENTOR_SKILL_PATH, MENTOR_SKILL_VERSION, installedMentorVersion, mentorSkillFiles } from "@/lib/project/mentor-skill";
 import { ApiError } from "./errors";
 import { addTopic, commitFiles, createRepo, readText, writeText, type GitHub } from "./github";
 
@@ -35,6 +36,8 @@ export interface ProjectData {
   manifest: ProjectManifest;
   opere: WorkSummary[];
   dizionario: string[];
+  /** Skill «writly-mentore» per Claude Code: versione nel repository (0 = assente) e versione attuale. */
+  mentore: { installata: number; attuale: number };
 }
 
 async function readManifest(gh: GitHub, owner: string, repo: string) {
@@ -52,11 +55,19 @@ async function readWork(gh: GitHub, owner: string, repo: string, slug: string) {
 
 export async function loadProject(gh: GitHub, owner: string, repo: string): Promise<ProjectData> {
   const { manifest } = await readManifest(gh, owner, repo);
-  const [opere, dict] = await Promise.all([
+  const [opere, dict, skill] = await Promise.all([
     Promise.all(manifest.opere.map(async (slug) => ({ slug, ...(await readWork(gh, owner, repo, slug)).work }))),
     readText(gh, owner, repo, DICTIONARY_PATH),
+    readText(gh, owner, repo, MENTOR_SKILL_PATH),
   ]);
-  return { owner, repo, manifest, opere, dizionario: dict ? parseDictionary(dict.text) : [] };
+  return {
+    owner,
+    repo,
+    manifest,
+    opere,
+    dizionario: dict ? parseDictionary(dict.text) : [],
+    mentore: { installata: installedMentorVersion(skill?.text ?? null), attuale: MENTOR_SKILL_VERSION },
+  };
 }
 
 function initialFiles(titolo: string, tipo: ProjectType, titoloOpera: string) {
@@ -68,6 +79,7 @@ function initialFiles(titolo: string, tipo: ProjectType, titoloOpera: string) {
     { path: workManifestPath(work), text: serializeWorkManifest({ titolo: titoloOpera, capitoli: [firstChapter] }) },
     { path: chapterPath(work, firstChapter.file), text: serializeChapter({ meta: { id: shortId(), stato: "bozza" }, body: "" }) },
     { path: DICTIONARY_PATH, text: serializeDictionary([]) },
+    ...mentorSkillFiles(),
   ];
 }
 
@@ -120,6 +132,15 @@ export async function addWork(gh: GitHub, owner: string, repo: string, titolo: s
     { path: chapterPath(slug, first.file), text: serializeChapter({ meta: { id: shortId(), stato: "bozza" }, body: "" }) },
   ]);
   return slug;
+}
+
+/** Installa o aggiorna la skill del mentore AI per Claude Code (un solo commit). */
+export async function installMentor(gh: GitHub, owner: string, repo: string): Promise<number> {
+  await readManifest(gh, owner, repo); // solo nei progetti Writly
+  const current = await readText(gh, owner, repo, MENTOR_SKILL_PATH);
+  const verb = current ? "Aggiorna" : "Installa";
+  await commitFiles(gh, owner, repo, `${verb} il mentore AI per Claude Code (v${MENTOR_SKILL_VERSION})`, mentorSkillFiles());
+  return MENTOR_SKILL_VERSION;
 }
 
 export async function addChapter(gh: GitHub, owner: string, repo: string, work: string, titolo: string): Promise<string> {
