@@ -10,11 +10,26 @@ import { BUILTIN_PDF_TEMPLATES, PAGE_FORMATS, type PdfTemplate } from "@/lib/exp
 import { parseChapter } from "@/lib/project/format";
 import { chapterPath } from "@/lib/project/paths";
 import { slugify } from "@/lib/project/slug";
+import { formatCount } from "@/lib/text/stats";
 import type { ProjectData } from "@/lib/server/projects";
 import type { Sheet, SheetsData } from "@/lib/server/sheets";
 import TemplateEditor from "./TemplateEditor";
 
 type Scope = "opera" | "selezione" | "capitolo";
+type Format = "pdf" | "epub" | "docx";
+
+const FORMAT_INFO: Record<Format, { label: string; hint: string; mime: string }> = {
+  pdf: { label: "PDF", hint: "Impaginato per la stampa, con template e opuscolo.", mime: "application/pdf" },
+  epub: { label: "EPUB", hint: "Ebook per Kobo, Apple Libri, Kindle (con Send to Kindle) e i lettori sul telefono.", mime: "application/epub+zip" },
+  docx: { label: "Word (DOCX)", hint: "Dattiloscritto da inviare a editori, agenzie e concorsi: Times 12, interlinea 1,5, capitoli a pagina nuova.", mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+};
+
+interface FileResult {
+  url: string;
+  fileName: string;
+  format: Exclude<Format, "pdf">;
+  bytes: number;
+}
 
 interface Result {
   url: string;
@@ -55,6 +70,8 @@ export default function ExportView({ owner, repo }: { owner: string; repo: strin
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [result, setResult] = useState<Result | null>(null);
+  const [formato, setFormato] = useState<Format>("pdf");
+  const [fileResult, setFileResult] = useState<FileResult | null>(null);
   const [editing, setEditing] = useState<{ template: PdfTemplate; sheet: Sheet<PdfTemplate> | null } | null>(null);
   const urls = useRef<string[]>([]);
 
@@ -114,11 +131,25 @@ export default function ExportView({ owner, repo }: { owner: string; repo: strin
     if (!work || selected.length === 0) return;
     setError("");
     setResult(null);
+    setFileResult(null);
     try {
       setBusy("Leggo i capitoli da GitHub…");
       const texts = await Promise.all(
         selected.map((c) => api<{ text: string }>(`${base}/file?path=${encodeURIComponent(chapterPath(work.slug, c.file))}`)),
       );
+      if (formato !== "pdf") {
+        setBusy(`Compongo il file ${FORMAT_INFO[formato].label}…`);
+        const { buildDocx, buildEpub } = await import("@/lib/export/ebook");
+        const singleChapter = scope === "capitolo";
+        const book = { titolo: work.titolo, sottotitolo, autore, lingua: project.data?.manifest.lingua ?? "it" };
+        const chs = selected.map((c, i) => ({ titolo: c.titolo, markdown: parseChapter(texts[i].text).body }));
+        const bytes = formato === "epub" ? buildEpub(book, chs, { id: `urn:uuid:${crypto.randomUUID()}` }) : buildDocx(book, chs, { titlePage: !singleChapter });
+        urls.current.forEach((u) => URL.revokeObjectURL(u));
+        const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: FORMAT_INFO[formato].mime }));
+        urls.current = [url];
+        setFileResult({ url, format: formato, bytes: bytes.length, fileName: slugify(singleChapter ? `${work.titolo} ${selected[0].titolo}` : work.titolo) });
+        return;
+      }
       const { renderBook } = await import("@/lib/export/render");
       const template = { ...current.template, ...(bozza === null ? {} : { filigrana: bozza }) };
       const singleChapter = scope === "capitolo";
@@ -175,8 +206,8 @@ export default function ExportView({ owner, repo }: { owner: string; repo: strin
       {nav}
       <div className="page-head">
         <div>
-          <h1>Esporta in PDF</h1>
-          <div className="small muted">Il PDF si compone in questo browser con l&apos;ultima versione salvata di ogni capitolo: le modifiche non ancora in versione non sono incluse.</div>
+          <h1>Esporta</h1>
+          <div className="small muted">Il file si compone in questo browser con l&apos;ultima versione salvata di ogni capitolo: le modifiche non ancora in versione non sono incluse.</div>
         </div>
       </div>
 
@@ -186,6 +217,16 @@ export default function ExportView({ owner, repo }: { owner: string; repo: strin
             <h2 id="exp-cosa" className="h2" style={{ margin: 0 }}>
               Cosa
             </h2>
+            <div className="segmented" role="radiogroup" aria-label="Formato del file">
+              {(Object.keys(FORMAT_INFO) as Format[]).map((f) => (
+                <button key={f} type="button" role="radio" aria-checked={formato === f} onClick={() => setFormato(f)}>
+                  {FORMAT_INFO[f].label}
+                </button>
+              ))}
+            </div>
+            <p className="small muted" style={{ margin: 0 }}>
+              {FORMAT_INFO[formato].hint}
+            </p>
             {works.length > 1 && (
               <div className="field">
                 <label htmlFor="exp-opera">Opera</label>
@@ -250,107 +291,111 @@ export default function ExportView({ owner, repo }: { owner: string; repo: strin
             )}
           </section>
 
-          <section className="card stack" aria-labelledby="exp-come">
-            <h2 id="exp-come" className="h2" style={{ margin: 0 }}>
-              Template
-            </h2>
-            <div className="row">
-              <label htmlFor="exp-template" className="sr-only">
+          {formato === "pdf" && (
+            <section className="card stack" aria-labelledby="exp-come">
+              <h2 id="exp-come" className="h2" style={{ margin: 0 }}>
                 Template
-              </label>
-              <select id="exp-template" className="select" style={{ flex: "1 1 220px", width: "auto" }} value={current.key} onChange={(e) => setTemplateKey(e.target.value)}>
-                <optgroup label="Predefiniti">
-                  {BUILTIN_PDF_TEMPLATES.map((x) => (
-                    <option key={x.id} value={x.id}>
-                      {x.nome}
-                    </option>
-                  ))}
-                </optgroup>
-                {own.length > 0 && (
-                  <optgroup label="Del progetto">
-                    {own.map((s) => (
-                      <option key={s.path} value={s.path}>
-                        {s.data.nome}
+              </h2>
+              <div className="row">
+                <label htmlFor="exp-template" className="sr-only">
+                  Template
+                </label>
+                <select id="exp-template" className="select" style={{ flex: "1 1 220px", width: "auto" }} value={current.key} onChange={(e) => setTemplateKey(e.target.value)}>
+                  <optgroup label="Predefiniti">
+                    {BUILTIN_PDF_TEMPLATES.map((x) => (
+                      <option key={x.id} value={x.id}>
+                        {x.nome}
                       </option>
                     ))}
                   </optgroup>
-                )}
-              </select>
-              <button type="button" className="btn btn-small" onClick={() => setEditing({ template: current.sheet ? current.template : { ...current.template, nome: `${current.template.nome} (copia)` }, sheet: current.sheet })}>
-                {current.sheet ? "Modifica" : "Duplica e modifica"}
-              </button>
-              {current.sheet && (
-                <button type="button" className="btn btn-small btn-ghost danger-text" onClick={() => deleteTemplate(current.sheet!)}>
-                  Elimina
+                  {own.length > 0 && (
+                    <optgroup label="Del progetto">
+                      {own.map((s) => (
+                        <option key={s.path} value={s.path}>
+                          {s.data.nome}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+                <button type="button" className="btn btn-small" onClick={() => setEditing({ template: current.sheet ? current.template : { ...current.template, nome: `${current.template.nome} (copia)` }, sheet: current.sheet })}>
+                  {current.sheet ? "Modifica" : "Duplica e modifica"}
                 </button>
-              )}
-            </div>
-            <p className="small muted" style={{ margin: 0 }}>
-              {PAGE_FORMATS[t.pagina.formato].nome === "Personalizzato" ? `${t.pagina.larghezza}×${t.pagina.altezza} mm` : PAGE_FORMATS[t.pagina.formato].nome} · {t.testo.font} {t.testo.corpo} pt, interlinea {t.testo.interlinea} · margini {t.margini.interno}/{t.margini.esterno} mm
-              {t.capitoli.aDestra ? " · capitoli a destra" : ""}
-              {t.indice ? " · indice" : ""}
-            </p>
-            <label className="row small" style={{ gap: 6 }}>
-              <input type="checkbox" checked={bozza ?? t.filigrana} onChange={(e) => setBozza(e.target.checked)} />
-              Filigrana «BOZZA» su ogni pagina
-            </label>
-          </section>
+                {current.sheet && (
+                  <button type="button" className="btn btn-small btn-ghost danger-text" onClick={() => deleteTemplate(current.sheet!)}>
+                    Elimina
+                  </button>
+                )}
+              </div>
+              <p className="small muted" style={{ margin: 0 }}>
+                {PAGE_FORMATS[t.pagina.formato].nome === "Personalizzato" ? `${t.pagina.larghezza}×${t.pagina.altezza} mm` : PAGE_FORMATS[t.pagina.formato].nome} · {t.testo.font} {t.testo.corpo} pt, interlinea {t.testo.interlinea} · margini {t.margini.interno}/{t.margini.esterno} mm
+                {t.capitoli.aDestra ? " · capitoli a destra" : ""}
+                {t.indice ? " · indice" : ""}
+              </p>
+              <label className="row small" style={{ gap: 6 }}>
+                <input type="checkbox" checked={bozza ?? t.filigrana} onChange={(e) => setBozza(e.target.checked)} />
+                Filigrana «BOZZA» su ogni pagina
+              </label>
+            </section>
+          )}
 
-          <section className="card stack" aria-labelledby="exp-stampa">
-            <h2 id="exp-stampa" className="h2" style={{ margin: 0 }}>
-              Stampa
-            </h2>
-            <div className="segmented" role="radiogroup" aria-label="Modalità">
-              <button type="button" role="radio" aria-checked={mode === "pdf"} onClick={() => setMode("pdf")}>
-                PDF a pagine singole
-              </button>
-              <button type="button" role="radio" aria-checked={mode === "opuscolo"} onClick={() => setMode("opuscolo")}>
-                Opuscolo fronte/retro
-              </button>
-            </div>
-            {mode === "opuscolo" && (
-              <>
-                <div className="form-grid">
-                  <div className="field">
-                    <label htmlFor="exp-foglio">Foglio</label>
-                    <select id="exp-foglio" className="select" value={foglio} onChange={(e) => setFoglio(e.target.value as SheetSize)}>
-                      {(Object.keys(SHEET_SIZES) as SheetSize[]).map((s) => (
-                        <option key={s} value={s}>
-                          {SHEET_SIZES[s].nome}
-                        </option>
-                      ))}
-                    </select>
+          {formato === "pdf" && (
+            <section className="card stack" aria-labelledby="exp-stampa">
+              <h2 id="exp-stampa" className="h2" style={{ margin: 0 }}>
+                Stampa
+              </h2>
+              <div className="segmented" role="radiogroup" aria-label="Modalità">
+                <button type="button" role="radio" aria-checked={mode === "pdf"} onClick={() => setMode("pdf")}>
+                  PDF a pagine singole
+                </button>
+                <button type="button" role="radio" aria-checked={mode === "opuscolo"} onClick={() => setMode("opuscolo")}>
+                  Opuscolo fronte/retro
+                </button>
+              </div>
+              {mode === "opuscolo" && (
+                <>
+                  <div className="form-grid">
+                    <div className="field">
+                      <label htmlFor="exp-foglio">Foglio</label>
+                      <select id="exp-foglio" className="select" value={foglio} onChange={(e) => setFoglio(e.target.value as SheetSize)}>
+                        {(Object.keys(SHEET_SIZES) as SheetSize[]).map((s) => (
+                          <option key={s} value={s}>
+                            {SHEET_SIZES[s].nome}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label htmlFor="exp-flip">Fronte/retro</label>
+                      <select id="exp-flip" className="select" value={flip} onChange={(e) => setFlip(e.target.value as DuplexFlip)}>
+                        <option value="corto">Ribalta sul lato corto</option>
+                        <option value="lungo">Ribalta sul lato lungo</option>
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label htmlFor="exp-segn">Fogli per fascicolo</label>
+                      <select id="exp-segn" className="select" value={segnatura} onChange={(e) => setSegnatura(Number(e.target.value))}>
+                        <option value={0}>Un solo fascicolo</option>
+                        {[3, 4, 5, 6, 8].map((n) => (
+                          <option key={n} value={n}>
+                            {n} fogli ({n * 4} pagine)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label htmlFor="exp-creep">Compensazione del creep</label>
+                      <input id="exp-creep" className="input" type="number" min={0} max={5} step={0.1} value={creep} onChange={(e) => setCreep(Math.min(5, Math.max(0, Number(e.target.value) || 0)))} />
+                      <span className="hint">mm per il foglio più interno di ogni fascicolo (0 = nessuna).</span>
+                    </div>
                   </div>
-                  <div className="field">
-                    <label htmlFor="exp-flip">Fronte/retro</label>
-                    <select id="exp-flip" className="select" value={flip} onChange={(e) => setFlip(e.target.value as DuplexFlip)}>
-                      <option value="corto">Ribalta sul lato corto</option>
-                      <option value="lungo">Ribalta sul lato lungo</option>
-                    </select>
-                  </div>
-                  <div className="field">
-                    <label htmlFor="exp-segn">Fogli per fascicolo</label>
-                    <select id="exp-segn" className="select" value={segnatura} onChange={(e) => setSegnatura(Number(e.target.value))}>
-                      <option value={0}>Un solo fascicolo</option>
-                      {[3, 4, 5, 6, 8].map((n) => (
-                        <option key={n} value={n}>
-                          {n} fogli ({n * 4} pagine)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="field">
-                    <label htmlFor="exp-creep">Compensazione del creep</label>
-                    <input id="exp-creep" className="input" type="number" min={0} max={5} step={0.1} value={creep} onChange={(e) => setCreep(Math.min(5, Math.max(0, Number(e.target.value) || 0)))} />
-                    <span className="hint">mm per il foglio più interno di ogni fascicolo (0 = nessuna).</span>
-                  </div>
-                </div>
-                <p className="small muted" style={{ margin: 0 }}>
-                  Le pagine vengono riordinate per la piegatura e aggiunte pagine bianche fino a un multiplo di 4. Stampa in fronte/retro, piega i fogli a metà{segnatura ? " fascicolo per fascicolo" : ""}.
-                </p>
-              </>
-            )}
-          </section>
+                  <p className="small muted" style={{ margin: 0 }}>
+                    Le pagine vengono riordinate per la piegatura e aggiunte pagine bianche fino a un multiplo di 4. Stampa in fronte/retro, piega i fogli a metà{segnatura ? " fascicolo per fascicolo" : ""}.
+                  </p>
+                </>
+              )}
+            </section>
+          )}
 
           {error && (
             <div className="notice notice-error" role="alert">
@@ -358,12 +403,26 @@ export default function ExportView({ owner, repo }: { owner: string; repo: strin
             </div>
           )}
           <button type="button" className="btn btn-primary" onClick={generate} disabled={!!busy || selected.length === 0}>
-            {busy ?? (selected.length === 0 ? "Scegli almeno un capitolo" : `Genera il PDF (${selected.length} ${selected.length === 1 ? "capitolo" : "capitoli"})`)}
+            {busy ?? (selected.length === 0 ? "Scegli almeno un capitolo" : `Genera ${formato === "pdf" ? "il PDF" : `il file ${FORMAT_INFO[formato].label}`} (${selected.length} ${selected.length === 1 ? "capitolo" : "capitoli"})`)}
           </button>
         </div>
 
         <section className="card stack export-preview" aria-label="Anteprima" aria-busy={!!busy}>
-          {!result ? (
+          {fileResult ? (
+            <div className="stack">
+              <p className="small" role="status" style={{ margin: 0 }}>
+                File {FORMAT_INFO[fileResult.format].label} pronto · {formatCount(Math.max(1, Math.round(fileResult.bytes / 1024)))} KB
+              </p>
+              <a className="btn btn-primary" style={{ alignSelf: "flex-start" }} href={fileResult.url} download={`${fileResult.fileName}.${fileResult.format}`}>
+                Scarica {fileResult.fileName}.{fileResult.format}
+              </a>
+              <p className="small muted" style={{ margin: 0 }}>
+                {fileResult.format === "epub"
+                  ? "Controlla l'ebook in un lettore prima di pubblicarlo: la copertina non è inclusa."
+                  : "Si apre con Word, LibreOffice, Pages e Google Documenti. Grassetti, corsivi, citazioni e cambi di scena restano; gli stili si possono cambiare dal programma."}
+              </p>
+            </div>
+          ) : !result ? (
             <p className="muted" style={{ margin: 0 }}>
               {busy ?? "L'anteprima compare qui."}
             </p>

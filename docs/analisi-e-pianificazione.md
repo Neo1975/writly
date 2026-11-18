@@ -192,7 +192,7 @@ Alternativa da valutare per il PDF: **Typst** (tipografia eccellente, molto velo
 
 ### Stato dell'implementazione (branch `preview`)
 
-Fasi 0–6 completate (0, 1, 2, 3, 3b, 4, 5, 6). Scostamenti rispetto all'architettura proposta, decisi durante lo sviluppo:
+Fasi 0–7 completate (0, 1, 2, 3, 3b, 4, 5, 6, 7), con l'AI e LanguageTool lasciati in attesa delle risposte alle domande aperte 5 e 7. Scostamenti rispetto all'architettura proposta, decisi durante lo sviluppo:
 
 - **Login**: OAuth App GitHub tramite Auth.js v5, non ancora GitHub App. Il token resta nel JWT di sessione cifrato e si legge solo lato server; `/api/auth/session` non lo espone.
 - **Ortografia**: Hunspell (`hunspell-asm`, WebAssembly) sul thread principale, non in un Web Worker: con un capitolo di qualche migliaio di parole e la cache per parola il ricalcolo resta impercettibile. Da spostare in un worker se emergono rallentamenti su capitoli molto lunghi. Le elisioni («dell'acqua», «c'è») si controllano intere: il dizionario italiano le riconosce così e segnala anche «un'altro».
@@ -223,19 +223,29 @@ Fasi 0–6 completate (0, 1, 2, 3, 3b, 4, 5, 6). Scostamenti rispetto all'archit
 - **Modifiche esterne e conflitti**: se il capitolo è cambiato su GitHub (altro dispositivo, editor esterno, assistente AI) il salvataggio viene rifiutato come prima, e ora si apre un'unione passaggio per passaggio (la mia, quella su GitHub, entrambe); lo stesso per una bozza locale partita da una versione vecchia. Non c'è ancora un controllo periodico: le differenze emergono all'apertura o al salvataggio.
 - **Varianti**: rami Git `variante/<nome>`. Il capitolo si scrive su una variante con `?variante=<nome>` (bozza locale separata); si confronta con la versione principale, se ne porta un capitolo alla volta nella principale, oppure si unisce l'intera variante (merge di GitHub; se le stesse righe sono cambiate da entrambe le parti, si passa per i capitoli). Struttura, schede e appunti restano quelli della versione principale.
 
-Rimandati rispetto ai requisiti delle fasi 2–6 (restano nel piano):
+- **Controlli di stile**: nel browser, sul testo del capitolo; ripetizioni ravvicinate (stessa radice entro 30 parole, escluse parole funzionali, nomi delle schede e termini del glossario), frasi oltre 40 parole, avverbi in *-mente*, parole più usate. Spenti all'inizio e attivabili uno per uno dal pannello; la scelta è una preferenza di questo browser. Nessuna grammatica: LanguageTool resta in sospeso (domanda 7).
+- **Continuità**: euristica locale su occhi, capelli, barba e pelle. Gli aggettivi (colore, forma, lunghezza) si leggono dai campi «Aspetto» e «Tratti distintivi» della scheda; una frase che nomina il personaggio e gli attribuisce un valore diverso della stessa dimensione viene sottolineata e compare nel pannello. L'aggettivo va al personaggio nominato più vicino prima dell'attributo. Mai bloccante.
+- **Obiettivi e concentrazione**: obiettivo di parole per la sessione (da quando si apre il capitolo); obiettivo del libro da `opera.yaml` (`obiettivoParole`) nella panoramica. Modalità concentrazione: nasconde barra in alto, strumenti, pannello e navigazione; i controlli di stile restano solo come sottolineature di continuità.
+- **Diario della scrittura**: parole nette per giorno e capitolo registrate in `localStorage` mentre si scrive, per dispositivo. Ricostruirlo dai commit di GitHub costerebbe una lettura per ogni versione di ogni capitolo; si può aggiungere come importazione una tantum.
+- **Panoramica** (`/progetto/…/panoramica`): una sola lettura dell'albero e dei blob di tutti i capitoli salvati; parole e stato per capitolo, presenze di personaggi e voci capitolo per capitolo, tabella della saga con presenze per libro e prima comparsa, avvisi di continuità, schede mai citate (indicatore di «debito di worldbuilding»).
+- **EPUB e DOCX**: composti nel browser come zip con fflate, senza servizi esterni. EPUB 3 con indice NCX per i lettori più vecchi, frontespizio e un file per capitolo, senza copertina. DOCX da dattiloscritto: A4, Times New Roman 12, interlinea 1,5, rientro, capitoli a pagina nuova, numero di pagina in basso; stili con nome («Titolo 1», «Citazione», «Cambio scena») modificabili in Word.
+- **AI**: non integrata, in attesa della risposta alla domanda 5. Il formato (Markdown e YAML in un repository) resta adatto a un assistente esterno come Claude Code, e le modifiche esterne passano per l'unione guidata della fase 6.
+
+Rimandati rispetto ai requisiti delle fasi 2–7 (restano nel piano):
 
 - ritratto del personaggio (immagine nel repository) e collegamento dell'arco alle sezioni del modello;
 - elenco dei progetti che usano una struttura di libreria;
-- conferma manuale dei nomi ambigui (oggi c'è solo l'avviso) e comparse per capitolo (S);
+- conferma manuale dei nomi ambigui (oggi c'è solo l'avviso);
 - mappatura assistita delle scene al cambio di modello (S): oggi le scene di sezioni che non esistono più vanno in «Non assegnate»;
-- indicatori di «debito di worldbuilding» (S) e collegamento delle voci agli appunti (fase 4);
+- collegamento delle voci agli appunti (fase 4);
 - modifica di una relazione esistente: oggi si toglie e si aggiunge di nuovo;
 - collegamento tra storia del mondo e timeline della trama; controllo di coerenza assistito sulle regole;
 - allegati agli appunti (C) e anteprima del Markdown degli appunti;
 - sillabazione nel PDF (pdfmake non la fa: il giustificato può allargare gli spazi su righe corte) e titolo del capitolo nelle intestazioni in modo «dinamico» per più capitoli nella stessa pagina;
-- export di una selezione di testo dentro un capitolo (oggi: capitolo, capitoli scelti, opera) e EPUB/DOCX (C);
-- controllo periodico delle modifiche esterne mentre si scrive; struttura e schede per variante.
+- export di una selezione di testo dentro un capitolo (oggi: capitolo, capitoli scelti, opera); copertina dell'EPUB;
+- controllo periodico delle modifiche esterne mentre si scrive; struttura e schede per variante;
+- obiettivo di parole per singolo capitolo; diario della scrittura sincronizzato tra dispositivi;
+- continuità oltre l'aspetto fisico (età, date, luoghi già distrutti nella storia del mondo); AI e grammatica con LanguageTool (domande 5 e 7).
 
 
 | Fase | Contenuto | Esito |
@@ -248,7 +258,7 @@ Rimandati rispetto ai requisiti delle fasi 2–6 (restano nel piano):
 | **4 — Appunti** ✅ | Appunti globali e di progetto, glossario, collegamenti, cattura rapida | |
 | **5 — Export** ✅ | Template PDF, export capitolo/selezione/opera, opuscolo e segnature | |
 | **6 — Versioni avanzate** ✅ | Confronto multi-versione, varianti/branch, ripristino parziale, sync esterna | |
-| **7 — Extra** | Statistiche, controlli di stile, continuità, AI opzionale, EPUB/DOCX, saga multi-opera completa | |
+| **7 — Extra** ✅ | Statistiche, controlli di stile, continuità, EPUB/DOCX, panoramica della saga (AI e LanguageTool in attesa delle domande 5 e 7) | |
 
 ## 8. Rischi e mitigazioni
 

@@ -23,11 +23,17 @@ import type { SheetsData } from "@/lib/server/sheets";
 import type { Scene, WorkStructure } from "@/lib/project/structure";
 import { countMentions, createMentionMatcher, nameWords } from "@/lib/text/mentions";
 import { rulesFor } from "@/lib/project/world";
+import { characterAttributesText } from "@/lib/project/entities";
+import { recordWriting, usePref } from "@/lib/client/prefs";
+import { continuityWarnings, sheetAttributes, type ContinuityCharacter, type ContinuityWarning } from "@/lib/text/continuity";
+import type { MentionMatcher } from "@/lib/text/mentions";
+import { analyzeStyle, overusedWords, type StyleIssue, type StyleKind, type StyleOptions, type WordFrequency } from "@/lib/text/style";
 import ChapterSidePanel, { summarize, SummaryCard } from "./ChapterSidePanel";
 import HistoryDialog from "./HistoryDialog";
 import MergeDialog, { type MergeRequest } from "./MergeDialog";
 import { Mentions, refreshMentions, type MentionsSource } from "./mentions";
 import { misspellingAt, refreshSpellcheck, Spellcheck } from "./spellcheck";
+import { checkText, refreshTextChecks, TextChecks, type TextMark } from "./textchecks";
 
 const STATUS_LABEL: Record<ChapterStatus, string> = {
   bozza: "Bozza",
@@ -51,6 +57,40 @@ const EMPTY_STATS: TextStats = { parole: 0, battute: 0, battuteSenzaSpazi: 0 };
 
 function plainText(editor: Editor) {
   return editor.getText({ blockSeparator: "\n" });
+}
+
+export type StylePrefs = Pick<StyleOptions, "ripetizioni" | "frasiLunghe" | "avverbi">;
+export const STYLE_OFF: StylePrefs = { ripetizioni: false, frasiLunghe: false, avverbi: false };
+
+/** Stato non reattivo dei controlli di stile e continuità, letto dalle decorazioni dell'editor. */
+interface ChecksState {
+  style: StylePrefs;
+  continuity: { characters: ContinuityCharacter[]; matcher: MentionMatcher } | null;
+  /** Parole dei nomi e termini del glossario: non contano come ripetizioni o parole abusate. */
+  ignore: string[];
+  cache: { text: string; style: StyleIssue[]; continuity: ContinuityWarning[] } | null;
+}
+
+function runChecks(checks: ChecksState, text: string) {
+  if (checks.cache?.text === text) return checks.cache;
+  const style = checks.style.ripetizioni || checks.style.frasiLunghe || checks.style.avverbi ? analyzeStyle(text, { ...checks.style, ignora: checks.ignore }) : [];
+  const continuity = checks.continuity ? continuityWarnings(text, checks.continuity.characters, checks.continuity.matcher) : [];
+  checks.cache = { text, style, continuity };
+  return checks.cache;
+}
+
+function marksFor(checks: ChecksState, text: string): TextMark[] {
+  const r = runChecks(checks, text);
+  return [
+    ...r.style.map((i) => ({ start: i.start, end: i.end, className: `style-mark style-${i.kind}`, note: i.note })),
+    ...r.continuity.map((w) => ({ start: w.start, end: w.end, className: "continuity-mark", note: `Nella scheda di ${w.nome}: ${w.parte} ${w.atteso.join(", ")}` })),
+  ];
+}
+
+export interface ChecksReport {
+  counts: Record<StyleKind, number>;
+  continuity: ContinuityWarning[];
+  overused: WordFrequency[];
 }
 
 function formatTime(ms: number) {
@@ -98,6 +138,11 @@ export default function ChapterEditor({
   const [hover, setHover] = useState<{ id: string; top: number; left: number } | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
   const [merge, setMerge] = useState<{ request: MergeRequest; onApply: (merged: string) => void } | null>(null);
+  const [report, setReport] = useState<ChecksReport>({ counts: { ripetizione: 0, "frase-lunga": 0, avverbio: 0 }, continuity: [], overused: [] });
+  const [stylePrefs, setStylePrefs] = usePref<StylePrefs>("writly:stile", STYLE_OFF);
+  const [focusMode, setFocusMode] = usePref<boolean>("writly:concentrazione", false);
+  const [sessionGoal, setSessionGoal] = usePref<number>("writly:obiettivo-sessione", 0);
+  const [sessionStart, setSessionStart] = useState<number | null>(null);
 
   // Stato non reattivo usato dalle callback dell'editor.
   const shaRef = useRef("");
@@ -106,6 +151,7 @@ export default function ChapterEditor({
   // Contenitore stabile: ProseMirror legge il checker solo quando ricalcola le decorazioni.
   const [spell] = useState<{ checker: SpellChecker | null }>(() => ({ checker: null }));
   const [ents] = useState<{ source: (MentionsSource & { ambiguous: string[] }) | null }>(() => ({ source: null }));
+  const [checks] = useState<ChecksState>(() => ({ style: STYLE_OFF, continuity: null, ignore: [], cache: null }));
   const readyRef = useRef(false);
   const editorRef = useRef<Editor | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -113,13 +159,19 @@ export default function ChapterEditor({
 
   const recompute = useCallback((editor: Editor) => {
     const plain = plainText(editor);
-    setStats(textStats(plain));
+    const s = textStats(plain);
+    setStats(s);
     if (ents.source) setMentionCounts(countMentions(ents.source.matcher, plain));
+    const r = runChecks(checks, checkText(editor.state.doc));
+    const counts = { ripetizione: 0, "frase-lunga": 0, avverbio: 0 };
+    for (const i of r.style) counts[i.kind]++;
+    setReport({ counts, continuity: r.continuity, overused: overusedWords(plain, { ignora: checks.ignore }) });
+    if (readyRef.current) recordWriting(owner, repo, draftKey, s.parole);
     const body = editor.getMarkdown();
     const isDirty = body !== committedRef.current.body || metaRef.current.stato !== committedRef.current.stato;
     setDirty(isDirty);
     return { body, isDirty };
-  }, [ents]);
+  }, [ents, checks, owner, repo, draftKey]);
 
   const scheduleDraft = useCallback(
     (editor: Editor) => {
@@ -174,6 +226,7 @@ export default function ChapterEditor({
       Markdown,
       Spellcheck.configure({ getChecker: () => spell.checker }),
       Mentions.configure({ getSource: () => ents.source }),
+      TextChecks.configure({ getCheck: () => (text) => marksFor(checks, text) }),
     ],
     editorProps: {
       attributes: { class: "prose-editor", spellcheck: "false", "aria-label": "Testo del capitolo", lang: "it" },
@@ -270,6 +323,7 @@ export default function ChapterEditor({
         }
 
         readyRef.current = true;
+        setSessionStart(textStats(plainText(editor)).parole);
         recompute(editor);
         editor.setEditable(true);
         setReady(true);
@@ -315,10 +369,21 @@ export default function ChapterEditor({
           ...d.voci.map((v) => ({ id: v.data.id, names: [v.data.nome, ...v.data.alias] })),
         ]);
         ents.source = { matcher, kindOf: (id) => (characterIds.has(id) ? "personaggio" : "voce"), ambiguous: matcher.ambiguous };
+        checks.continuity = {
+          matcher,
+          characters: d.personaggi.map((c) => ({ id: c.data.id, nome: c.data.nome, attributi: sheetAttributes(characterAttributesText(c.data)) })),
+        };
+        checks.ignore = nameWords([
+          ...d.personaggi.flatMap((c) => [c.data.nome, ...c.data.alias]),
+          ...d.voci.flatMap((v) => [v.data.nome, ...v.data.alias]),
+          ...d.glossario.items.map((t) => t.termine),
+        ]);
+        checks.cache = null;
         const ed = editorRef.current;
         if (ed) {
           refreshMentions(ed);
-          setMentionCounts(countMentions(matcher, plainText(ed)));
+          refreshTextChecks(ed);
+          if (readyRef.current) recompute(ed);
         }
         setSheets(d);
       })
@@ -332,7 +397,25 @@ export default function ChapterEditor({
     return () => {
       cancelled = true;
     };
-  }, [project, base, work, file, ents]);
+  }, [project, base, work, file, ents, checks, recompute]);
+
+  // Controlli di stile scelti dall'autore (preferenza di questo browser).
+  useEffect(() => {
+    const { ripetizioni, frasiLunghe, avverbi } = stylePrefs;
+    if (checks.style.ripetizioni === ripetizioni && checks.style.frasiLunghe === frasiLunghe && checks.style.avverbi === avverbi) return;
+    checks.style = { ripetizioni, frasiLunghe, avverbi };
+    checks.cache = null;
+    if (editor) {
+      refreshTextChecks(editor);
+      if (readyRef.current) recompute(editor);
+    }
+  }, [stylePrefs, checks, editor, recompute]);
+
+  // Modalità concentrazione: nasconde barra in alto, pannello e strumenti.
+  useEffect(() => {
+    document.body.classList.toggle("focus-mode", focusMode);
+    return () => document.body.classList.remove("focus-mode");
+  }, [focusMode]);
 
   // Nomi delle schede e termini del glossario sono accettati dal controllo ortografico.
   useEffect(() => {
@@ -517,6 +600,7 @@ export default function ChapterEditor({
   }
 
   const work_ = project?.opere.find((o) => o.slug === work);
+  const sessionWords = stats.parole - (sessionStart ?? stats.parole);
   const index = work_?.capitoli.findIndex((c) => c.file === file) ?? -1;
   const chapter = index >= 0 ? work_!.capitoli[index] : null;
   const prev = index > 0 ? work_!.capitoli[index - 1] : null;
@@ -558,6 +642,16 @@ export default function ChapterEditor({
             <dt>senza spazi</dt>
             <dd>{formatCount(stats.battuteSenzaSpazi)}</dd>
           </div>
+          {sessionStart !== null && (
+            <div>
+              <dt>Sessione</dt>
+              <dd>
+                {sessionWords >= 0 ? "+" : "−"}
+                {formatCount(Math.abs(sessionWords))}
+                {sessionGoal > 0 && <span className="muted"> / {formatCount(sessionGoal)}</span>}
+              </dd>
+            </div>
+          )}
           {selection && (
             <div className="stats-selection">
               <dt>Selezione</dt>
@@ -589,6 +683,9 @@ export default function ChapterEditor({
               </option>
             ))}
           </select>
+          <button type="button" className="btn" aria-pressed={focusMode} onClick={() => setFocusMode(!focusMode)} title="Solo il testo: nasconde barra, strumenti e pannello">
+            {focusMode ? "Esci dalla concentrazione" : "Concentrazione"}
+          </button>
           <button type="button" className="btn" onClick={() => setDialog("storico")} disabled={!ready}>
             Storico
           </button>
@@ -745,7 +842,7 @@ export default function ChapterEditor({
         >
           <EditorContent editor={editor} />
         </main>
-        {panelOpen && (
+        {panelOpen && !focusMode && (
           <ChapterSidePanel
             projectHref={`/progetto/${owner}/${repo}`}
             structureHref={`/progetto/${owner}/${repo}/struttura/${work}`}
@@ -762,6 +859,13 @@ export default function ChapterEditor({
             ambiguous={ents.source?.ambiguous ?? []}
             focus={mentionFocus}
             onFocus={setMentionFocus}
+            report={report}
+            stylePrefs={stylePrefs}
+            onStylePrefs={setStylePrefs}
+            sessionWords={sessionStart === null ? null : sessionWords}
+            sessionGoal={sessionGoal}
+            onSessionGoal={setSessionGoal}
+            overviewHref={`/progetto/${owner}/${repo}/panoramica`}
           />
         )}
       </div>

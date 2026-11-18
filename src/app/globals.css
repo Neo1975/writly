@@ -23,6 +23,10 @@
   --act-2: #2f7a68;
   --act-3: #9a5b2e;
   --mention: rgba(46, 74, 125, 0.35);
+  --style-rip: rgba(196, 140, 20, 0.28);
+  --style-long: rgba(46, 74, 125, 0.08);
+  --style-adv: rgba(122, 79, 154, 0.22);
+  --continuity: #b5651d;
   --font-ui: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-prose: Literata, "Iowan Old Style", Charter, Georgia, "Times New Roman", serif;
   color-scheme: light;
@@ -53,6 +57,10 @@
     --act-2: #8fd4c1;
     --act-3: #e6b48f;
     --mention: rgba(143, 176, 230, 0.45);
+    --style-rip: rgba(230, 180, 60, 0.3);
+    --style-long: rgba(143, 176, 230, 0.12);
+    --style-adv: rgba(190, 150, 230, 0.28);
+    --continuity: #f0a860;
     color-scheme: dark;
   }
 }
@@ -1710,4 +1718,169 @@ label.history-item {
 .variant-row {
   flex-wrap: wrap;
   gap: 8px;
+}
+
+/* ——— Controlli di stile e continuità ——— */
+.style-ripetizione {
+  background: var(--style-rip);
+  border-radius: 2px;
+}
+.style-frase-lunga {
+  background: var(--style-long);
+}
+.style-avverbio {
+  background: var(--style-adv);
+  border-radius: 2px;
+}
+.style-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid var(--border-strong);
+}
+.continuity-mark {
+  text-decoration: underline wavy var(--continuity);
+  text-decoration-skip-ink: none;
+  text-underline-offset: 3px;
+}
+.word-freq {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.goal-bar {
+  display: block;
+  width: 100%;
+  height: 4px;
+  margin-top: 2px;
+  accent-color: var(--ok);
+}
+
+/* ——— Modalità concentrazione: solo il testo ——— */
+body.focus-mode .topbar,
+body.focus-mode .editor-toolbar,
+body.focus-mode .chapter-nav,
+body.focus-mode .variant-bar {
+  display: none;
+}
+body.focus-mode .editor-head {
+  opacity: 0.35;
+  transition: opacity 0.2s;
+}
+body.focus-mode .editor-head:hover,
+body.focus-mode .editor-head:focus-within {
+  opacity: 1;
+}
+body.focus-mode .editor-body {
+  grid-template-columns: 1fr;
+}
+body.focus-mode .style-ripetizione,
+body.focus-mode .style-frase-lunga,
+body.focus-mode .style-avverbio {
+  background: none;
+}
+
+/* ——— Panoramica ——— */
+.overview-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+.overview-tiles > div {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+}
+.overview-tiles dt {
+  font-size: 13px;
+  color: var(--muted);
+}
+.overview-tiles dd {
+  margin: 2px 0 0;
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.chart-readout {
+  min-height: 1.4em;
+}
+.day-chart {
+  position: relative;
+  height: 140px;
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+}
+.day-chart-zero {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--border-strong);
+}
+.day-col {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  border-radius: 4px;
+}
+.day-col.is-hover {
+  background: var(--accent-soft);
+}
+.day-bar {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  min-height: 2px;
+  background: var(--accent);
+  border-radius: 4px 4px 0 0;
+}
+.day-bar.negative {
+  background: var(--muted);
+  border-radius: 0 0 4px 4px;
+}
+.day-chart-axis {
+  display: flex;
+  justify-content: space-between;
+}
+.presence-table td,
+.presence-table thead th {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.presence-table tbody th {
+  text-align: left;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.heat-1 {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.heat-2 {
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+}
+.heat-3 {
+  background: color-mix(in srgb, var(--accent) 38%, transparent);
+}
+.heat-4 {
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.presence-table {
+  width: auto;
+  min-width: 50%;
+}
+.continuity-item {
+  padding: 8px 12px;
+  border-left: 3px solid var(--continuity);
+  background: var(--surface-2);
+  border-radius: 0 6px 6px 0;
+  margin-bottom: 8px;
+}
+.stats dd {
+  white-space: nowrap;
 }

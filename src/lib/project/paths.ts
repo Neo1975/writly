@@ -19,7 +19,7 @@ export const MAPS_DIR = "mondo/mappe";
 export const LIBRARY_REPO = "writly-libreria";
 
 /** Slug che non possono essere usati per le opere: sono segmenti delle pagine del progetto. */
-export const RESERVED_WORK_SLUGS = ["personaggi", "mondo", "struttura", "appunti", "esporta", "varianti"];
+export const RESERVED_WORK_SLUGS = ["personaggi", "mondo", "struttura", "appunti", "esporta", "varianti", "panoramica"];
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const CHAPTER_FILE = /^[a-z0-9]+(?:-[a-z0-9]+)*\.md$/;

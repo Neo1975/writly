@@ -5,7 +5,7 @@ Applicazione di supporto alla stesura di racconti, romanzi e saghe. Ogni progett
 - Analisi e pianificazione: [docs/analisi-e-pianificazione.md](docs/analisi-e-pianificazione.md)
 - Mock-up delle schermate: [docs/mockup/](docs/mockup/)
 
-## Cosa fa oggi (fasi 0–6)
+## Cosa fa oggi (fasi 0–7)
 
 - Accesso con GitHub; libreria dei progetti (repository con topic `writly-progetto`).
 - Nuovo progetto (racconto, romanzo, saga): crea un repository privato e i file iniziali. Oppure collega un repository esistente.
@@ -25,6 +25,10 @@ Applicazione di supporto alla stesura di racconti, romanzi e saghe. Ogni progett
 - **Mondo avanzato**: mappe (immagine nel repository con segnaposti sulle voci, apribili dalla voce), storia del mondo con calendario inventato (ere, mesi) ed eventi, regole del mondo collegate alle voci.
 - **Appunti**: di progetto e globali (repository `writly-libreria`), con tipo, tag, collegamenti a personaggi, mondo e scene, rimandi `[[Titolo]]`, ricerca, «da smistare»; si spostano tra libreria e progetti. **Glossario** di progetto, i cui termini entrano nel dizionario ortografico. **Cattura rapida** con «+ Idea» o Alt+Maiusc+N.
 - **Nel capitolo**: nomi e alias di personaggi e voci del mondo riconosciuti ed evidenziati, scheda al passaggio del mouse, pannello laterale con scene del capitolo e citazioni; promemoria delle regole del mondo che riguardano i luoghi in scena; nomi e termini del glossario non risultano errori di ortografia.
+- **Stile e continuità** (nel browser, disattivabili): ripetizioni ravvicinate, frasi molto lunghe, avverbi in *-mente*, parole più usate; avviso quando il testo contraddice la scheda di un personaggio (occhi, capelli, barba, pelle).
+- **Obiettivi e concentrazione**: parole della sessione con obiettivo, modalità concentrazione (solo testo), diario delle parole scritte ogni giorno (in questo browser).
+- **Panoramica**: parole per capitolo e per opera con l'obiettivo del libro, presenze di personaggi e luoghi capitolo per capitolo e, nelle saghe, libro per libro con la prima comparsa; avvisi di continuità e schede mai citate.
+- **EPUB e DOCX**: ebook per i lettori digitali e dattiloscritto Word (Times 12, interlinea 1,5) per editori e concorsi, composti nel browser.
 
 ## Avvio in locale
 

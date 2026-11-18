@@ -5,6 +5,14 @@ import { CHARACTER_GROUPS } from "@/lib/project/entities";
 import { SCENE_STATUS_LABEL, type Scene } from "@/lib/project/structure";
 import type { WorldRule } from "@/lib/project/world";
 import type { SheetsData } from "@/lib/server/sheets";
+import { formatCount } from "@/lib/text/stats";
+import type { ChecksReport, StylePrefs } from "./ChapterEditor";
+
+const STYLE_CHECKS: { key: keyof StylePrefs; kind: keyof ChecksReport["counts"]; label: string }[] = [
+  { key: "ripetizioni", kind: "ripetizione", label: "Ripetizioni ravvicinate" },
+  { key: "frasiLunghe", kind: "frase-lunga", label: "Frasi molto lunghe" },
+  { key: "avverbi", kind: "avverbio", label: "Avverbi in -mente" },
+];
 
 export interface EntitySummary {
   kind: "personaggio" | "voce";
@@ -74,6 +82,13 @@ export default function ChapterSidePanel({
   ambiguous,
   focus,
   onFocus,
+  report,
+  stylePrefs,
+  onStylePrefs,
+  sessionWords,
+  sessionGoal,
+  onSessionGoal,
+  overviewHref,
 }: {
   projectHref: string;
   structureHref: string;
@@ -87,6 +102,13 @@ export default function ChapterSidePanel({
   ambiguous: string[];
   focus: string | null;
   onFocus: (id: string | null) => void;
+  report: ChecksReport;
+  stylePrefs: StylePrefs;
+  onStylePrefs: (p: StylePrefs) => void;
+  sessionWords: number | null;
+  sessionGoal: number;
+  onSessionGoal: (n: number) => void;
+  overviewHref: string;
 }) {
   const found = [...counts.entries()].sort((a, b) => b[1] - a[1]);
   const isCharacter = (id: string) => !!sheets?.personaggi.some((c) => c.data.id === id);
@@ -174,6 +196,21 @@ export default function ChapterSidePanel({
         </section>
       )}
 
+      {report.continuity.length > 0 && (
+        <section>
+          <h2 className="panel-title">Continuità</h2>
+          <ul className="panel-list">
+            {report.continuity.map((w, i) => (
+              <li key={i} className="panel-rule">
+                <strong>{w.nome}</strong>: qui «{w.testo}», nella scheda «{w.atteso.join(", ")}».
+                <div className="small muted serif">{w.frase}</div>
+              </li>
+            ))}
+          </ul>
+          <p className="small muted">Controllo automatico, può sbagliare: sono solo promemoria.</p>
+        </section>
+      )}
+
       <section>
         <h2 className="panel-title">Personaggi citati</h2>
         {sheetsError ? <p className="small muted">{sheetsError}</p> : !sheets ? <p className="small muted">Carico le schede…</p> : entityList(characters, sheets.personaggi.length ? "Nessun personaggio citato finora." : "Nessuna scheda personaggio nel progetto.")}
@@ -182,6 +219,66 @@ export default function ChapterSidePanel({
       <section>
         <h2 className="panel-title">Mondo citato</h2>
         {sheets && entityList(world, sheets.voci.length ? "Nessun luogo o voce citata finora." : "Nessuna voce del mondo nel progetto.")}
+      </section>
+
+      <section>
+        <h2 className="panel-title">Stile</h2>
+        <div className="stack" style={{ gap: 4 }}>
+          {STYLE_CHECKS.map((c) => (
+            <label key={c.key} className="row small" style={{ gap: 6, justifyContent: "space-between" }}>
+              <span className="row" style={{ gap: 6 }}>
+                <input type="checkbox" checked={stylePrefs[c.key]} onChange={(e) => onStylePrefs({ ...stylePrefs, [c.key]: e.target.checked })} />
+                <span className={`style-swatch style-${c.kind}`} aria-hidden="true" />
+                {c.label}
+              </span>
+              {stylePrefs[c.key] && <span className="muted">{report.counts[c.kind]}</span>}
+            </label>
+          ))}
+        </div>
+        {report.overused.length > 0 && (
+          <>
+            <div className="small muted" style={{ marginTop: 10 }}>
+              Parole più usate nel capitolo
+            </div>
+            <ul className="word-freq">
+              {report.overused.map((f) => (
+                <li key={f.word}>
+                  <span className="serif">{f.word}</span> <span className="small muted">{f.count}×</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </section>
+
+      <section>
+        <h2 className="panel-title">Obiettivo della sessione</h2>
+        <label className="row small" style={{ gap: 6 }}>
+          Parole da scrivere
+          <input
+            type="number"
+            min={0}
+            step={50}
+            className="input"
+            style={{ width: 100, minHeight: 32 }}
+            value={sessionGoal || ""}
+            placeholder="nessuno"
+            onChange={(e) => onSessionGoal(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+          />
+        </label>
+        {sessionWords !== null && sessionGoal > 0 && (
+          <progress className="goal-bar" style={{ marginTop: 8 }} max={sessionGoal} value={Math.max(0, Math.min(sessionWords, sessionGoal))} aria-label="Obiettivo della sessione" />
+        )}
+        {sessionWords !== null && (
+          <p className="small" style={{ margin: "6px 0 0" }}>
+            {sessionGoal > 0 && sessionWords >= sessionGoal
+              ? `Obiettivo raggiunto: ${formatCount(sessionWords)} parole in questa sessione.`
+              : `${sessionWords >= 0 ? "+" : "−"}${formatCount(Math.abs(sessionWords))} parole da quando hai aperto il capitolo.`}
+          </p>
+        )}
+        <Link href={overviewHref} className="small">
+          Statistiche e andamento →
+        </Link>
       </section>
 
       {ambiguous.length > 0 && (

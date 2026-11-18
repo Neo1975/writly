@@ -41,6 +41,11 @@ export const CHARACTER_GROUPS = {
 
 type GroupKey = keyof typeof CHARACTER_GROUPS;
 
+/** Il testo della scheda da cui il controllo di continuità legge gli attributi fisici. */
+export function characterAttributesText(c: Character): string {
+  return [c.fisico.aspetto, c.fisico.tratti].filter(Boolean).join(". ");
+}
+
 export interface Relation {
   id: string;
   da: string;
