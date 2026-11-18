@@ -236,6 +236,8 @@ Fasi 0–7 completate (0, 1, 2, 3, 3b, 4, 5, 6, 7), con l'AI e LanguageTool lasc
 
 Rimandati rispetto ai requisiti delle fasi 2–7 (restano nel piano):
 
+- fruibilità da cellulare: analisi e proposte in [fruibilita-cellulare.md](fruibilita-cellulare.md), da valutare;
+
 - ritratto del personaggio (immagine nel repository) e collegamento dell'arco alle sezioni del modello;
 - elenco dei progetti che usano una struttura di libreria;
 - conferma manuale dei nomi ambigui (oggi c'è solo l'avviso);
@@ -276,7 +278,7 @@ Rimandati rispetto ai requisiti delle fasi 2–7 (restano nel piano):
 1. **Modello Dara Marks**: quali sezioni vuoi precaricate? (Le uso come riferimento dal suo *Inside Story*, ma preferisco la tua versione di lavoro.)
 2. **"Save the Cat rivisto da Write a Novel"**: intendi i 15 beat di *Save the Cat! Writes a Novel* di Jessica Brody, con i 10 generi di storia? Vuoi anche i generi?
 3. **Un repo per progetto o uno per saga?** Propongo un repo per saga (o per racconto/romanzo autonomo) e un repo personale per gli appunti globali.
-4. **Uso offline** è importante da subito o può arrivare dopo l'MVP?
+4. **Uso offline** è importante da subito o può arrivare dopo l'MVP? — *Risposta parziale (18/11/2026): sì, per scrivere in treno. Proposta, da confermare: PWA installabile (manifest, icone, a tutto schermo) con service worker che conserva app, caratteri e dizionario; pulsante «Scarica per il viaggio» che copia sul dispositivo capitoli, schede, struttura, appunti e commenti del progetto; capitoli aperti e scritti dalla copia locale (le bozze locali esistono già) e, al ritorno della rete, elenco dei capitoli modificati con «Salva tutto in versione» e il solito controllo dei conflitti. Restano solo con la rete: versioni su GitHub, storico completo, varianti, modifica delle schede. Su iPad la sincronizzazione parte quando si riapre l'app (niente sincronizzazione in background). Prerequisito: Writly pubblicata online. Tre passi: app che si apre senza rete; download per il viaggio; scrittura senza rete e salvataggio al ritorno. Vedi anche [fruibilita-cellulare.md](fruibilita-cellulare.md) per iPad e telefono.*
 5. **AI**: vuoi un mentore narrativo integrato nell'app, o preferisci tenerlo esterno (es. Claude Code sul repo), come nel flusso precedente?
 6. **Stampa opuscolo**: che stampante/carta usi di solito (A4 piegato in A5)? Mi serve per la configurazione predefinita.
 7. **Grammatica con LanguageTool**: va bene un servizio esterno o vuoi solo controlli locali?
