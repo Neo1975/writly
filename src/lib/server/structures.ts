@@ -101,6 +101,13 @@ export interface LibraryData {
   errori: { path: string; message: string }[];
 }
 
+/** Crea il repository privato writly-libreria al primo salvataggio. */
+export async function ensureLibraryRepo(gh: GitHub, owner: string): Promise<void> {
+  if (!(await repoExists(gh, owner, LIBRARY_REPO))) {
+    await createRepo(gh, { name: LIBRARY_REPO, description: "Libreria personale di Writly: strutture narrative e appunti globali", private: true });
+  }
+}
+
 export async function loadLibrary(gh: GitHub): Promise<LibraryData> {
   const owner = await getLogin(gh);
   const base = { owner, repo: LIBRARY_REPO, predefinite: BUILTIN_TEMPLATES };
@@ -131,9 +138,7 @@ export async function saveLibraryStructure(
   if (id) {
     if (!isSlug(id) || !args.sha) throw new ApiError(400, "Struttura non valida.");
   } else {
-    if (!(await repoExists(gh, owner, LIBRARY_REPO))) {
-      await createRepo(gh, { name: LIBRARY_REPO, description: "Strutture narrative personali di Writly", private: true });
-    }
+    await ensureLibraryRepo(gh, owner);
     const taken = (await listTree(gh, owner, LIBRARY_REPO))
       .map((e) => parseLibraryStructurePath(e.path))
       .filter((x): x is string => !!x);

@@ -212,6 +212,7 @@ export function normalizeCategories(value: unknown, what = "mondo/categorie.yaml
     const label = `${what}, categoria ${i + 1}`;
     const obj = record(c, label);
     if (!isId(obj.id) || ids.has(obj.id)) throw new FormatError(`${label}: «id» mancante, non valido o ripetuto`);
+    if (obj.id === "mappe") throw new FormatError(`${label}: «mappe» è riservato alle mappe del mondo`);
     ids.add(obj.id);
     const fieldIds = new Set<string>();
     return {

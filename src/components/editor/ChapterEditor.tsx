@@ -22,6 +22,7 @@ import { formatCount, textStats, type TextStats } from "@/lib/text/stats";
 import type { SheetsData } from "@/lib/server/sheets";
 import type { Scene, WorkStructure } from "@/lib/project/structure";
 import { countMentions, createMentionMatcher, nameWords } from "@/lib/text/mentions";
+import { rulesFor } from "@/lib/project/world";
 import ChapterSidePanel, { summarize, SummaryCard } from "./ChapterSidePanel";
 import HistoryDialog from "./HistoryDialog";
 import { Mentions, refreshMentions, type MentionsSource } from "./mentions";
@@ -315,10 +316,16 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
     };
   }, [project, base, work, file, ents]);
 
-  // I nomi delle schede sono accettati dal controllo ortografico.
+  // Nomi delle schede e termini del glossario sono accettati dal controllo ortografico.
   useEffect(() => {
     if (!editor || !sheets || spellStatus !== "ready" || !spell.checker) return;
-    spell.checker.accept(nameWords([...sheets.personaggi.flatMap((c) => [c.data.nome, ...c.data.alias]), ...sheets.voci.flatMap((v) => [v.data.nome, ...v.data.alias])]));
+    spell.checker.accept(
+      nameWords([
+        ...sheets.personaggi.flatMap((c) => [c.data.nome, ...c.data.alias]),
+        ...sheets.voci.flatMap((v) => [v.data.nome, ...v.data.alias]),
+        ...sheets.glossario.items.map((t) => t.termine),
+      ]),
+    );
     refreshSpellcheck(editor);
   }, [editor, sheets, spellStatus, spell]);
 
@@ -599,6 +606,11 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
             sheets={sheets}
             sheetsError={sheetsError}
             scenes={structure.scenes}
+            rules={
+              sheets
+                ? rulesFor(sheets.regole.items, [...mentionCounts.keys(), ...structure.scenes.map((s) => s.luogo).filter((x): x is string => !!x)])
+                : []
+            }
             structureState={structure.state}
             counts={mentionCounts}
             ambiguous={ents.source?.ambiguous ?? []}

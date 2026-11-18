@@ -220,3 +220,33 @@ export async function repoExists(gh: GitHub, owner: string, repo: string): Promi
     throw err;
   }
 }
+
+/** Legge un file binario (immagini); `null` se non esiste. */
+export async function readBinary(gh: GitHub, owner: string, repo: string, path: string): Promise<Buffer | null> {
+  try {
+    const { data } = await gh.rest.repos.getContent({ owner, repo, path });
+    if (Array.isArray(data) || data.type !== "file") return null;
+    if (data.encoding === "base64" && data.content) return Buffer.from(data.content, "base64");
+    const blob = await gh.rest.git.getBlob({ owner, repo, file_sha: data.sha });
+    return Buffer.from(blob.data.content, "base64");
+  } catch (err) {
+    if (isStatus(err, 404)) return null;
+    throw err;
+  }
+}
+
+/** Scrive un file binario già codificato in base64 (stesso controllo di concorrenza di writeText). */
+export async function writeBytes(
+  gh: GitHub,
+  args: { owner: string; repo: string; path: string; base64: string; message: string; sha?: string },
+): Promise<string> {
+  const { data } = await gh.rest.repos.createOrUpdateFileContents({
+    owner: args.owner,
+    repo: args.repo,
+    path: args.path,
+    message: args.message,
+    content: args.base64,
+    ...(args.sha ? { sha: args.sha } : {}),
+  });
+  return data.content?.sha ?? "";
+}

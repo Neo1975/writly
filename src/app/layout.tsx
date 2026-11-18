@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
+import QuickCapture from "@/components/notes/QuickCapture";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -21,9 +22,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <nav aria-label="Sezioni" className="topnav">
               <Link href="/">Libreria</Link>
               <Link href="/strutture">Strutture</Link>
+              <Link href="/appunti">Appunti</Link>
             </nav>
           )}
           <span className="spacer" />
+          {session?.user && <QuickCapture />}
           {session?.user && (
             <form
               action={async () => {

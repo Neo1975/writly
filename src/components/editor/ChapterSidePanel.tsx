@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { CHARACTER_GROUPS } from "@/lib/project/entities";
 import { SCENE_STATUS_LABEL, type Scene } from "@/lib/project/structure";
+import type { WorldRule } from "@/lib/project/world";
 import type { SheetsData } from "@/lib/server/sheets";
 
 export interface EntitySummary {
@@ -67,6 +68,7 @@ export default function ChapterSidePanel({
   sheets,
   sheetsError,
   scenes,
+  rules,
   structureState,
   counts,
   ambiguous,
@@ -78,6 +80,8 @@ export default function ChapterSidePanel({
   sheets: SheetsData | null;
   sheetsError: string | null;
   scenes: Scene[];
+  /** Regole del mondo che riguardano le voci in scena (citate o luogo delle scene). */
+  rules: WorldRule[];
   structureState: "loading" | "none" | "ready" | "error";
   counts: Map<string, number>;
   ambiguous: string[];
@@ -155,6 +159,20 @@ export default function ChapterSidePanel({
             </ul>
           ))}
       </section>
+
+      {rules.length > 0 && (
+        <section>
+          <h2 className="panel-title">Regole del mondo</h2>
+          <ul className="panel-list">
+            {rules.map((r) => (
+              <li key={r.id} className="panel-rule">
+                {r.testo}
+                <div className="small muted">{r.voci.map((id) => names.get(id) ?? "(eliminata)").join(", ")}</div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section>
         <h2 className="panel-title">Personaggi citati</h2>

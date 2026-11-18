@@ -9,10 +9,31 @@ import { ancestors, type WorldCategory, type WorldEntry } from "@/lib/project/en
 import { slugify, uniqueSlug } from "@/lib/project/slug";
 import type { ProjectData } from "@/lib/server/projects";
 import type { SheetsData, WorldSheet } from "@/lib/server/sheets";
+import MapsPanel from "./MapsPanel";
+import RulesPanel from "./RulesPanel";
+import TimelinePanel from "./TimelinePanel";
+
+export type WorldViewName = "voci" | "mappe" | "storia" | "regole";
+const VIEWS: [WorldViewName, string][] = [
+  ["voci", "Voci"],
+  ["mappe", "Mappe"],
+  ["storia", "Storia del mondo"],
+  ["regole", "Regole"],
+];
 
 const emptyEntry = (): WorldEntry => ({ id: "nuova", nome: "", alias: [], genitore: null, campi: {}, collegamenti: [], descrizione: "" });
 
-export default function WorldView({ owner, repo }: { owner: string; repo: string }) {
+export default function WorldView({
+  owner,
+  repo,
+  initialView = "voci",
+  initialMap = null,
+}: {
+  owner: string;
+  repo: string;
+  initialView?: WorldViewName;
+  initialMap?: string | null;
+}) {
   const base = projectApi(owner, repo);
   const project = useApiData<ProjectData>(base);
   const sheets = useApiData<SheetsData>(`${base}/schede`);
@@ -21,6 +42,8 @@ export default function WorldView({ owner, repo }: { owner: string; repo: string
   const [creating, setCreating] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [editCats, setEditCats] = useState(false);
+  const [view, setView] = useState<WorldViewName>(initialView);
+  const [mapFocus, setMapFocus] = useState<{ path: string | null; voce: string | null }>({ path: initialMap, voce: null });
   const [notice, setNotice] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   useBeforeUnload(dirty);
 
@@ -66,6 +89,7 @@ export default function WorldView({ owner, repo }: { owner: string; repo: string
   function openEntry(id: string) {
     const v = data!.voci.find((x) => x.data.id === id);
     if (!v || !guard()) return;
+    setView("voci");
     setCategory(v.categoria);
     setSelected(id);
     setCreating(false);
@@ -147,6 +171,7 @@ export default function WorldView({ owner, repo }: { owner: string; repo: string
             Luoghi, culture, sistemi, oggetti, storia e lingue: voci con campi per categoria, collegate fra loro e ai personaggi. I nomi vengono riconosciuti nei capitoli.
           </div>
         </div>
+        {view === "voci" && (
         <div className="row">
           <button type="button" className="btn" onClick={() => setEditCats(true)}>
             Categorie e campi
@@ -157,6 +182,7 @@ export default function WorldView({ owner, repo }: { owner: string; repo: string
             </button>
           )}
         </div>
+        )}
       </div>
 
       {data.errori
@@ -172,6 +198,31 @@ export default function WorldView({ owner, repo }: { owner: string; repo: string
         </div>
       )}
 
+      <div className="segmented" role="tablist" aria-label="Sezioni del mondo">
+        {VIEWS.map(([id, label]) => (
+          <button key={id} type="button" role="tab" aria-selected={view === id} onClick={() => guard() && setView(id)}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {view === "mappe" && (
+        <MapsPanel
+          key={`${mapFocus.path}-${mapFocus.voce}`}
+          base={base}
+          data={data}
+          initialPath={mapFocus.path}
+          highlight={mapFocus.voce}
+          onData={sheets.set}
+          onOpenEntry={openEntry}
+          onDirty={setDirty}
+        />
+      )}
+      {view === "storia" && <TimelinePanel base={base} data={data} onData={sheets.set} onOpenEntry={openEntry} />}
+      {view === "regole" && <RulesPanel base={base} data={data} onData={sheets.set} onOpenEntry={openEntry} />}
+
+      {view === "voci" && (
+      <>
       <div className="tabs" role="tablist" aria-label="Categorie del mondo">
         {allCats.map((c) => (
           <button
@@ -208,6 +259,11 @@ export default function WorldView({ owner, repo }: { owner: string; repo: string
               data={data}
               entriesById={entriesById}
               onOpen={openEntry}
+              onShowOnMap={(path, voce) => {
+                if (!guard()) return;
+                setMapFocus({ path, voce });
+                setView("mappe");
+              }}
               onDirty={setDirty}
               onSaved={onSaved}
               onDelete={onDelete}
@@ -221,6 +277,8 @@ export default function WorldView({ owner, repo }: { owner: string; repo: string
             </section>
           )}
         </div>
+      )}
+      </>
       )}
 
       <Modal open={editCats} onClose={() => setEditCats(false)} title="Categorie e campi" wide>
@@ -237,6 +295,7 @@ function EntryForm({
   data,
   entriesById,
   onOpen,
+  onShowOnMap,
   onDirty,
   onSaved,
   onDelete,
@@ -248,6 +307,7 @@ function EntryForm({
   data: SheetsData;
   entriesById: Map<string, WorldEntry>;
   onOpen: (id: string) => void;
+  onShowOnMap: (mapPath: string, voce: string) => void;
   onDirty: (d: boolean) => void;
   onSaved: (s: WorldSheet, isNew: boolean) => void;
   onDelete: (s: WorldSheet) => void;
@@ -278,6 +338,9 @@ function EntryForm({
   const children = sheet ? data.voci.filter((v) => v.data.genitore === sheet.data.id) : [];
   const incoming = sheet ? data.voci.filter((v) => v.data.collegamenti.some((l) => l.id === sheet.data.id)) : [];
   const path = sheet ? ancestors(entriesById, sheet.data.id).reverse() : [];
+  const rules = sheet ? data.regole.items.filter((r) => r.voci.includes(sheet.data.id)) : [];
+  const maps = sheet ? data.mappe.filter((m) => m.data.segnaposti.some((p) => p.voce === sheet.data.id)) : [];
+  const notes = sheet ? data.appunti.filter((n) => n.data.collegamenti.includes(sheet.data.id)) : [];
 
   async function submit(ev: FormEvent) {
     ev.preventDefault();
@@ -445,6 +508,51 @@ function EntryForm({
         </div>
       </fieldset>
 
+      {(rules.length > 0 || maps.length > 0 || notes.length > 0) && (
+        <div className="form-grid">
+          {rules.length > 0 && (
+            <div>
+              <div className="side-label" style={{ padding: "0 0 4px" }}>
+                Regole
+              </div>
+              <ul className="plain-list">
+                {rules.map((r) => (
+                  <li key={r.id}>{r.testo}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {maps.length > 0 && (
+            <div>
+              <div className="side-label" style={{ padding: "0 0 4px" }}>
+                Sulle mappe
+              </div>
+              <ul className="plain-list">
+                {maps.map((m) => (
+                  <li key={m.path}>
+                    <button type="button" className="link-button" onClick={() => onShowOnMap(m.path, sheet!.data.id)}>
+                      {m.data.nome}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {notes.length > 0 && (
+            <div>
+              <div className="side-label" style={{ padding: "0 0 4px" }}>
+                Appunti
+              </div>
+              <ul className="plain-list">
+                {notes.map((n) => (
+                  <li key={n.path}>{n.data.titolo}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
       {(children.length > 0 || incoming.length > 0) && (
         <div className="form-grid">
           {children.length > 0 && (
@@ -599,7 +707,7 @@ function CategoriesEditor({
           e.preventDefault();
           const nome = newCat.trim();
           if (!nome) return;
-          setItems([...items, { id: uniqueSlug(slugify(nome), items.map((c) => c.id)), nome, campi: [] }]);
+          setItems([...items, { id: uniqueSlug(slugify(nome), [...items.map((c) => c.id), "mappe"]), nome, campi: [] }]);
           setNewCat("");
         }}
       >
