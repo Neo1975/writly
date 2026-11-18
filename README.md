@@ -5,7 +5,7 @@ Applicazione di supporto alla stesura di racconti, romanzi e saghe. Ogni progett
 - Analisi e pianificazione: [docs/analisi-e-pianificazione.md](docs/analisi-e-pianificazione.md)
 - Mock-up delle schermate: [docs/mockup/](docs/mockup/)
 
-## Cosa fa oggi (fasi 0–4)
+## Cosa fa oggi (fasi 0–6)
 
 - Accesso con GitHub; libreria dei progetti (repository con topic `writly-progetto`).
 - Nuovo progetto (racconto, romanzo, saga): crea un repository privato e i file iniziali. Oppure collega un repository esistente.
@@ -14,7 +14,10 @@ Applicazione di supporto alla stesura di racconti, romanzi e saghe. Ogni progett
 - Controllo ortografico italiano (Hunspell) con suggerimenti e dizionario di progetto (`dizionario.txt`).
 - Statistiche sempre visibili: parole, battute con e senza spazi, anche sulla selezione.
 - Bozza salvata in continuazione nel browser; «Salva versione» = commit con messaggio; protezione dai conflitti.
-- Storico delle versioni con anteprima e ripristino nell'editor.
+- Storico delle versioni con parole aggiunte e tolte; confronto a parole tra due versioni (in linea o affiancato) o fino a quattro in colonne; evoluzione di un paragrafo; ripristino di una versione intera o di un solo paragrafo.
+- Modifiche fatte fuori da Writly (altro dispositivo, editor esterno): nessuna sovrascrittura, unione guidata passaggio per passaggio.
+- **Varianti** (rami Git): scrivi un finale alternativo senza toccare la versione principale, confrontalo, portane un capitolo o unisci tutto.
+- **Export PDF** nel browser: capitolo, capitoli scelti o opera intera; template personalizzabili (formato, margini specchiati, carattere, interlinea, titoli, intestazioni, numeri di pagina, frontespizio, indice, separatore di scena, filigrana «BOZZA»); **opuscolo** per la stampa fronte/retro su A4 o A3, con segnature e compensazione del creep.
 - **Strutture narrative**: Viaggio dell'eroe (12 tappe), Save the Cat! (15 beat), arco trasformativo di Dara Marks, Libero. Editor di strutture a livello di libreria: le predefinite si clonano, le personali si salvano nel repository privato `writly-libreria`; atti e sezioni con guida e peso, controllo del 100% con «Ribilancia», stima delle parole per sezione.
 - **Scene**: per ogni opera una bacheca per sezioni con trascinamento, editor di scena (sinossi, obiettivo, conflitto, esito, POV, luogo, momento, personaggi, stato, capitolo), vista d'insieme con sezioni scoperte, parole e battute per capitolo e per opera.
 - **Personaggi**: schede con alias, tratti fisici, morali e di comportamento, arco e biografia; relazioni orientate (anche per singolo libro della saga) e grafo.
@@ -55,6 +58,7 @@ mondo/cronologia.yaml                calendario ed eventi della storia del mondo
 mondo/mappe/<slug>.yaml + .png/.jpg/.webp   mappa: segnaposti + immagine
 appunti/<slug>.md                    appunto (front-matter) + testo Markdown
 glossario.yaml                       termini del progetto
+template-pdf/<id>.yaml               template di impaginazione PDF
 dizionario.txt                       parole accettate dal controllo ortografico
 
 Repository personale writly-libreria:
@@ -62,4 +66,6 @@ strutture/<id>.yaml                  strutture narrative personali
 appunti/<slug>.md                    appunti globali
 ```
 
-Il dizionario italiano in `public/dictionaries/` è distribuito con licenza GPL-3.0 (vedi `LICENSE-it.txt`).
+Le varianti sono rami `variante/<nome>` dello stesso repository.
+
+Il dizionario italiano in `public/dictionaries/` è distribuito con licenza GPL-3.0 (vedi `LICENSE-it.txt`). I font per il PDF in `public/fonts/` sono sotto SIL Open Font License (Literata, EB Garamond) e Apache 2.0 (Roboto).

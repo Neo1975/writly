@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api, ClientApiError, projectApi } from "@/lib/client/api";
 import ProjectNav from "./ProjectNav";
+import VariantsCard from "./VariantsCard";
 import type { ProjectData, WorkSummary } from "@/lib/server/projects";
 
 const TYPE_LABEL = { racconto: "Racconto", romanzo: "Romanzo", saga: "Saga" } as const;
@@ -92,6 +93,8 @@ export default function ProjectView({ owner, repo }: { owner: string; repo: stri
       {data.opere.map((w) => (
         <WorkCard key={w.slug} owner={owner} repo={repo} work={w} onChanged={load} onError={setError} />
       ))}
+
+      <VariantsCard base={base} owner={owner} repo={repo} works={data.opere} />
 
       {manifest.tipo === "saga" && (
         <form className="card row" onSubmit={addWork}>

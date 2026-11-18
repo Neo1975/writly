@@ -15,7 +15,7 @@ import {
   type ChapterMeta,
   type ChapterStatus,
 } from "@/lib/project/format";
-import { chapterPath } from "@/lib/project/paths";
+import { VARIANT_PREFIX, chapterPath, variantName } from "@/lib/project/paths";
 import type { ProjectData } from "@/lib/server/projects";
 import { loadItalianSpellChecker, type SpellChecker } from "@/lib/spell/checker";
 import { formatCount, textStats, type TextStats } from "@/lib/text/stats";
@@ -25,6 +25,7 @@ import { countMentions, createMentionMatcher, nameWords } from "@/lib/text/menti
 import { rulesFor } from "@/lib/project/world";
 import ChapterSidePanel, { summarize, SummaryCard } from "./ChapterSidePanel";
 import HistoryDialog from "./HistoryDialog";
+import MergeDialog, { type MergeRequest } from "./MergeDialog";
 import { Mentions, refreshMentions, type MentionsSource } from "./mentions";
 import { misspellingAt, refreshSpellcheck, Spellcheck } from "./spellcheck";
 
@@ -44,7 +45,7 @@ interface SpellMenuState {
   suggestions: string[];
 }
 
-type Notice = { kind: "info" | "ok" | "warn" | "error"; text: string } | null;
+type Notice = { kind: "info" | "ok" | "warn" | "error"; text: string; action?: { label: string; run: () => void } } | null;
 
 const EMPTY_STATS: TextStats = { parole: 0, battute: 0, battuteSenzaSpazi: 0 };
 
@@ -56,8 +57,24 @@ function formatTime(ms: number) {
   return new Intl.DateTimeFormat("it-IT", { dateStyle: "medium", timeStyle: "short" }).format(new Date(ms));
 }
 
-export default function ChapterEditor({ owner, repo, work, file }: { owner: string; repo: string; work: string; file: string }) {
+export default function ChapterEditor({
+  owner,
+  repo,
+  work,
+  file,
+  variant = null,
+}: {
+  owner: string;
+  repo: string;
+  work: string;
+  file: string;
+  /** Ramo della variante su cui si scrive (es. «variante/finale-alternativo»); null = versione principale. */
+  variant?: string | null;
+}) {
   const path = chapterPath(work, file);
+  // Ogni variante ha la sua bozza locale.
+  const draftKey = variant ? `${path}@${variant}` : path;
+  const ramoQuery = variant ? `&ramo=${encodeURIComponent(variant)}` : "";
   const base = projectApi(owner, repo);
 
   const [project, setProject] = useState<ProjectData | null>(null);
@@ -80,6 +97,7 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
   const [mentionFocus, setMentionFocus] = useState<string | null>(null);
   const [hover, setHover] = useState<{ id: string; top: number; left: number } | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
+  const [merge, setMerge] = useState<{ request: MergeRequest; onApply: (merged: string) => void } | null>(null);
 
   // Stato non reattivo usato dalle callback dell'editor.
   const shaRef = useRef("");
@@ -110,17 +128,17 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
         pendingDraft.current = null;
         const { body, isDirty } = recompute(editor);
         if (!isDirty) {
-          await clearDraft(owner, repo, path);
+          await clearDraft(owner, repo, draftKey);
           setLocalSaved(null);
           return;
         }
         const now = Date.now();
-        const ok = await saveDraft(owner, repo, path, { body, stato: metaRef.current.stato, baseSha: shaRef.current, updatedAt: now });
+        const ok = await saveDraft(owner, repo, draftKey, { body, stato: metaRef.current.stato, baseSha: shaRef.current, updatedAt: now });
         setLocalSaved(ok ? now : null);
       };
       saveTimer.current = setTimeout(() => void pendingDraft.current?.(), 400);
     },
-    [owner, repo, path, recompute],
+    [owner, repo, draftKey, recompute],
   );
 
   /** Scrive subito la bozza in sospeso (cambio capitolo, scheda nascosta). */
@@ -136,11 +154,11 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
     if (pendingDraft.current && editor && readyRef.current) {
       const body = editor.getMarkdown();
       if (body !== committedRef.current.body || metaRef.current.stato !== committedRef.current.stato) {
-        saveDraftNow(owner, repo, path, { body, stato: metaRef.current.stato, baseSha: shaRef.current, updatedAt: Date.now() });
+        saveDraftNow(owner, repo, draftKey, { body, stato: metaRef.current.stato, baseSha: shaRef.current, updatedAt: Date.now() });
       }
     }
     flushDraft();
-  }, [owner, repo, path, flushDraft]);
+  }, [owner, repo, draftKey, flushDraft]);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -224,8 +242,8 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
       try {
         const [proj, remote, draft] = await Promise.all([
           api<ProjectData>(base),
-          api<{ text: string; sha: string }>(`${base}/file?path=${encodeURIComponent(path)}`),
-          loadDraft(owner, repo, path),
+          api<{ text: string; sha: string }>(`${base}/file?path=${encodeURIComponent(path)}${ramoQuery}`),
+          loadDraft(owner, repo, draftKey),
         ]);
         if (cancelled) return;
         const doc = parseChapter(remote.text);
@@ -248,7 +266,7 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
             setConflict(draft);
           }
         } else if (draft) {
-          await clearDraft(owner, repo, path);
+          await clearDraft(owner, repo, draftKey);
         }
 
         readyRef.current = true;
@@ -262,7 +280,7 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
     return () => {
       cancelled = true;
     };
-  }, [editor, base, path, owner, repo, recompute]);
+  }, [editor, base, path, draftKey, ramoQuery, owner, repo, recompute]);
 
   // Controllo ortografico: Hunspell italiano + dizionario del progetto.
   useEffect(() => {
@@ -374,11 +392,11 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
     try {
       const res = await api<{ sha: string }>(`${base}/file`, {
         method: "PUT",
-        json: { path, text, sha: shaRef.current, message },
+        json: { path, text, sha: shaRef.current, message, ...(variant ? { ramo: variant } : {}) },
       });
       shaRef.current = res.sha;
       committedRef.current = { body, stato: metaRef.current.stato };
-      await clearDraft(owner, repo, path);
+      await clearDraft(owner, repo, draftKey);
       setLocalSaved(null);
       recompute(editor);
       setConflict(null);
@@ -388,10 +406,83 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
       const e = err as ClientApiError;
       const text =
         e.status === 409
-          ? "Il capitolo è stato modificato su GitHub dopo che l'hai aperto. Le tue modifiche sono al sicuro in questo browser: apri lo storico per confrontare, oppure ricarica la pagina."
+          ? "Il capitolo è stato modificato su GitHub dopo che l'hai aperto (da un altro dispositivo o da un altro strumento). Le tue modifiche sono al sicuro in questo browser: confrontale con la versione su GitHub e scegli cosa tenere."
           : e.message;
-      setNotice({ kind: "error", text });
-      return text;
+      setNotice({ kind: "error", text, ...(e.status === 409 ? { action: { label: "Confronta con GitHub e unisci", run: () => void mergeWithRemote() } } : {}) });
+      if (e.status === 409) setDialog(null);
+      return e.status === 409 ? null : text;
+    }
+  }
+
+  /** Versione su GitHub (della stessa variante) diversa dalla nostra: unione guidata. */
+  async function mergeWithRemote() {
+    if (!editor) return;
+    try {
+      const remote = await api<{ text: string; sha: string }>(`${base}/file?path=${encodeURIComponent(path)}${ramoQuery}`);
+      const theirs = parseChapter(remote.text).body;
+      setMerge({
+        request: {
+          title: "Unisci con la versione su GitHub",
+          intro: "Su GitHub c'è una versione più recente di quella da cui sei partito. Scegli, passaggio per passaggio, cosa tenere: il risultato va nell'editor e poi lo salvi come nuova versione.",
+          mineLabel: "La mia versione",
+          theirsLabel: "Su GitHub",
+          mine: editor.getMarkdown(),
+          theirs,
+        },
+        onApply: (merged) => {
+          shaRef.current = remote.sha;
+          committedRef.current = { body: theirs, stato: parseChapter(remote.text).meta.stato };
+          restoreBody(merged, "L'unione");
+          setConflict(null);
+        },
+      });
+    } catch (err) {
+      setNotice({ kind: "error", text: (err as Error).message });
+    }
+  }
+
+  /** Variante: confronto con la versione principale dello stesso capitolo. */
+  async function mainVersion(): Promise<{ text: string; sha: string } | null> {
+    try {
+      return await api<{ text: string; sha: string }>(`${base}/file?path=${encodeURIComponent(path)}`);
+    } catch (err) {
+      const e = err as ClientApiError;
+      setNotice({ kind: "error", text: e.status === 404 ? "Questo capitolo non esiste nella versione principale." : e.message });
+      return null;
+    }
+  }
+
+  async function compareWithMain() {
+    if (!editor) return;
+    const main = await mainVersion();
+    if (!main) return;
+    setMerge({
+      request: {
+        title: "Confronta con la versione principale",
+        intro: "A sinistra il capitolo in questa variante, a destra nella versione principale. Puoi riprendere nella variante i passaggi della principale che ti servono.",
+        mineLabel: "Questa variante",
+        theirsLabel: "Versione principale",
+        mine: editor.getMarkdown(),
+        theirs: parseChapter(main.text).body,
+      },
+      onApply: (merged) => restoreBody(merged, "Il testo unito"),
+    });
+  }
+
+  async function bringToMain() {
+    if (!editor || !variant) return;
+    if (!window.confirm(`Sostituire il capitolo nella versione principale con il testo di questa variante (come lo vedi ora nell'editor)? La versione precedente resta nello storico.`)) return;
+    const main = await mainVersion();
+    if (!main) return;
+    try {
+      const text = serializeChapter({ meta: { ...parseChapter(main.text).meta, stato: metaRef.current.stato }, body: editor.getMarkdown() });
+      await api(`${base}/file`, {
+        method: "PUT",
+        json: { path, text, sha: main.sha, message: `${chapter?.titolo ?? file}: portato dalla variante «${variantName(variant)}»` },
+      });
+      setNotice({ kind: "ok", text: "Capitolo portato nella versione principale." });
+    } catch (err) {
+      setNotice({ kind: "error", text: (err as Error).message });
     }
   }
 
@@ -430,7 +521,8 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
   const chapter = index >= 0 ? work_!.capitoli[index] : null;
   const prev = index > 0 ? work_!.capitoli[index - 1] : null;
   const next = work_ && index >= 0 && index < work_.capitoli.length - 1 ? work_.capitoli[index + 1] : null;
-  const chapterHref = (f: string) => `/progetto/${owner}/${repo}/${work}/${f.replace(/\.md$/, "")}`;
+  const chapterHref = (f: string, v: string | null = variant) =>
+    `/progetto/${owner}/${repo}/${work}/${f.replace(/\.md$/, "")}${v ? `?variante=${encodeURIComponent(v.slice(VARIANT_PREFIX.length))}` : ""}`;
 
   if (loadError) {
     return (
@@ -540,12 +632,54 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
         </span>
       </div>
 
+      {variant && (
+        <div className="variant-bar" role="note">
+          <span>
+            Stai scrivendo nella variante <strong>«{variantName(variant)}»</strong>: le versioni salvate qui non toccano la versione principale.
+          </span>
+          <span className="row">
+            <button type="button" className="btn btn-small" onClick={() => void compareWithMain()} disabled={!ready}>
+              Confronta con la principale
+            </button>
+            <button type="button" className="btn btn-small" onClick={() => void bringToMain()} disabled={!ready}>
+              Porta nella principale
+            </button>
+            <Link className="btn btn-small btn-ghost" href={chapterHref(file, null)}>
+              Torna alla principale
+            </Link>
+          </span>
+        </div>
+      )}
+
       {(notice || conflict) && (
         <div className="editor-notices">
           {conflict && (
             <div className="notice notice-warn" role="alert">
               In questo browser ci sono modifiche del {formatTime(conflict.updatedAt)} partite da una versione precedente: nel frattempo il capitolo è cambiato su GitHub. Adesso vedi la versione di GitHub.
               <div className="row" style={{ marginTop: 10 }}>
+                <button
+                  type="button"
+                  className="btn btn-small btn-primary"
+                  onClick={() =>
+                    editor &&
+                    setMerge({
+                      request: {
+                        title: "Unisci la bozza locale con GitHub",
+                        intro: "La bozza in questo browser e la versione su GitHub sono cambiate entrambe. Scegli, passaggio per passaggio, cosa tenere.",
+                        mineLabel: "La mia bozza",
+                        theirsLabel: "Su GitHub",
+                        mine: conflict.body,
+                        theirs: editor.getMarkdown(),
+                      },
+                      onApply: (merged) => {
+                        restoreBody(merged, "L'unione");
+                        setConflict(null);
+                      },
+                    })
+                  }
+                >
+                  Confronta e unisci
+                </button>
                 <button
                   type="button"
                   className="btn btn-small"
@@ -561,7 +695,7 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
                   type="button"
                   className="btn btn-small"
                   onClick={async () => {
-                    await clearDraft(owner, repo, path);
+                    await clearDraft(owner, repo, draftKey);
                     setConflict(null);
                   }}
                 >
@@ -573,6 +707,18 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
           {notice && (
             <div className={`notice ${notice.kind === "info" ? "" : `notice-${notice.kind}`}`} role="status">
               {notice.text}{" "}
+              {notice.action && (
+                <button
+                  type="button"
+                  className="btn btn-small"
+                  onClick={() => {
+                    notice.action!.run();
+                    setNotice(null);
+                  }}
+                >
+                  {notice.action.label}
+                </button>
+              )}{" "}
               <button type="button" className="btn btn-small btn-ghost" onClick={() => setNotice(null)}>
                 Chiudi
               </button>
@@ -671,9 +817,20 @@ export default function ChapterEditor({ owner, repo, work, file }: { owner: stri
         onClose={() => setDialog(null)}
         base={base}
         path={path}
+        ramo={variant}
+        currentBody={dialog === "storico" && editor ? editor.getMarkdown() : ""}
         onRestore={(body, when) => {
           setDialog(null);
           restoreBody(body, `La versione del ${when}`);
+        }}
+        onReplaceBody={(body, label) => restoreBody(body, label)}
+      />
+      <MergeDialog
+        request={merge?.request ?? null}
+        onClose={() => setMerge(null)}
+        onApply={(merged) => {
+          merge?.onApply(merged);
+          setMerge(null);
         }}
       />
     </div>

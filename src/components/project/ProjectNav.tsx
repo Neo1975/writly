@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export type ProjectSection = "opere" | "struttura" | "personaggi" | "mondo" | "appunti";
+export type ProjectSection = "opere" | "struttura" | "personaggi" | "mondo" | "appunti" | "esporta";
 
 /** Intestazione comune alle pagine di un progetto: titolo e schede di navigazione. */
 export default function ProjectNav({
@@ -25,6 +25,7 @@ export default function ProjectNav({
     { id: "personaggi", label: "Personaggi", href: `${base}/personaggi` },
     { id: "mondo", label: "Mondo", href: `${base}/mondo` },
     { id: "appunti", label: "Appunti e glossario", href: `${base}/appunti` },
+    { id: "esporta", label: "Esporta", href: `${base}/esporta` },
   ];
   return (
     <div className="project-head">

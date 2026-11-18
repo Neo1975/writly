@@ -16,6 +16,8 @@ const csp = [
   "font-src 'self'",
   // data: serve a Hunspell, che carica il proprio WebAssembly incorporato come URL data:.
   "connect-src 'self' data:",
+  // blob: per l'anteprima del PDF generato nel browser.
+  "frame-src blob:",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self' https://github.com",

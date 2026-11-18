@@ -42,6 +42,8 @@ import {
   isSlug,
   mapPath,
   notePath,
+  parsePdfTemplatePath,
+  pdfTemplatePath,
   parseMapPath,
   parseWorldEntryPath,
   worldEntryPath,
@@ -64,6 +66,7 @@ import {
   type WorldMap,
   type WorldRule,
 } from "@/lib/project/world";
+import { BUILTIN_PDF_TEMPLATES, normalizePdfTemplate, parsePdfTemplate, serializePdfTemplate, type PdfTemplate } from "@/lib/export/template";
 import { ApiError } from "./errors";
 import { deleteFile, listTree, readBlobs, readText, writeBytes, writeText, type GitHub } from "./github";
 
@@ -94,6 +97,7 @@ export interface SheetsData {
   mappe: Sheet<WorldMap>[];
   appunti: Sheet<Note>[];
   glossario: { sha: string | null; items: GlossaryTerm[] };
+  templatePdf: Sheet<PdfTemplate>[];
   /** File presenti ma illeggibili: li segnaliamo invece di bloccare tutto. */
   errori: { path: string; message: string }[];
 }
@@ -108,7 +112,7 @@ export async function loadSheets(gh: GitHub, owner: string, repo: string): Promi
   const tree = await listTree(gh, owner, repo);
   const singles = new Set([RELATIONS_PATH, CATEGORIES_PATH, RULES_PATH, CHRONOLOGY_PATH, GLOSSARY_PATH]);
   const wanted = tree.filter(
-    (e) => singles.has(e.path) || isCharacterPath(e.path) || parseWorldEntryPath(e.path) || parseMapPath(e.path) || isNotePath(e.path),
+    (e) => singles.has(e.path) || isCharacterPath(e.path) || parseWorldEntryPath(e.path) || parseMapPath(e.path) || isNotePath(e.path) || parsePdfTemplatePath(e.path),
   );
   const texts = await readBlobs(gh, owner, repo, wanted);
   const out: SheetsData = {
@@ -121,6 +125,7 @@ export async function loadSheets(gh: GitHub, owner: string, repo: string): Promi
     mappe: [],
     appunti: [],
     glossario: { sha: null, items: [] },
+    templatePdf: [],
     errori: [],
   };
   wanted.forEach((e, i) => {
@@ -131,6 +136,7 @@ export async function loadSheets(gh: GitHub, owner: string, repo: string): Promi
       else if (e.path === CHRONOLOGY_PATH) out.cronologia = { sha: e.sha, data: parseChronology(texts[i]) };
       else if (e.path === GLOSSARY_PATH) out.glossario = { sha: e.sha, items: parseGlossary(texts[i]) };
       else if (parseMapPath(e.path)) out.mappe.push({ path: e.path, sha: e.sha, data: parseMap(texts[i], e.path) });
+      else if (parsePdfTemplatePath(e.path)) out.templatePdf.push({ path: e.path, sha: e.sha, data: parsePdfTemplate(texts[i], parsePdfTemplatePath(e.path)!) });
       else if (isNotePath(e.path)) out.appunti.push({ path: e.path, sha: e.sha, data: parseNote(texts[i], e.path) });
       else if (isCharacterPath(e.path)) out.personaggi.push({ path: e.path, sha: e.sha, data: parseCharacter(texts[i], e.path) });
       else {
@@ -260,7 +266,7 @@ export async function saveCategories(
 export async function deleteSheet(gh: GitHub, owner: string, repo: string, args: { path: string; sha: string; id?: string }): Promise<void> {
   const isCharacter = isCharacterPath(args.path);
   const mapSlug = parseMapPath(args.path);
-  if (!isCharacter && !parseWorldEntryPath(args.path) && !isNotePath(args.path) && !mapSlug) throw new ApiError(400, "Percorso non consentito.");
+  if (!isCharacter && !parseWorldEntryPath(args.path) && !isNotePath(args.path) && !mapSlug && !parsePdfTemplatePath(args.path)) throw new ApiError(400, "Percorso non consentito.");
   // Per una mappa eliminiamo anche la sua immagine (dopo il file della mappa, che ha lo sha controllato).
   const image = mapSlug ? (await readText(gh, owner, repo, args.path).then((f) => (f ? parseMap(f.text, args.path).immagine : ""))) : "";
   await deleteFile(gh, { owner, repo, path: args.path, sha: args.sha, message: `Elimina ${args.path}` });
@@ -390,4 +396,32 @@ export async function saveNoteIn(
     ...(args.sha ? { sha: args.sha } : {}),
   });
   return { path, sha, data };
+}
+
+/** Template PDF del progetto: crea (senza `path`) o aggiorna. */
+export async function savePdfTemplate(
+  gh: GitHub,
+  owner: string,
+  repo: string,
+  args: { path?: string; sha?: string; data: unknown },
+): Promise<Sheet<PdfTemplate>> {
+  const data = normalizePdfTemplate(args.data);
+  let path = args.path;
+  if (path) {
+    if (!parsePdfTemplatePath(path) || !args.sha) throw new ApiError(400, "Template non valido.");
+  } else {
+    const taken = (await listTree(gh, owner, repo)).map((e) => parsePdfTemplatePath(e.path)).filter((x): x is string => !!x);
+    path = pdfTemplatePath(uniqueSlug(slugify(data.nome), [...taken, ...BUILTIN_PDF_TEMPLATES.map((t) => t.id)]));
+  }
+  const id = parsePdfTemplatePath(path)!;
+  const sheet = { ...data, id };
+  const sha = await writeText(gh, {
+    owner,
+    repo,
+    path,
+    text: serializePdfTemplate(sheet),
+    message: args.path ? `Template PDF «${data.nome}»: aggiornamento` : `Nuovo template PDF «${data.nome}»`,
+    ...(args.sha ? { sha: args.sha } : {}),
+  });
+  return { path, sha, data: sheet };
 }

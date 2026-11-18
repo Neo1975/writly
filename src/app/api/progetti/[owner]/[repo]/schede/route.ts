@@ -10,6 +10,7 @@ import {
   saveChronology,
   saveGlossary,
   saveMap,
+  savePdfTemplate,
   saveProjectNote,
   saveRelations,
   saveRules,
@@ -73,6 +74,8 @@ export async function POST(req: Request, { params }: Ctx) {
         }
         return NextResponse.json(await saveMap(gh, owner, repo, { path, sha, data: body.data, immagine: immagine || undefined }));
       }
+      case "template-pdf":
+        return NextResponse.json(await savePdfTemplate(gh, owner, repo, { path, sha, data: body.data }));
       case "appunto":
         return NextResponse.json(await saveProjectNote(gh, owner, repo, { path, sha, data: body.data }));
       case "sposta-in-libreria":

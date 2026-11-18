@@ -192,7 +192,7 @@ Alternativa da valutare per il PDF: **Typst** (tipografia eccellente, molto velo
 
 ### Stato dell'implementazione (branch `preview`)
 
-Fasi 0, 1, 2, 3, 3b e 4 completate. Scostamenti rispetto all'architettura proposta, decisi durante lo sviluppo:
+Fasi 0–6 completate (0, 1, 2, 3, 3b, 4, 5, 6). Scostamenti rispetto all'architettura proposta, decisi durante lo sviluppo:
 
 - **Login**: OAuth App GitHub tramite Auth.js v5, non ancora GitHub App. Il token resta nel JWT di sessione cifrato e si legge solo lato server; `/api/auth/session` non lo espone.
 - **Ortografia**: Hunspell (`hunspell-asm`, WebAssembly) sul thread principale, non in un Web Worker: con un capitolo di qualche migliaio di parole e la cache per parola il ricalcolo resta impercettibile. Da spostare in un worker se emergono rallentamenti su capitoli molto lunghi. Le elisioni («dell'acqua», «c'è») si controllano intere: il dizionario italiano le riconosce così e segnala anche «un'altro».
@@ -215,7 +215,15 @@ Fasi 0, 1, 2, 3, 3b e 4 completate. Scostamenti rispetto all'architettura propos
 - **Glossario**: `glossario.yaml`; i termini sono accettati dal controllo ortografico del progetto, come i nomi delle schede.
 - **Cattura rapida**: pulsante «+ Idea» nella barra in alto e scorciatoia Alt+Maiusc+N da qualsiasi pagina; dentro un progetto l'idea va nei suoi appunti, altrove negli appunti globali, sempre «da smistare».
 
-Rimandati rispetto ai requisiti delle fasi 2, 3, 3b e 4 (restano nel piano):
+- **PDF nel browser, non sul server**: invece di Paged.js con Chromium lato server, il PDF si compone nel browser con **pdfmake** (impaginazione, giustificazione, intestazioni, indice) e **pdf-lib** (assemblaggio e imposizione). Nessun Chromium da ospitare e il testo non lascia il dispositivo. Ogni capitolo è un documento a sé: così si sa dove comincia, può iniziare a destra con una pagina bianca, ha il suo titolo nelle intestazioni e l'indice riporta i numeri veri. I margini interno/esterno si ottengono spostando le pagine dispari e pari in direzioni opposte. Font incorporati e serviti dal nostro sito: Literata ed EB Garamond (OFL), Roboto (Apache).
+- **Template PDF**: `template-pdf/<id>.yaml` nel repository del progetto; tre predefiniti (Romanzo 14×21, Manoscritto A4, Tascabile A5) da duplicare. Si esporta l'ultima versione salvata dei capitoli, non le bozze locali.
+- **Opuscolo**: imposizione con pagine bianche fino a un multiplo di 4, fogli A4 o A3, ribaltamento sul lato corto o lungo (i retro vengono ruotati), segnature da N fogli, compensazione del creep proporzionale alla profondità del foglio nel fascicolo, segni di piegatura; schema dei fogli nell'anteprima.
+- **Confronto**: a parole (diff di Myers su parole, spazi e punteggiatura), con paragrafi allineati per somiglianza; in linea o affiancato; fino a 4 versioni in colonne con scorrimento sincronizzato; evoluzione di un paragrafo tra le ultime 12 versioni; parole aggiunte e tolte per ogni versione nello storico.
+- **Ripristino parziale**: un singolo paragrafo di una versione precedente torna nel testo attuale (sostituendo il corrispondente o reinserito al suo posto).
+- **Modifiche esterne e conflitti**: se il capitolo è cambiato su GitHub (altro dispositivo, editor esterno, assistente AI) il salvataggio viene rifiutato come prima, e ora si apre un'unione passaggio per passaggio (la mia, quella su GitHub, entrambe); lo stesso per una bozza locale partita da una versione vecchia. Non c'è ancora un controllo periodico: le differenze emergono all'apertura o al salvataggio.
+- **Varianti**: rami Git `variante/<nome>`. Il capitolo si scrive su una variante con `?variante=<nome>` (bozza locale separata); si confronta con la versione principale, se ne porta un capitolo alla volta nella principale, oppure si unisce l'intera variante (merge di GitHub; se le stesse righe sono cambiate da entrambe le parti, si passa per i capitoli). Struttura, schede e appunti restano quelli della versione principale.
+
+Rimandati rispetto ai requisiti delle fasi 2–6 (restano nel piano):
 
 - ritratto del personaggio (immagine nel repository) e collegamento dell'arco alle sezioni del modello;
 - elenco dei progetti che usano una struttura di libreria;
@@ -224,7 +232,10 @@ Rimandati rispetto ai requisiti delle fasi 2, 3, 3b e 4 (restano nel piano):
 - indicatori di «debito di worldbuilding» (S) e collegamento delle voci agli appunti (fase 4);
 - modifica di una relazione esistente: oggi si toglie e si aggiunge di nuovo;
 - collegamento tra storia del mondo e timeline della trama; controllo di coerenza assistito sulle regole;
-- allegati agli appunti (C) e anteprima del Markdown degli appunti.
+- allegati agli appunti (C) e anteprima del Markdown degli appunti;
+- sillabazione nel PDF (pdfmake non la fa: il giustificato può allargare gli spazi su righe corte) e titolo del capitolo nelle intestazioni in modo «dinamico» per più capitoli nella stessa pagina;
+- export di una selezione di testo dentro un capitolo (oggi: capitolo, capitoli scelti, opera) e EPUB/DOCX (C);
+- controllo periodico delle modifiche esterne mentre si scrive; struttura e schede per variante.
 
 
 | Fase | Contenuto | Esito |
@@ -235,8 +246,8 @@ Rimandati rispetto ai requisiti delle fasi 2, 3, 3b e 4 (restano nel piano):
 | **3 — Personaggi e mondo** ✅ | Schede personaggio, relazioni, grafo; voci del mondo con campi personalizzati; riconoscimento nel testo e pannello laterale | |
 | **3b — Mondo avanzato** ✅ | Mappe con segnaposti, storia del mondo con calendario proprio, regole del mondo | |
 | **4 — Appunti** ✅ | Appunti globali e di progetto, glossario, collegamenti, cattura rapida | |
-| **5 — Export** | Template PDF, export capitolo/selezione/opera, opuscolo e segnature | |
-| **6 — Versioni avanzate** | Confronto multi-versione, varianti/branch, ripristino parziale, sync esterna | |
+| **5 — Export** ✅ | Template PDF, export capitolo/selezione/opera, opuscolo e segnature | |
+| **6 — Versioni avanzate** ✅ | Confronto multi-versione, varianti/branch, ripristino parziale, sync esterna | |
 | **7 — Extra** | Statistiche, controlli di stile, continuità, AI opzionale, EPUB/DOCX, saga multi-opera completa | |
 
 ## 8. Rischi e mitigazioni

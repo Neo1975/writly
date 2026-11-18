@@ -69,7 +69,7 @@ export async function readText(gh: GitHub, owner: string, repo: string, path: st
  */
 export async function writeText(
   gh: GitHub,
-  args: { owner: string; repo: string; path: string; text: string; message: string; sha?: string },
+  args: { owner: string; repo: string; path: string; text: string; message: string; sha?: string; branch?: string },
 ): Promise<string> {
   const { data } = await gh.rest.repos.createOrUpdateFileContents({
     owner: args.owner,
@@ -78,6 +78,7 @@ export async function writeText(
     message: args.message,
     content: Buffer.from(args.text, "utf8").toString("base64"),
     ...(args.sha ? { sha: args.sha } : {}),
+    ...(args.branch ? { branch: args.branch } : {}),
   });
   return data.content?.sha ?? "";
 }
@@ -125,8 +126,8 @@ export interface CommitSummary {
   author: string | null;
 }
 
-export async function listFileCommits(gh: GitHub, owner: string, repo: string, path: string): Promise<CommitSummary[]> {
-  const { data } = await gh.rest.repos.listCommits({ owner, repo, path, per_page: 50 });
+export async function listFileCommits(gh: GitHub, owner: string, repo: string, path: string, branch?: string): Promise<CommitSummary[]> {
+  const { data } = await gh.rest.repos.listCommits({ owner, repo, path, per_page: 50, ...(branch ? { sha: branch } : {}) });
   return data.map((c) => ({
     sha: c.sha,
     message: c.commit.message,

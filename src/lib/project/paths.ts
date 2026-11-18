@@ -19,13 +19,14 @@ export const MAPS_DIR = "mondo/mappe";
 export const LIBRARY_REPO = "writly-libreria";
 
 /** Slug che non possono essere usati per le opere: sono segmenti delle pagine del progetto. */
-export const RESERVED_WORK_SLUGS = ["personaggi", "mondo", "struttura", "appunti"];
+export const RESERVED_WORK_SLUGS = ["personaggi", "mondo", "struttura", "appunti", "esporta", "varianti"];
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const CHAPTER_FILE = /^[a-z0-9]+(?:-[a-z0-9]+)*\.md$/;
 const CHARACTER_PATH = /^personaggi\/([a-z0-9]+(?:-[a-z0-9]+)*)\.md$/;
 const WORLD_PATH = /^mondo\/([a-z0-9]+(?:-[a-z0-9]+)*)\/([a-z0-9]+(?:-[a-z0-9]+)*)\.md$/;
 const NOTE_PATH = /^appunti\/([a-z0-9]+(?:-[a-z0-9]+)*)\.md$/;
+const PDF_TEMPLATE_PATH = /^template-pdf\/([a-z0-9]+(?:-[a-z0-9]+)*)\.yaml$/;
 const MAP_PATH = /^mondo\/mappe\/([a-z0-9]+(?:-[a-z0-9]+)*)\.yaml$/;
 const LIBRARY_STRUCTURE_PATH = /^strutture\/([a-z0-9]+(?:-[a-z0-9]+)*)\.yaml$/;
 const CHAPTER_PATH = /^opere\/([a-z0-9]+(?:-[a-z0-9]+)*)\/capitoli\/([a-z0-9]+(?:-[a-z0-9]+)*\.md)$/;
@@ -81,6 +82,16 @@ export function parseMapPath(path: string): string | null {
   return m && isSlug(m[1]) ? m[1] : null;
 }
 
+export function pdfTemplatePath(id: string): string {
+  return `template-pdf/${id}.yaml`;
+}
+
+/** Id del template se il percorso è quello di un template PDF. */
+export function parsePdfTemplatePath(path: string): string | null {
+  const m = PDF_TEMPLATE_PATH.exec(path);
+  return m && isSlug(m[1]) ? m[1] : null;
+}
+
 export function libraryStructurePath(id: string): string {
   return `strutture/${id}.yaml`;
 }
@@ -119,6 +130,20 @@ export function isReadablePath(path: string): boolean {
 
 export function isWritableTextPath(path: string): boolean {
   return parseChapterPath(path) !== null;
+}
+
+export const VARIANT_PREFIX = "variante/";
+const VARIANT_REF = /^variante\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/** Ramo Git di una variante («variante/finale-alternativo»). */
+export function isVariantRef(value: string): boolean {
+  return value.length <= 90 && VARIANT_REF.test(value);
+}
+
+/** Nome leggibile di una variante dal suo ramo («Finale alternativo»). */
+export function variantName(ref: string): string {
+  const s = ref.slice(VARIANT_PREFIX.length).replace(/-/g, " ");
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 const OWNER = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
