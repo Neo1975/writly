@@ -134,6 +134,22 @@ export async function addWork(gh: GitHub, owner: string, repo: string, titolo: s
   return slug;
 }
 
+/** Tema e premessa di un'opera (testo vuoto = toglierli). Riprova una volta se opera.yaml è cambiato nel frattempo. */
+export async function updateWorkInfo(gh: GitHub, owner: string, repo: string, work: string, info: { tema: string; premessa: string }) {
+  for (let attempt = 0; ; attempt++) {
+    const { work: manifest, sha } = await readWork(gh, owner, repo, work);
+    const next: WorkManifest = { ...manifest, tema: info.tema.trim() || undefined, premessa: info.premessa.trim() || undefined };
+    if (next.tema === manifest.tema && next.premessa === manifest.premessa) return;
+    try {
+      await writeText(gh, { owner, repo, path: workManifestPath(work), text: serializeWorkManifest(next), sha, message: `Tema e premessa di «${manifest.titolo}»` });
+      return;
+    } catch (err) {
+      if (attempt === 0 && (err as { status?: number }).status === 409) continue;
+      throw err;
+    }
+  }
+}
+
 /** Installa o aggiorna la skill del mentore AI per Claude Code (un solo commit). */
 export async function installMentor(gh: GitHub, owner: string, repo: string): Promise<number> {
   await readManifest(gh, owner, repo); // solo nei progetti Writly

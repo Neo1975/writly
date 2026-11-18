@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
+import { WORK_INFO_MAX } from "@/lib/project/format";
 import { isChapterFile, isSlug } from "@/lib/project/paths";
 import { ApiError, assertRepoRef, readJson, requireText, withGitHub } from "@/lib/server/http";
-import { addChapter, addDictionaryWord, addWork, loadProject, renameChapter, installMentor } from "@/lib/server/projects";
+import { addChapter, addDictionaryWord, addWork, loadProject, renameChapter, installMentor, updateWorkInfo } from "@/lib/server/projects";
 
 type Ctx = { params: Promise<{ owner: string; repo: string }> };
 
@@ -44,6 +45,15 @@ export async function POST(req: Request, { params }: Ctx) {
         const parola = requireText(body, "parola", "Parola", 60);
         if (/\s/.test(parola)) throw new ApiError(400, "Una parola alla volta, senza spazi.");
         return NextResponse.json({ dizionario: await addDictionaryWord(gh, owner, repo, parola) });
+      }
+      case "info-opera": {
+        const testo = (key: string) => {
+          const v = body[key] ?? "";
+          if (typeof v !== "string" || v.length > WORK_INFO_MAX) throw new ApiError(400, `${key === "tema" ? "Tema" : "Premessa"}: al massimo ${WORK_INFO_MAX} caratteri.`);
+          return v;
+        };
+        await updateWorkInfo(gh, owner, repo, requireSlug(body, "opera"), { tema: testo("tema"), premessa: testo("premessa") });
+        return NextResponse.json({ ok: true });
       }
       case "installa-mentore":
         return NextResponse.json({ versione: await installMentor(gh, owner, repo) });

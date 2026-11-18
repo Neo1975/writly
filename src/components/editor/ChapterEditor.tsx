@@ -991,6 +991,7 @@ export default function ChapterEditor({
             sessionGoal={sessionGoal}
             onSessionGoal={setSessionGoal}
             overviewHref={`/progetto/${owner}/${repo}/panoramica`}
+            workInfo={work_ ? { tema: work_.tema, premessa: work_.premessa } : null}
             commentsSlot={
               <CommentsPanel
                 state={comments}

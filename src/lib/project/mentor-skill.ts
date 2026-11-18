@@ -9,7 +9,7 @@
  * testi qui sotto e alza MENTOR_SKILL_VERSION.
  */
 
-export const MENTOR_SKILL_VERSION = 2;
+export const MENTOR_SKILL_VERSION = 3;
 export const MENTOR_SKILL_DIR = ".claude/skills/writly-mentore";
 export const MENTOR_SKILL_PATH = `${MENTOR_SKILL_DIR}/SKILL.md`;
 
@@ -88,7 +88,7 @@ in modo che l'app li mostri.
 
 \`\`\`
 writly.yaml                          titolo, tipo (racconto | romanzo | saga), lingua, opere in ordine di lettura
-opere/<opera>/opera.yaml             titolo dell'opera, obiettivoParole, capitoli in ordine (file + titolo)
+opere/<opera>/opera.yaml             titolo, tema, premessa, obiettivoParole, capitoli in ordine (file + titolo)
 opere/<opera>/capitoli/<file>.md     front-matter (id, stato) + testo in Markdown
 opere/<opera>/struttura.yaml         modello narrativo dell'opera (atti → sezioni) e scene
 opere/<opera>/commenti/<file>.yaml   commenti al capitolo <file>.md   ← ci scrivi tu
@@ -102,6 +102,11 @@ glossario.yaml                       termini inventati del progetto
 appunti/<slug>.md                    appunti dell'autore                 ← ci scrivi tu (tipo: revisione)
 dizionario.txt                       parole accettate dal controllo ortografico
 \`\`\`
+
+Il **tema** (di cosa parla davvero la storia, sotto la trama) e la
+**premessa** (l'idea da cui parte: chi, cosa vuole, cosa glielo impedisce,
+cosa rischia) sono in \`opera.yaml\`, facoltativi: sono la bussola
+dell'autore, usali come metro in ogni revisione.
 
 Il **titolo di un capitolo** sta solo in \`opera.yaml\`; nel file del capitolo il
 front-matter ha \`id\` e \`stato\` (bozza, in-stesura, scritto, revisionato).
@@ -231,12 +236,14 @@ cartella \`appunti/\`.
    chiedi quale opera, se non è chiaro.
 3. Leggi il capitolo intero prima di annotare qualcosa. Leggi anche la fine
    del capitolo precedente e l'inizio del successivo, per le transizioni.
-4. In \`struttura.yaml\` cerca le scene con \`capitolo: <file>.md\`: obiettivo,
+4. Rileggi \`tema\` e \`premessa\` in \`opera.yaml\`, se ci sono: ti dicono
+   cosa il capitolo deve servire.
+5. In \`struttura.yaml\` cerca le scene con \`capitolo: <file>.md\`: obiettivo,
    conflitto ed esito sono ciò che l'autore voleva ottenere. Nota la sezione
    del modello a cui appartengono (e la sua \`guida\`).
-5. Leggi le schede dei personaggi presenti (in particolare il POV), le voci
+6. Leggi le schede dei personaggi presenti (in particolare il POV), le voci
    del mondo citate, le regole che le riguardano e il glossario.
-6. Leggi i commenti già presenti: non ripetere osservazioni già fatte, e se
+7. Leggi i commenti già presenti: non ripetere osservazioni già fatte, e se
    l'autore ha risposto a un tuo commento precedente tienine conto.
 
 ## 2. Valuta, dal più importante al meno
@@ -260,6 +267,11 @@ il testo ha scelto:
   d'animo del narratore; segnala registro e lessico che non gli
   appartengono, e il narratore che sa troppo rispetto al momento in cui
   racconta.
+
+**Tema e premessa.** Il capitolo fa avanzare la premessa (il personaggio
+si avvicina o si allontana da ciò che vuole, la posta sale)? Mette alla prova
+il tema, anche di sbieco, o se ne dimentica? Segnalalo solo quando conta, con
+un commento sul capitolo intero.
 
 **Personaggi.** Agiscono e parlano secondo la scheda (valori, paure, modo di
 parlare, tic, comportamento sotto stress)? Se cambiano, il cambiamento è
@@ -328,6 +340,14 @@ Guarda il libro dall'alto: architettura, scene, archi, coerenza. Il risultato
    altri.
 
 ## 2. Domande da farti
+
+**Tema e premessa**
+- La storia mantiene la premessa: il desiderio del protagonista, l'ostacolo
+  e la posta sono quelli dichiarati, e arrivano a una risposta?
+- Il tema è messo alla prova da più lati (personaggi che incarnano risposte
+  diverse) e il finale prende posizione, o resta solo enunciato?
+- Se mancano in \`opera.yaml\`, proponi all'autore una formulazione da
+  discutere (nell'appunto, non nel file dell'opera).
 
 **Architettura**
 - Ogni sezione del modello ha almeno una scena? Quali sono scoperte?
@@ -420,6 +440,12 @@ qui? E la più sorprendente che resti coerente?
 Per un personaggio: cosa vuole e cosa gli serve davvero (non è la stessa
 cosa)? Qual è la bugia in cui crede? Cosa non direbbe mai ad alta voce? Come
 reagisce quando ha paura? Cosa perde se cambia?
+
+Per tema e premessa (se in \`opera.yaml\` mancano o l'autore non ne è
+convinto): di cosa parla davvero questa storia, se togli la trama? Cosa
+vuole il protagonista e cosa rischia se non lo ottiene? Quale domanda vuoi
+lasciare al lettore? Le risposte, con le parole dell'autore, possono andare
+nell'appunto finale; l'autore le riporta lui nella scheda dell'opera.
 
 Per la trama: qual è la domanda che tiene il lettore fino alla fine? Cosa sa
 il lettore che i personaggi non sanno, e viceversa? Se togliessi questa

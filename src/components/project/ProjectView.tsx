@@ -6,6 +6,7 @@ import { api, ClientApiError, projectApi } from "@/lib/client/api";
 import ProjectNav from "./ProjectNav";
 import VariantsCard from "./VariantsCard";
 import type { ProjectData, WorkSummary } from "@/lib/server/projects";
+import { WORK_INFO_MAX } from "@/lib/project/format";
 
 const TYPE_LABEL = { racconto: "Racconto", romanzo: "Romanzo", saga: "Saga" } as const;
 
@@ -175,6 +176,7 @@ function WorkCard({
           Struttura e scene
         </Link>
       </div>
+      <WorkInfo work={work} busy={busy} onSave={(tema, premessa) => run({ azione: "info-opera", opera: work.slug, tema, premessa })} />
       <ol className="list" style={{ paddingLeft: 0 }}>
         {work.capitoli.map((c, i) => (
           <li key={c.file}>
@@ -312,5 +314,76 @@ function MentorCard({ base, owner, repo, mentore, onInstalled }: { base: string;
         </ol>
       </details>
     </section>
+  );
+}
+
+/** Tema e premessa dell'opera: in vista, oppure in modifica. */
+function WorkInfo({ work, busy, onSave }: { work: WorkSummary; busy: boolean; onSave: (tema: string, premessa: string) => Promise<boolean> }) {
+  const [editing, setEditing] = useState(false);
+  const [tema, setTema] = useState("");
+  const [premessa, setPremessa] = useState("");
+  const id = `info-${work.slug}`;
+
+  if (editing) {
+    return (
+      <form
+        className="stack work-info"
+        style={{ gap: 10 }}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (await onSave(tema, premessa)) setEditing(false);
+        }}
+      >
+        <div className="field">
+          <label htmlFor={`${id}-tema`}>Tema</label>
+          <textarea id={`${id}-tema`} className="textarea" rows={2} maxLength={WORK_INFO_MAX} value={tema} onChange={(e) => setTema(e.target.value)} placeholder="Di cosa parla davvero la storia, sotto la trama. Es. «il prezzo della verità», «si può perdonare chi ci ha tradito?»" />
+        </div>
+        <div className="field">
+          <label htmlFor={`${id}-premessa`}>Premessa</label>
+          <textarea id={`${id}-premessa`} className="textarea" rows={3} maxLength={WORK_INFO_MAX} value={premessa} onChange={(e) => setPremessa(e.target.value)} placeholder="L'idea da cui parte la storia: chi, cosa vuole, cosa glielo impedisce, cosa rischia. Es. «Una guardiana del faro scopre che il naufragio non fu un incidente: se parla, perde la casa»" />
+        </div>
+        <div className="row">
+          <button type="submit" className="btn btn-small btn-primary" disabled={busy}>
+            Salva
+          </button>
+          <button type="button" className="btn btn-small" onClick={() => setEditing(false)}>
+            Annulla
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  const start = () => {
+    setTema(work.tema ?? "");
+    setPremessa(work.premessa ?? "");
+    setEditing(true);
+  };
+  if (!work.tema && !work.premessa) {
+    return (
+      <div className="row small">
+        <span className="muted">Tema e premessa non ancora scritti.</span>
+        <button type="button" className="btn btn-small btn-ghost" onClick={start}>
+          Aggiungi tema e premessa
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="work-info">
+      <dl className="work-info-list">
+        <div>
+          <dt>Tema</dt>
+          <dd>{work.tema || <span className="muted">—</span>}</dd>
+        </div>
+        <div>
+          <dt>Premessa</dt>
+          <dd>{work.premessa || <span className="muted">—</span>}</dd>
+        </div>
+      </dl>
+      <button type="button" className="btn btn-small btn-ghost" onClick={start}>
+        Modifica tema e premessa
+      </button>
+    </div>
   );
 }

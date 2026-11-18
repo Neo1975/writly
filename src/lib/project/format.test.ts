@@ -35,6 +35,14 @@ describe("manifest di opera", () => {
     expect(parseWorkManifest(serializeWorkManifest(w), "il-porto")).toEqual(w);
   });
 
+  it("conserva tema e premessa; vuoti o assenti non compaiono", () => {
+    const w = { titolo: "Il faro", tema: "Il prezzo della verità", premessa: "Una guardiana del faro scopre che il naufragio non fu un incidente.\nSe parla, perde la casa.", capitoli: [{ file: "a.md", titolo: "Uno" }] };
+    expect(parseWorkManifest(serializeWorkManifest(w), "il-faro")).toEqual(w);
+    expect(serializeWorkManifest({ ...w, tema: "", premessa: undefined })).not.toMatch(/tema|premessa/);
+    expect(parseWorkManifest("titolo: X\ntema: '   '\ncapitoli: []\n", "x")).toEqual({ titolo: "X", capitoli: [] });
+    expect(() => parseWorkManifest("titolo: X\ntema: [1, 2]\n", "x")).toThrow(/«tema»/);
+  });
+
   it("segnala il capitolo senza file", () => {
     expect(() => parseWorkManifest("titolo: X\ncapitoli:\n  - titolo: Senza file\n", "x")).toThrow(/«file»/);
   });

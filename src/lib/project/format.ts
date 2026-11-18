@@ -39,7 +39,14 @@ export interface WorkManifest {
   titolo: string;
   capitoli: ChapterEntry[];
   obiettivoParole?: number;
+  /** Di cosa parla davvero la storia, sotto la trama (es. «il prezzo della verità»). */
+  tema?: string;
+  /** L'idea da cui parte la storia: chi, cosa vuole, cosa glielo impedisce, cosa rischia. */
+  premessa?: string;
 }
+
+/** Lunghezza massima di tema e premessa: qualche paragrafo, non una sinossi. */
+export const WORK_INFO_MAX = 2000;
 
 export interface ChapterMeta {
   id: string;
@@ -135,10 +142,19 @@ export function parseWorkManifest(text: string, slug: string): WorkManifest {
     };
   });
   const goal = obj.obiettivoParole;
+  const info = (key: "tema" | "premessa") => {
+    const v = obj[key];
+    if (v === undefined || v === null) return {};
+    if (typeof v !== "string") throw new FormatError(`${what}: «${key}» deve essere un testo`);
+    const t = v.trim().slice(0, WORK_INFO_MAX);
+    return t ? { [key]: t } : {};
+  };
   return {
     titolo: requireString(obj, "titolo", what),
     capitoli,
     ...(typeof goal === "number" && goal > 0 ? { obiettivoParole: goal } : {}),
+    ...info("tema"),
+    ...info("premessa"),
   };
 }
 
@@ -146,6 +162,8 @@ export function serializeWorkManifest(w: WorkManifest): string {
   return YAML.stringify({
     titolo: w.titolo,
     ...(w.obiettivoParole ? { obiettivoParole: w.obiettivoParole } : {}),
+    ...(w.tema ? { tema: w.tema } : {}),
+    ...(w.premessa ? { premessa: w.premessa } : {}),
     capitoli: w.capitoli.map((c) => ({ file: c.file, titolo: c.titolo })),
   });
 }

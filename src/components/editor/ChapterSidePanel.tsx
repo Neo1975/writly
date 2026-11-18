@@ -90,6 +90,7 @@ export default function ChapterSidePanel({
   onSessionGoal,
   overviewHref,
   commentsSlot,
+  workInfo,
 }: {
   projectHref: string;
   structureHref: string;
@@ -112,6 +113,8 @@ export default function ChapterSidePanel({
   overviewHref: string;
   /** Sezione dei commenti, gestita dall'editor. */
   commentsSlot?: React.ReactNode;
+  /** Tema e premessa dell'opera, da tenere sotto gli occhi mentre si scrive. */
+  workInfo?: { tema?: string; premessa?: string } | null;
 }) {
   const found = [...counts.entries()].sort((a, b) => b[1] - a[1]);
   const isCharacter = (id: string) => !!sheets?.personaggi.some((c) => c.data.id === id);
@@ -151,6 +154,27 @@ export default function ChapterSidePanel({
 
   return (
     <aside className="side-panel" aria-label="Nel capitolo">
+      {(workInfo?.tema || workInfo?.premessa) && (
+        <section>
+          <details open>
+            <summary className="panel-title">L&apos;opera</summary>
+            <dl className="work-info-list small">
+              {workInfo.tema && (
+                <div>
+                  <dt>Tema</dt>
+                  <dd>{workInfo.tema}</dd>
+                </div>
+              )}
+              {workInfo.premessa && (
+                <div>
+                  <dt>Premessa</dt>
+                  <dd>{workInfo.premessa}</dd>
+                </div>
+              )}
+            </dl>
+          </details>
+        </section>
+      )}
       {commentsSlot}
       <section>
         <h2 className="panel-title">Scene del capitolo</h2>

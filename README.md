@@ -9,7 +9,7 @@ Applicazione di supporto alla stesura di racconti, romanzi e saghe. Ogni progett
 
 - Accesso con GitHub; libreria dei progetti (repository con topic `writly-progetto`).
 - Nuovo progetto (racconto, romanzo, saga): crea un repository privato e i file iniziali. Oppure collega un repository esistente.
-- Opere e capitoli: nuovo capitolo, rinomina, nuovo libro per le saghe.
+- Opere e capitoli: nuovo capitolo, rinomina, nuovo libro per le saghe; **tema e premessa** di ogni opera, sempre visibili nel pannello del capitolo.
 - Editor del capitolo: grassetto, corsivo, titoli, citazioni, cambio scena; stato del capitolo.
 - Controllo ortografico italiano (Hunspell) con suggerimenti e dizionario di progetto (`dizionario.txt`).
 - Statistiche sempre visibili: parole, battute con e senza spazi, anche sulla selezione.
@@ -51,7 +51,7 @@ Applicazione di supporto alla stesura di racconti, romanzi e saghe. Ogni progett
 
 ```
 writly.yaml                          titolo, tipo, lingua, ordine delle opere
-opere/<opera>/opera.yaml             titolo dell'opera, ordine e titoli dei capitoli
+opere/<opera>/opera.yaml             titolo, tema e premessa dell'opera, ordine e titoli dei capitoli
 opere/<opera>/capitoli/<file>.md     front-matter (id, stato) + testo Markdown
 opere/<opera>/struttura.yaml         modello, atti e sezioni dell'opera + scene
 opere/<opera>/commenti/<file>.yaml   commenti al capitolo (autore e mentore AI)
