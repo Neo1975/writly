@@ -356,6 +356,57 @@ export function wordTargets(atti: StructureAct[], goal: number): Map<string, num
   return out;
 }
 
+/** Scene di un capitolo nell'ordine della storia: per atto e sezione, poi per posizione nella sezione; le non assegnate in fondo. */
+export function chapterScenes(doc: WorkStructure, file: string): Scene[] {
+  const order = new Map(allSections(doc.atti).map((s, i) => [s.id, i]));
+  return doc.scene
+    .map((s, i) => ({ s, i }))
+    .filter(({ s }) => s.capitolo === file)
+    .sort((a, b) => (order.get(a.s.sezione ?? "") ?? Infinity) - (order.get(b.s.sezione ?? "") ?? Infinity) || a.i - b.i)
+    .map(({ s }) => s);
+}
+
+export interface SceneAmounts {
+  /** Scena → parole (o battute) scritte. */
+  amounts: Map<string, number>;
+  /** Scene contate davvero sul loro testo; le altre sono stime. */
+  exact: Set<string>;
+  /** Capitoli in cui le parti (separate da «Cambio scena») non corrispondono alle scene collegate. */
+  mismatched: { file: string; scene: number; parti: number }[];
+}
+
+/**
+ * Quanto è scritto di ogni scena. Se il capitolo ha tante parti separate da
+ * «Cambio scena» quante sono le scene collegate, ogni parte va alla sua scena
+ * nell'ordine della storia; altrimenti il totale del capitolo si divide in
+ * parti uguali (stima) e il capitolo viene segnalato.
+ */
+export function sceneAmounts(doc: WorkStructure, chapters: Map<string, { totale: number; parti: number[] }>): SceneAmounts {
+  const amounts = new Map<string, number>();
+  const exact = new Set<string>();
+  const mismatched: SceneAmounts["mismatched"] = [];
+  for (const file of new Set(doc.scene.map((s) => s.capitolo).filter((f): f is string => !!f))) {
+    const scenes = chapterScenes(doc, file);
+    const stats = chapters.get(file);
+    if (!stats) continue;
+    if (scenes.length > 1 && stats.parti.length === scenes.length) {
+      scenes.forEach((s, i) => {
+        amounts.set(s.id, stats.parti[i]);
+        exact.add(s.id);
+      });
+      continue;
+    }
+    if (scenes.length === 1) {
+      amounts.set(scenes[0].id, stats.totale);
+      exact.add(scenes[0].id);
+      continue;
+    }
+    mismatched.push({ file, scene: scenes.length, parti: stats.parti.length });
+    for (const s of scenes) amounts.set(s.id, Math.round(stats.totale / scenes.length));
+  }
+  return { amounts, exact, mismatched };
+}
+
 /** Applica (o cambia) il modello di un'opera: le scene restano, quelle di sezioni che non esistono più vanno in «Non assegnate». */
 export function applyTemplate(current: WorkStructure | null, template: StructureTemplate): WorkStructure {
   const atti = template.atti.map((a) => ({ ...a, sezioni: a.sezioni.map((s) => ({ ...s })) }));

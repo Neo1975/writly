@@ -3,6 +3,8 @@ import { FormatError } from "./format";
 import {
   applyTemplate,
   changeMeasure,
+  chapterScenes,
+  sceneAmounts,
   scaleBattute,
   sectionTargets,
   totalBattute,
@@ -21,6 +23,7 @@ import {
   type WorkStructure,
 } from "./structure";
 import { BUILTIN_TEMPLATES, builtinTemplate } from "./templates";
+import { splitScenes } from "../text/stats";
 
 const scene = (id: string, sezione: string | null, extra: Partial<Scene> = {}): Scene => ({
   id,
@@ -168,5 +171,33 @@ describe("ridistribuzione delle battute", () => {
     const atti = [{ id: "a", nome: "A", sezioni: [{ id: "x", nome: "X", guida: "", peso: 0, battute: 3000 }, { id: "y", nome: "Y", guida: "", peso: 0, battute: 1000 }] }];
     expect(scaleBattute(atti, 10000)[0].sezioni.map((s) => s.battute)).toEqual([7500, 2500]);
     expect(totalBattute(scaleBattute(atti, 9999))).toBe(9999);
+  });
+});
+
+describe("parole di ogni scena", () => {
+  const sc = (id: string, sezione: string | null, capitolo: string | null): Scene => ({
+    id, titolo: id, sezione, capitolo, stato: "scritta", sinossi: "", obiettivo: "", conflitto: "", esito: "", pov: null, luogo: null, quando: "", personaggi: [],
+  });
+  const atti = [{ id: "a", nome: "A", sezioni: [{ id: "s1", nome: "S1", guida: "", peso: 50 }, { id: "s2", nome: "S2", guida: "", peso: 50 }] }];
+  // Nell'elenco la scena della seconda sezione viene prima: conta l'ordine della storia.
+  const doc: WorkStructure = { modello: { id: "x", nome: "X" }, atti, scene: [sc("tardi", "s2", "c1.md"), sc("presto", "s1", "c1.md"), sc("sola", "s1", "c2.md"), sc("a1", "s1", "c3.md"), sc("a2", "s2", "c3.md")] };
+
+  it("assegna a ogni scena la sua parte del capitolo, nell'ordine della storia", () => {
+    const r = sceneAmounts(doc, new Map([["c1.md", { totale: 300, parti: [100, 200] }], ["c2.md", { totale: 50, parti: [20, 30] }], ["c3.md", { totale: 90, parti: [90] }]]));
+    expect(chapterScenes(doc, "c1.md").map((s) => s.id)).toEqual(["presto", "tardi"]);
+    expect(r.amounts.get("presto")).toBe(100);
+    expect(r.amounts.get("tardi")).toBe(200);
+    // Una sola scena nel capitolo: tutto il capitolo è suo, anche con più parti.
+    expect(r.amounts.get("sola")).toBe(50);
+    expect(r.exact.has("sola")).toBe(true);
+    // Due scene ma una sola parte: stima e avviso.
+    expect(r.amounts.get("a1")).toBe(45);
+    expect(r.exact.has("a1")).toBe(false);
+    expect(r.mismatched).toEqual([{ file: "c3.md", scene: 2, parti: 1 }]);
+  });
+
+  it("divide il capitolo ai cambi di scena, ignorando le parti vuote", () => {
+    expect(splitScenes("Uno due.\n\n---\n\nTre.\n\n* * *\n\nQuattro cinque sei.")).toEqual(["Uno due.", "Tre.", "Quattro cinque sei."]);
+    expect(splitScenes("---\n\nSolo questa.\n\n---\n")).toEqual(["Solo questa."]);
   });
 });

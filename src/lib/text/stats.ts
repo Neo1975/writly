@@ -43,3 +43,19 @@ export function markdownToPlain(md: string): string {
     .replace(/\\([\\`*_{}[\]()#+\-.!>])/g, "$1")
     .replace(/\n{2,}/g, "\n");
 }
+
+const SCENE_BREAK = /^\s{0,3}(?:(?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})$/;
+
+/**
+ * Le parti di un capitolo separate dai cambi di scena (righe «---», «***» o
+ * «___», come le scrive il pulsante «Cambio scena»). Le parti vuote, per
+ * esempio un separatore all'inizio, non contano.
+ */
+export function splitScenes(markdown: string): string[] {
+  const parts: string[][] = [[]];
+  for (const line of markdown.split(/\r?\n/)) {
+    if (SCENE_BREAK.test(line)) parts.push([]);
+    else parts[parts.length - 1].push(line);
+  }
+  return parts.map((p) => p.join("\n").trim()).filter((p) => countWords(markdownToPlain(p)) > 0);
+}

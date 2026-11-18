@@ -20,7 +20,7 @@ import {
   type WorkStructure,
 } from "@/lib/project/structure";
 import { BUILTIN_TEMPLATES } from "@/lib/project/templates";
-import { markdownToPlain, textStats, type TextStats } from "@/lib/text/stats";
+import { markdownToPlain, splitScenes, textStats, type TextStats } from "@/lib/text/stats";
 import { ApiError } from "./errors";
 import { createRepo, deleteFile, getLogin, listTree, readBlobs, readText, repoExists, writeText, type GitHub } from "./github";
 
@@ -61,6 +61,8 @@ export async function saveWorkStructure(
 export interface ChapterStats extends TextStats {
   file: string;
   stato: string;
+  /** Le parti del capitolo separate da «Cambio scena», in ordine: servono a contare ogni scena. */
+  parti: { parole: number; battute: number }[];
 }
 
 /** Parole e battute di ogni capitolo dell'opera (un albero + un blob per capitolo). */
@@ -79,9 +81,13 @@ export async function workStats(gh: GitHub, owner: string, repo: string, work: s
   const textByPath = new Map(present.map((e, i) => [e.path, texts[i]]));
   return manifest.capitoli.map((c) => {
     const text = textByPath.get(chapterPath(work, c.file));
-    if (text === undefined) return { file: c.file, stato: "mancante", parole: 0, battute: 0, battuteSenzaSpazi: 0 };
+    if (text === undefined) return { file: c.file, stato: "mancante", parole: 0, battute: 0, battuteSenzaSpazi: 0, parti: [] };
     const doc = parseChapter(text);
-    return { file: c.file, stato: doc.meta.stato, ...textStats(markdownToPlain(doc.body)) };
+    const parti = splitScenes(doc.body).map((part) => {
+      const st = textStats(markdownToPlain(part));
+      return { parole: st.parole, battute: st.battute };
+    });
+    return { file: c.file, stato: doc.meta.stato, ...textStats(markdownToPlain(doc.body)), parti };
   });
 }
 

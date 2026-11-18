@@ -16,12 +16,14 @@ import {
   changeMeasure,
   measureOf,
   moveScene,
+  sceneAmounts,
   sectionTargets,
   totalBattute,
   scenesIn,
   SCENE_STATUS_LABEL,
   totalWeight,
   type Scene,
+  type SceneAmounts,
   type StructureAct,
   type StructureTemplate,
   type WorkStructure,
@@ -134,21 +136,17 @@ export default function WorkStructureView({ owner, repo, work }: { owner: string
   const chapterWords = useMemo(() => new Map((stats.data?.capitoli ?? []).map((c) => [c.file, c])), [stats.data]);
   const measure = doc ? measureOf(doc) : "percentuale";
   /**
-   * Quanto è già scritto di ogni scena: parole (o battute, se le sezioni si
-   * misurano in battute) del capitolo divise tra le sue scene.
+   * Quanto è già scritto di ogni scena (parole, o battute se le sezioni si
+   * misurano in battute): ogni parte del capitolo separata da «Cambio scena» va
+   * alla sua scena; se parti e scene non corrispondono, è una stima.
    */
-  const sceneWords = useMemo(() => {
-    const perChapter = new Map<string, number>();
-    for (const s of doc?.scene ?? []) if (s.capitolo) perChapter.set(s.capitolo, (perChapter.get(s.capitolo) ?? 0) + 1);
-    const out = new Map<string, number>();
-    for (const s of doc?.scene ?? []) {
-      if (!s.capitolo) continue;
-      const st = chapterWords.get(s.capitolo);
-      const amount = (measure === "battute" ? st?.battute : st?.parole) ?? 0;
-      out.set(s.id, Math.round(amount / (perChapter.get(s.capitolo) ?? 1)));
-    }
-    return out;
+  const written = useMemo(() => {
+    if (!doc) return { amounts: new Map<string, number>(), exact: new Set<string>(), mismatched: [] };
+    const key = measure === "battute" ? "battute" : "parole";
+    const chapters = new Map([...chapterWords].map(([file, st]) => [file, { totale: st[key], parti: (st.parti ?? []).map((p) => p[key]) }]));
+    return sceneAmounts(doc, chapters);
   }, [doc, chapterWords, measure]);
+  const sceneWords = written.amounts;
 
   const names = useMemo(() => {
     const m = new Map<string, string>();
@@ -345,6 +343,8 @@ export default function WorkStructureView({ owner, repo, work }: { owner: string
               names={names}
               capitoli={capitoli}
               sceneWords={sceneWords}
+              exact={written.exact}
+              mismatched={written.mismatched}
               {...sectionTargets(doc, effectiveGoal)}
               onOpen={(scene) => setEditing({ scene, isNew: false })}
               onAdd={(section) => setEditing({ scene: newScene(section), isNew: true })}
@@ -362,6 +362,7 @@ export default function WorkStructureView({ owner, repo, work }: { owner: string
               stats={stats.data?.capitoli ?? null}
               statsError={stats.error?.message ?? null}
               sceneWords={sceneWords}
+              mismatched={written.mismatched}
               goal={effectiveGoal}
               onGoal={setGoal}
               onOpen={(scene) => setEditing({ scene, isNew: false })}
@@ -463,6 +464,7 @@ function SceneCard({
   names,
   chapterTitle,
   words,
+  exact,
   unit,
   first,
   last,
@@ -475,6 +477,8 @@ function SceneCard({
   names: Map<string, string>;
   chapterTitle: string | null;
   words: number | undefined;
+  /** Contata sul testo della scena (non una stima). */
+  exact: boolean;
   unit: "parole" | "battute";
   first: boolean;
   last: boolean;
@@ -502,7 +506,7 @@ function SceneCard({
           {scene.pov && <span>POV {names.get(scene.pov) ?? "(eliminato)"}</span>}
         </span>
         <span className="small muted">
-          {chapterTitle ? `${chapterTitle}${words ? ` · ≈ ${formatCount(words)} ${unit}` : ""}` : "Non ancora in un capitolo"}
+          {chapterTitle ? `${chapterTitle}${words ? ` · ${exact ? "" : "≈ "}${formatCount(words)} ${unit}` : ""}` : "Non ancora in un capitolo"}
         </span>
       </button>
       <span className="scene-move">
@@ -522,6 +526,8 @@ function Board({
   names,
   capitoli,
   sceneWords,
+  exact,
+  mismatched,
   targets,
   unit,
   onOpen,
@@ -534,6 +540,8 @@ function Board({
   names: Map<string, string>;
   capitoli: { file: string; titolo: string }[];
   sceneWords: Map<string, number>;
+  exact: Set<string>;
+  mismatched: SceneAmounts["mismatched"];
   targets: Map<string, number>;
   unit: "parole" | "battute";
   onOpen: (s: Scene) => void;
@@ -572,6 +580,7 @@ function Board({
               names={names}
               chapterTitle={titleOf(s.capitolo)}
               words={sceneWords.get(s.id)}
+              exact={exact.has(s.id)}
               unit={unit}
               first={i === 0}
               last={i === list.length - 1}
@@ -593,8 +602,10 @@ function Board({
   return (
     <div className="stack">
       <p className="small muted" style={{ margin: 0 }}>
-        Trascina le scene tra le sezioni (oppure usa ↑ ↓ e il campo «Sezione» nella scheda della scena). {unit === "battute" ? "Le battute (con spazi)" : "Le parole"} sono quelle dei capitoli salvati, divise tra le scene di ciascun capitolo.
+        Trascina le scene tra le sezioni (oppure usa ↑ ↓ e il campo «Sezione» nella scheda della scena). {unit === "battute" ? "Le battute (con spazi)" : "Le parole"} sono quelle dei capitoli salvati:
+        ogni parte del capitolo separata da «Cambio scena» conta per la sua scena, nell&apos;ordine della struttura.
       </p>
+      <MismatchNotice mismatched={mismatched} titleOf={titleOf} />
       {(unassigned.length > 0 || allSections(doc.atti).length === 0) && (
         <div className="board">{column(null, "Non assegnate", "Scene che non appartengono ancora a una sezione.", `${unassigned.length} scene`)}</div>
       )}
@@ -616,6 +627,7 @@ function Overview({
   stats,
   statsError,
   sceneWords,
+  mismatched,
   goal,
   onGoal,
   onOpen,
@@ -627,6 +639,7 @@ function Overview({
   stats: ChapterStats[] | null;
   statsError: string | null;
   sceneWords: Map<string, number>;
+  mismatched: SceneAmounts["mismatched"];
   goal: number;
   onGoal: (n: number) => void;
   onOpen: (s: Scene) => void;
@@ -692,6 +705,7 @@ function Overview({
         </p>
       </section>
 
+      <MismatchNotice mismatched={mismatched} titleOf={(f) => capitoli.find((c) => c.file === f)?.titolo ?? f} />
       <section className="card table-card">
         <h2 className="h2">Sezioni</h2>
         <div className="table-wrap">
@@ -826,6 +840,25 @@ function Overview({
           </table>
         </div>
       </section>
+    </div>
+  );
+}
+
+/** Capitoli in cui le parti separate da «Cambio scena» non corrispondono alle scene collegate: lì le cifre sono stime. */
+function MismatchNotice({ mismatched, titleOf }: { mismatched: SceneAmounts["mismatched"]; titleOf: (file: string) => string | null }) {
+  if (mismatched.length === 0) return null;
+  return (
+    <div className="notice notice-warn" role="note">
+      In {mismatched.length === 1 ? "questo capitolo" : "questi capitoli"} le scene collegate non corrispondono alle parti separate da «Cambio scena», quindi le cifre delle scene (con «≈»)
+      sono una stima: il capitolo è diviso in parti uguali.
+      <ul style={{ margin: "6px 0 0", paddingLeft: 20 }}>
+        {mismatched.map((m) => (
+          <li key={m.file}>
+            <strong>{titleOf(m.file)}</strong>: {m.scene} scene collegate, {m.parti} {m.parti === 1 ? "parte" : "parti"} nel testo
+          </li>
+        ))}
+      </ul>
+      Per contarle esattamente, separa le scene nel capitolo con il pulsante «Cambio scena» (una riga «---»), nello stesso ordine in cui sono nella struttura.
     </div>
   );
 }
