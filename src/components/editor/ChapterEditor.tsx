@@ -471,6 +471,12 @@ export default function ChapterEditor({
     return () => document.body.classList.remove("focus-mode");
   }, [focusMode]);
 
+  // Pagina dell'editor: su schermi larghi barra, intestazione e pannello restano fermi e scorre solo il testo.
+  useEffect(() => {
+    document.body.classList.add("editor-page");
+    return () => document.body.classList.remove("editor-page");
+  }, []);
+
   // Nomi delle schede e termini del glossario sono accettati dal controllo ortografico.
   useEffect(() => {
     if (!editor || !sheets || spellStatus !== "ready" || !spell.checker) return;
@@ -949,8 +955,17 @@ export default function ChapterEditor({
             const to = e.relatedTarget as HTMLElement | null;
             if (!to?.closest?.("[data-mention]")) setHover(null);
           }}
+          // Su schermi larghi scorre solo il foglio: le finestrelle ancorate al testo si chiudono.
+          onScroll={() => {
+            setHover(null);
+            setSpellMenu(null);
+          }}
         >
           <EditorContent editor={editor} />
+          <nav className="chapter-nav" aria-label="Capitoli vicini">
+            {prev ? <Link href={chapterHref(prev.file)}>← {prev.titolo}</Link> : <span />}
+            {next ? <Link href={chapterHref(next.file)}>{next.titolo} →</Link> : <span />}
+          </nav>
         </main>
         {panelOpen && !focusMode && (
           <ChapterSidePanel
@@ -1003,10 +1018,6 @@ export default function ChapterEditor({
         ) : null;
       })()}
 
-      <nav className="chapter-nav" aria-label="Capitoli vicini">
-        {prev ? <Link href={chapterHref(prev.file)}>← {prev.titolo}</Link> : <span />}
-        {next ? <Link href={chapterHref(next.file)}>{next.titolo} →</Link> : <span />}
-      </nav>
 
       {spellMenu && (
         <div className="spell-menu" role="dialog" aria-label={`Suggerimenti per ${spellMenu.word}`} style={{ top: spellMenu.top, left: spellMenu.left }}>

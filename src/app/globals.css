@@ -488,13 +488,17 @@ dialog.modal-wide {
 }
 .editor-paper {
   flex: 1;
-  padding: 36px 24px 80px;
+  padding: 36px 24px 0;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
 }
 .editor-paper > div {
   width: 100%;
   max-width: 680px;
+}
+.editor-paper .chapter-nav {
+  padding: 24px 0 40px;
 }
 .prose-editor {
   min-height: 60vh;
@@ -1981,4 +1985,37 @@ div.comment-quote {
 }
 .comment-actions {
   gap: 4px;
+}
+
+/* ——— Editor su schermi larghi: scorre solo il testo ———
+   Barra in alto, intestazione e strumenti restano fermi; il foglio e il
+   pannello laterale scorrono ciascuno per conto suo. Su schermi stretti la
+   pagina scorre normalmente (con la tastiera aperta un'area fissa è scomoda). */
+@media (min-width: 1001px) {
+  body.editor-page {
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  body.editor-page .editor-shell {
+    flex: 1;
+    min-height: 0;
+  }
+  body.editor-page .editor-body {
+    min-height: 0;
+    overflow: hidden;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  body.editor-page .editor-paper,
+  body.editor-page .side-panel {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  body.editor-page .editor-notices {
+    max-height: 40vh;
+    overflow-y: auto;
+  }
 }
