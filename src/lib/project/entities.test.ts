@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ancestors,
+  describePolarization,
   emptyCharacter,
   parseCategories,
   parseCharacter,
@@ -31,6 +32,20 @@ describe("personaggi", () => {
     expect(text).not.toContain("abbigliamento");
     expect(text.endsWith("Figlia del guardiano del faro.\n")).toBe(true);
     expect(parseCharacter(text, "personaggi/iris.md")).toEqual(c);
+  });
+
+  it("salva la polarizzazione testa/cuore/pancia e la riassume", () => {
+    const c = { ...emptyCharacter("tomas", "Tomas"), polarizzazione: { dominante: "pancia" as const, trascurato: "testa" as const, come: "Reagisce prima di pensare" } };
+    const text = serializeCharacter(c);
+    expect(text).toContain("polarizzazione:\n  dominante: pancia\n  trascurato: testa\n");
+    expect(parseCharacter(text, "p").polarizzazione).toEqual(c.polarizzazione);
+    expect(describePolarization(c.polarizzazione)).toBe("Pancia · trascura la testa · Reagisce prima di pensare");
+    // Scheda senza polarizzazione: niente nel file, campi vuoti alla lettura.
+    expect(serializeCharacter(emptyCharacter("x", "X"))).not.toContain("polarizzazione");
+    expect(parseCharacter("---\nid: x\nnome: X\n---\n", "p").polarizzazione).toEqual({ dominante: null, trascurato: null, come: "" });
+    // Valori sconosciuti o trascurato uguale al dominante: ignorati.
+    expect(parseCharacter("---\nid: x\nnome: X\npolarizzazione: { dominante: cuore, trascurato: cuore }\n---\n", "p").polarizzazione.trascurato).toBeNull();
+    expect(parseCharacter("---\nid: x\nnome: X\npolarizzazione: { dominante: fegato }\n---\n", "p").polarizzazione.dominante).toBeNull();
   });
 
   it("rifiuta schede senza id o nome", () => {

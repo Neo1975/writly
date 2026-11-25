@@ -23,7 +23,37 @@ export interface Character {
   morale: { valori: string; paure: string; desideri: string; difetto: string; segreto: string };
   comportamento: { parlare: string; tic: string; abitudini: string; stress: string };
   arco: { partenza: string; arrivo: string };
+  /** Come il personaggio legge il mondo e reagisce: testa, cuore o pancia. */
+  polarizzazione: Polarization;
   biografia: string;
+}
+
+/**
+ * Polarizzazione testa / cuore / pancia: il centro con cui il personaggio
+ * percepisce e reagisce per primo, e quello che trascura (spesso la chiave
+ * del suo arco).
+ */
+export const CENTERS = ["testa", "cuore", "pancia"] as const;
+export type Center = (typeof CENTERS)[number];
+
+export interface Polarization {
+  dominante: Center | null;
+  trascurato: Center | null;
+  /** Come si vede nel comportamento («decide prima di sentire…»). */
+  come: string;
+}
+
+export const CENTER_INFO: Record<Center, { label: string; descrizione: string }> = {
+  testa: { label: "Testa", descrizione: "analizza, prevede, si protegge capendo; sotto pressione esita o razionalizza" },
+  cuore: { label: "Cuore", descrizione: "passa tutto per le relazioni e per come appare agli altri; sotto pressione cerca approvazione o si ferisce" },
+  pancia: { label: "Pancia", descrizione: "sente e agisce subito, difende il proprio spazio; sotto pressione reagisce prima di pensare" },
+};
+
+/** Riassunto leggibile («Testa · trascura la pancia · decide prima di sentire»); vuoto se non indicata. */
+export function describePolarization(p: Polarization): string {
+  return [p.dominante ? CENTER_INFO[p.dominante].label : "", p.trascurato ? `trascura ${p.trascurato === "testa" ? "la testa" : p.trascurato === "cuore" ? "il cuore" : "la pancia"}` : "", p.come]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 export const CHARACTER_GROUPS = {
@@ -147,6 +177,7 @@ export function emptyCharacter(id: string, nome: string): Character {
     morale: { valori: "", paure: "", desideri: "", difetto: "", segreto: "" },
     comportamento: { parlare: "", tic: "", abitudini: "", stress: "" },
     arco: { partenza: "", arrivo: "" },
+    polarizzazione: { dominante: null, trascurato: null, come: "" },
     biografia: "",
   };
 }
@@ -171,8 +202,18 @@ export function normalizeCharacter(value: unknown, what = "personaggio"): Charac
     morale: group(obj, "morale", what),
     comportamento: group(obj, "comportamento", what),
     arco: group(obj, "arco", what),
+    polarizzazione: polarization(obj, what),
     biografia: text(obj, "biografia", what, LONG * 10),
   };
+}
+
+function polarization(obj: Record<string, unknown>, what: string): Polarization {
+  const p = record(obj.polarizzazione, `${what}, polarizzazione`);
+  const center = (v: unknown): Center | null => (CENTERS.includes(v as Center) ? (v as Center) : null);
+  const dominante = center(p.dominante);
+  const trascurato = center(p.trascurato);
+  // Il centro trascurato non può essere quello dominante.
+  return { dominante, trascurato: trascurato && trascurato !== dominante ? trascurato : null, come: text(p, "come", `${what}, polarizzazione`, FIELD_MAX) };
 }
 
 export function parseCharacter(textValue: string, path: string): Character {
@@ -185,7 +226,10 @@ export function serializeCharacter(c: Character): string {
   const groups = Object.fromEntries(
     (Object.keys(CHARACTER_GROUPS) as GroupKey[]).map((k) => [k, compact(c[k] as Record<string, unknown>)]),
   );
-  return joinFrontMatter(compact({ id: c.id, nome: c.nome, alias: c.alias, ruolo: c.ruolo, eta: c.eta, ...groups }), c.biografia);
+  return joinFrontMatter(
+    compact({ id: c.id, nome: c.nome, alias: c.alias, ruolo: c.ruolo, eta: c.eta, ...groups, polarizzazione: compact({ ...c.polarizzazione }) }),
+    c.biografia,
+  );
 }
 
 export function normalizeRelations(value: unknown, what = "relazioni.yaml"): Relation[] {

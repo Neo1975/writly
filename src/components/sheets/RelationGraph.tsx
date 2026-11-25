@@ -1,6 +1,6 @@
 "use client";
 
-import type { Character, Relation } from "@/lib/project/entities";
+import { CENTER_INFO, CENTERS, type Character, type Relation } from "@/lib/project/entities";
 
 /**
  * Grafo delle relazioni: personaggi disposti in cerchio, archi orientati con
@@ -35,7 +35,11 @@ export default function RelationGraph({
 
   if (n === 0) return <p className="muted">Aggiungi dei personaggi per vedere il grafo.</p>;
 
+  const byCenter = CENTERS.map((k) => ({ k, n: characters.filter((c) => c.polarizzazione.dominante === k).length }));
+  const none = characters.filter((c) => !c.polarizzazione.dominante).length;
+
   return (
+    <>
     <svg
       viewBox={`0 0 ${W} ${H}`}
       className="graph"
@@ -78,14 +82,15 @@ export default function RelationGraph({
       {characters.map((c) => {
         const p = pos.get(c.id)!;
         const isSel = selected === c.id;
+        const center = c.polarizzazione.dominante;
         return (
           <g
             key={c.id}
-            className={`graph-node${isSel ? " is-selected" : ""}`}
+            className={`graph-node${isSel ? " is-selected" : ""}${center ? ` center-${center}` : ""}`}
             transform={`translate(${p.x},${p.y})`}
             tabIndex={0}
             role="button"
-            aria-label={`Apri la scheda di ${c.nome}`}
+            aria-label={`Apri la scheda di ${c.nome}${center ? ` (${CENTER_INFO[center].label.toLowerCase()})` : ""}`}
             onClick={() => onSelect(c.id)}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
@@ -106,9 +111,29 @@ export default function RelationGraph({
             <text textAnchor="middle" y={46} className="graph-name">
               {c.nome}
             </text>
+            {center && (
+              <g className="graph-center-badge" transform="translate(20,-20)" aria-hidden="true">
+                <circle r={10} />
+                <text textAnchor="middle" dy="0.35em">
+                  {CENTER_INFO[center].label[0]}
+                </text>
+              </g>
+            )}
           </g>
         );
       })}
     </svg>
+    <p className="graph-legend small" aria-label="Polarizzazione del cast">
+      {byCenter.map(({ k, n: count }) => (
+        <span key={k} className={`graph-legend-item center-${k}`}>
+          <span className="graph-legend-dot" aria-hidden="true">
+            {CENTER_INFO[k].label[0]}
+          </span>
+          {CENTER_INFO[k].label} {count}
+        </span>
+      ))}
+      {none > 0 && <span className="muted">non indicata {none}</span>}
+    </p>
+    </>
   );
 }

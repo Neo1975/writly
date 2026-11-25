@@ -4,6 +4,8 @@ import {
   applyTemplate,
   changeMeasure,
   chapterScenes,
+  polarityBalance,
+  storyOrder,
   sceneAmounts,
   scaleBattute,
   sectionTargets,
@@ -199,5 +201,39 @@ describe("parole di ogni scena", () => {
   it("divide il capitolo ai cambi di scena, ignorando le parti vuote", () => {
     expect(splitScenes("Uno due.\n\n---\n\nTre.\n\n* * *\n\nQuattro cinque sei.")).toEqual(["Uno due.", "Tre.", "Quattro cinque sei."]);
     expect(splitScenes("---\n\nSolo questa.\n\n---\n")).toEqual(["Solo questa."]);
+  });
+});
+
+describe("polarizzazione delle scene", () => {
+  const sc = (id: string, sezione: string | null, polarizzazione?: "testa" | "cuore" | "pancia"): Scene => ({
+    id, titolo: id, sezione, capitolo: null, stato: "idea", sinossi: "", obiettivo: "", conflitto: "", esito: "", pov: null, luogo: null, quando: "", personaggi: [],
+    ...(polarizzazione ? { polarizzazione } : {}),
+  });
+  const atti = [
+    { id: "a1", nome: "Inizio", sezioni: [{ id: "s1", nome: "S1", guida: "", peso: 50 }] },
+    { id: "a2", nome: "Fine", sezioni: [{ id: "s2", nome: "S2", guida: "", peso: 50 }] },
+  ];
+
+  it("si salva e si rilegge; valori sconosciuti sono ignorati", () => {
+    const doc: WorkStructure = { modello: { id: "x", nome: "X" }, atti, scene: [sc("a", "s1", "cuore"), sc("b", "s1")] };
+    const back = parseWorkStructure(serializeWorkStructure(doc), "x");
+    expect(back.scene[0].polarizzazione).toBe("cuore");
+    expect(back.scene[1].polarizzazione).toBeUndefined();
+    expect(normalizeWorkStructure({ atti, scene: [{ id: "z", titolo: "Z", polarizzazione: "fegato" }] }).scene[0].polarizzazione).toBeUndefined();
+  });
+
+  it("conta i registri per opera e per atto e trova le serie nell'ordine della storia", () => {
+    // Nell'elenco la scena dell'atto 2 compare prima, ma nella storia viene dopo.
+    const doc: WorkStructure = {
+      modello: { id: "x", nome: "X" },
+      atti,
+      scene: [sc("fine", "s2", "testa"), sc("t1", "s1", "testa"), sc("t2", "s1", "testa"), sc("c1", "s1", "cuore"), sc("t3", "s1", "testa"), sc("t4", "s1", "testa"), sc("n", null)],
+    };
+    const b = polarityBalance(doc);
+    expect(b.totale).toEqual({ testa: 5, cuore: 1, pancia: 0, nessuna: 1 });
+    expect(b.perAtto.map((a) => a.conteggi.testa)).toEqual([4, 1]);
+    // t3, t4 e «fine» sono di fila nella storia (fine dell'atto 1, inizio dell'atto 2).
+    expect(b.serie.map((r) => r.scene.map((s) => s.id))).toEqual([["t3", "t4", "fine"]]);
+    expect(storyOrder(doc).map((s) => s.id)).toEqual(["t1", "t2", "c1", "t3", "t4", "fine", "n"]);
   });
 });

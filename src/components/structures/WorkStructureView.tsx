@@ -16,7 +16,9 @@ import {
   changeMeasure,
   measureOf,
   moveScene,
+  polarityBalance,
   sceneAmounts,
+  storyOrder,
   sectionTargets,
   totalBattute,
   scenesIn,
@@ -32,6 +34,7 @@ import type { ProjectData } from "@/lib/server/projects";
 import type { SheetsData } from "@/lib/server/sheets";
 import type { ChapterStats, LibraryData } from "@/lib/server/structures";
 import { formatCount } from "@/lib/text/stats";
+import { CENTER_INFO, CENTERS } from "@/lib/project/entities";
 import ActsEditor from "./ActsEditor";
 import SceneEditor from "./SceneEditor";
 
@@ -503,6 +506,12 @@ function SceneCard({
         <span className="scene-title">{scene.titolo}</span>
         <span className="scene-meta">
           <span className={`pill pill-${scene.stato}`}>{SCENE_STATUS_LABEL[scene.stato]}</span>
+          {scene.polarizzazione && (
+            <span className={`center-badge center-${scene.polarizzazione}`} title={`Scena di ${CENTER_INFO[scene.polarizzazione].label.toLowerCase()}`}>
+              {CENTER_INFO[scene.polarizzazione].label[0]}
+              <span className="sr-only"> ({CENTER_INFO[scene.polarizzazione].label.toLowerCase()})</span>
+            </span>
+          )}
           {scene.pov && <span>POV {names.get(scene.pov) ?? "(eliminato)"}</span>}
         </span>
         <span className="small muted">
@@ -706,6 +715,7 @@ function Overview({
       </section>
 
       <MismatchNotice mismatched={mismatched} titleOf={(f) => capitoli.find((c) => c.file === f)?.titolo ?? f} />
+      <PolarityCard doc={doc} onOpen={onOpen} />
       <section className="card table-card">
         <h2 className="h2">Sezioni</h2>
         <div className="table-wrap">
@@ -860,5 +870,90 @@ function MismatchNotice({ mismatched, titleOf }: { mismatched: SceneAmounts["mis
       </ul>
       Per contarle esattamente, separa le scene nel capitolo con il pulsante «Cambio scena» (una riga «---»), nello stesso ordine in cui sono nella struttura.
     </div>
+  );
+}
+
+/**
+ * Equilibrio fra scene di testa, cuore e pancia: proporzioni per l'opera e per
+ * atto, ritmo nell'ordine della storia, serie troppo lunghe dello stesso registro.
+ */
+function PolarityCard({ doc, onOpen }: { doc: WorkStructure; onOpen: (s: Scene) => void }) {
+  const b = polarityBalance(doc);
+  const marked = b.totale.testa + b.totale.cuore + b.totale.pancia;
+  const row = (label: string, c: typeof b.totale) => {
+    const n = c.testa + c.cuore + c.pancia;
+    const pct = (k: (typeof CENTERS)[number]) => (n ? Math.round((c[k] / n) * 100) : 0);
+    return (
+      <div key={label} className="balance-row">
+        <span className="balance-label">{label}</span>
+        <span className="balance-bar" aria-hidden="true">
+          {CENTERS.map((k) => (c[k] ? <span key={k} className={`center-${k}`} style={{ flexGrow: c[k] }} /> : null))}
+          {n === 0 && <span className="balance-empty" style={{ flexGrow: 1 }} />}
+        </span>
+        <span className="balance-values small">
+          {n === 0
+            ? "nessuna scena con registro"
+            : CENTERS.map((k) => `${CENTER_INFO[k].label} ${pct(k)}%`).join(" · ")}
+          {c.nessuna > 0 && <span className="muted"> · {c.nessuna} senza</span>}
+        </span>
+      </div>
+    );
+  };
+  const ordered = storyOrder(doc);
+  return (
+    <section className="card stack" aria-labelledby="equilibrio-title">
+      <div>
+        <h2 id="equilibrio-title" className="h2" style={{ margin: 0 }}>
+          Equilibrio testa · cuore · pancia
+        </h2>
+        <p className="small muted" style={{ margin: "4px 0 0" }}>
+          Il registro prevalente di ogni scena, da indicare nella sua scheda: testa (riflessione, scoperta), cuore (emozione, relazioni), pancia (azione, istinto).
+        </p>
+      </div>
+      {marked === 0 ? (
+        <p className="small muted" style={{ margin: 0 }}>
+          Nessuna scena ha ancora un registro. Aprine una e scegli Testa, Cuore o Pancia per vedere qui l&apos;equilibrio dell&apos;opera.
+        </p>
+      ) : (
+        <>
+          <div className="balance">
+            {row("Opera", b.totale)}
+            {b.perAtto.map((a) => row(a.nome, a.conteggi))}
+          </div>
+          <div>
+            <div className="small muted" style={{ marginBottom: 4 }}>
+              Ritmo, nell&apos;ordine della storia
+            </div>
+            <ol className="rhythm" aria-label="Registro delle scene nell'ordine della storia">
+              {ordered.map((s) => (
+                <li key={s.id}>
+                  <button
+                    type="button"
+                    className={`rhythm-cell${s.polarizzazione ? ` center-${s.polarizzazione}` : " is-none"}`}
+                    title={`${s.titolo}${s.polarizzazione ? ` · ${CENTER_INFO[s.polarizzazione].label.toLowerCase()}` : " · senza registro"}`}
+                    aria-label={`${s.titolo}: ${s.polarizzazione ? CENTER_INFO[s.polarizzazione].label.toLowerCase() : "senza registro"}`}
+                    onClick={() => onOpen(s)}
+                  >
+                    {s.polarizzazione ? CENTER_INFO[s.polarizzazione].label[0] : "·"}
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </div>
+          {b.serie.length > 0 && (
+            <div className="notice notice-warn" role="note">
+              {b.serie.map((r, i) => (
+                <div key={i}>
+                  {r.scene.length} scene di {CENTER_INFO[r.centro].label.toLowerCase()} di fila: {r.scene.map((x) => `«${x.titolo}»`).join(", ")}.
+                </div>
+              ))}
+              <div className="small" style={{ marginTop: 4 }}>
+                Non è per forza un errore, ma lunghe serie dello stesso registro rischiano di rallentare (testa), stancare (pancia) o appesantire (cuore): valuta se alternare.
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </section>
   );
 }

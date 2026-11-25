@@ -9,7 +9,7 @@
  * testi qui sotto e alza MENTOR_SKILL_VERSION.
  */
 
-export const MENTOR_SKILL_VERSION = 3;
+export const MENTOR_SKILL_VERSION = 5;
 export const MENTOR_SKILL_DIR = ".claude/skills/writly-mentore";
 export const MENTOR_SKILL_PATH = `${MENTOR_SKILL_DIR}/SKILL.md`;
 
@@ -143,15 +143,26 @@ scene:
     luogo: molo-vecchio           # id della voce del mondo
     quando: "la notte dopo il naufragio"
     personaggi: [iris, tomas]
+    polarizzazione: cuore         # facoltativo: registro della scena, testa | cuore | pancia
 \`\`\`
+
+Il **registro** di una scena (\`polarizzazione\`) dice cosa prevale: testa
+(riflessione, scoperta, piano), cuore (emozione, relazioni), pancia (azione,
+pericolo, istinto).
 
 ### Schede personaggio (\`personaggi/<slug>.md\`)
 
 Front-matter: \`id\`, \`nome\`, \`alias\` (altri nomi con cui compare nel testo),
 \`ruolo\`, \`eta\`, e i gruppi \`fisico\` (aspetto, tratti, abbigliamento), \`morale\`
 (valori, paure, desideri, difetto, segreto), \`comportamento\` (parlare, tic,
-abitudini, stress), \`arco\` (partenza, arrivo). Dopo il front-matter, la
-biografia.
+abitudini, stress), \`arco\` (partenza, arrivo) e \`polarizzazione\`:
+\`dominante\` e \`trascurato\` (uno fra \`testa\`, \`cuore\`, \`pancia\`) più
+\`come\` (come si vede nel comportamento). Testa: analizza e prevede, sotto
+pressione esita o razionalizza. Cuore: passa tutto per le relazioni e
+l'immagine, sotto pressione cerca approvazione o si ferisce. Pancia: sente e
+agisce subito, sotto pressione reagisce prima di pensare. Il centro
+trascurato è spesso quello che l'arco gli insegna a usare. Dopo il
+front-matter, la biografia.
 
 ## Scrivere commenti: \`opere/<opera>/commenti/<capitolo>.yaml\`
 
@@ -274,7 +285,11 @@ il tema, anche di sbieco, o se ne dimentica? Segnalalo solo quando conta, con
 un commento sul capitolo intero.
 
 **Personaggi.** Agiscono e parlano secondo la scheda (valori, paure, modo di
-parlare, tic, comportamento sotto stress)? Se cambiano, il cambiamento è
+parlare, tic, comportamento sotto stress)? Se la scheda indica la
+polarizzazione, la reazione e la voce sono quelle del centro dominante,
+soprattutto sotto pressione (un personaggio di pancia che si mette a
+soppesare pro e contro nel momento del pericolo stona, a meno che non sia il
+segno del suo cambiamento)? Se cambiano, il cambiamento è
 motivato e coerente con l'arco (partenza → arrivo)? Ogni personaggio in scena
 ha una ragione per esserci?
 
@@ -364,11 +379,20 @@ Guarda il libro dall'alto: architettura, scene, archi, coerenza. Il risultato
   e forse dovrebbe, chi lo ha troppo.
 - La causalità tiene: ogni scena nasce dalla precedente («quindi», «ma»), non
   solo «e poi»?
+- Equilibrio dei registri (\`polarizzazione\` delle scene, se indicata):
+  proporzioni fra testa, cuore e pancia per l'opera e per atto, e serie di
+  tre o più scene di fila con lo stesso registro nell'ordine della storia.
+  Lunghe serie di testa rallentano, di pancia stancano, di cuore appesantiscono;
+  un atto senza scene di cuore rischia di non far affezionare il lettore.
+  Verifica anche che il registro dichiarato corrisponda al testo della scena.
 
 **Personaggi**
 - L'arco di ogni personaggio principale è visibile nelle scene: dove si vede
   la partenza, dove viene messo alla prova il difetto, dove avviene la scelta
   che lo cambia, dove si vede l'arrivo?
+- Polarizzazione del cast: centri tutti uguali (es. tutti di testa) rendono
+  i conflitti piatti; centri diversi in scena creano attrito da soli. L'arco
+  passa dal centro trascurato? Dove il personaggio è costretto a usarlo?
 - Personaggi che compaiono e spariscono, o che non hanno una funzione.
 - Le relazioni evolvono? In una saga: cosa cambia da un libro all'altro?
 
@@ -438,7 +462,8 @@ Cosa è cambiato quando esce? Qual è la cosa peggiore che potrebbe succedere
 qui? E la più sorprendente che resti coerente?
 
 Per un personaggio: cosa vuole e cosa gli serve davvero (non è la stessa
-cosa)? Qual è la bugia in cui crede? Cosa non direbbe mai ad alta voce? Come
+cosa)? Davanti a un pericolo, prima pensa, sente o agisce (testa, cuore,
+pancia)? Quale dei tre non usa mai, e cosa succederebbe se fosse costretto? Qual è la bugia in cui crede? Cosa non direbbe mai ad alta voce? Come
 reagisce quando ha paura? Cosa perde se cambia?
 
 Per tema e premessa (se in \`opera.yaml\` mancano o l'autore non ne è

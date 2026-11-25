@@ -1,4 +1,5 @@
 import YAML from "yaml";
+import { CENTERS, type Center } from "./entities";
 import { FormatError, parseYaml } from "./format";
 import { LONG, SHORT, compact, idList, idOrNull, isId, list, oneOf, record, requiredText, text } from "./normalize";
 
@@ -85,6 +86,8 @@ export interface Scene {
   /** Momento della storia in cui accade (testo libero: "la notte dopo il naufragio"). */
   quando: string;
   personaggi: string[];
+  /** Registro prevalente della scena: testa (riflessione, scoperta), cuore (emozione, relazioni), pancia (azione, istinto). */
+  polarizzazione?: Center;
 }
 
 export interface WorkStructure {
@@ -165,6 +168,7 @@ export function normalizeScene(value: unknown, what = "scena"): Scene {
     luogo: idOrNull(obj, "luogo", what),
     quando: text(obj, "quando", what, SHORT),
     personaggi: idList(obj.personaggi, `${what}, personaggi`),
+    ...(CENTERS.includes(obj.polarizzazione as Center) ? { polarizzazione: obj.polarizzazione as Center } : {}),
   };
 }
 
@@ -228,6 +232,7 @@ export function serializeWorkStructure(s: WorkStructure): string {
         luogo: sc.luogo,
         quando: sc.quando,
         personaggi: sc.personaggi,
+        polarizzazione: sc.polarizzazione,
         sinossi: sc.sinossi,
         obiettivo: sc.obiettivo,
         conflitto: sc.conflitto,
@@ -356,14 +361,61 @@ export function wordTargets(atti: StructureAct[], goal: number): Map<string, num
   return out;
 }
 
-/** Scene di un capitolo nell'ordine della storia: per atto e sezione, poi per posizione nella sezione; le non assegnate in fondo. */
-export function chapterScenes(doc: WorkStructure, file: string): Scene[] {
+/** Tutte le scene nell'ordine della storia: per atto e sezione, poi per posizione nella sezione; le non assegnate in fondo. */
+export function storyOrder(doc: WorkStructure): Scene[] {
   const order = new Map(allSections(doc.atti).map((s, i) => [s.id, i]));
   return doc.scene
     .map((s, i) => ({ s, i }))
-    .filter(({ s }) => s.capitolo === file)
     .sort((a, b) => (order.get(a.s.sezione ?? "") ?? Infinity) - (order.get(b.s.sezione ?? "") ?? Infinity) || a.i - b.i)
     .map(({ s }) => s);
+}
+
+/** Scene di un capitolo nell'ordine della storia. */
+export function chapterScenes(doc: WorkStructure, file: string): Scene[] {
+  return storyOrder(doc).filter((s) => s.capitolo === file);
+}
+
+export type CenterCounts = Record<Center | "nessuna", number>;
+
+export interface PolarityBalance {
+  totale: CenterCounts;
+  perAtto: { id: string; nome: string; conteggi: CenterCounts }[];
+  /** Serie di scene consecutive (nell'ordine della storia) con lo stesso registro. */
+  serie: { centro: Center; scene: Scene[] }[];
+}
+
+function countCenters(scenes: Scene[]): CenterCounts {
+  const out: CenterCounts = { testa: 0, cuore: 0, pancia: 0, nessuna: 0 };
+  for (const s of scenes) out[s.polarizzazione ?? "nessuna"]++;
+  return out;
+}
+
+/**
+ * Equilibrio fra testa, cuore e pancia nelle scene dell'opera: conteggi per
+ * opera e per atto, e le serie di almeno `minRun` scene di fila con lo stesso
+ * registro (una scena senza registro interrompe la serie).
+ */
+export function polarityBalance(doc: WorkStructure, minRun = 3): PolarityBalance {
+  const ordered = storyOrder(doc);
+  const serie: PolarityBalance["serie"] = [];
+  let run: Scene[] = [];
+  const close = () => {
+    if (run.length >= minRun && run[0].polarizzazione) serie.push({ centro: run[0].polarizzazione, scene: run });
+    run = [];
+  };
+  for (const s of ordered) {
+    if (!s.polarizzazione || (run.length && run[0].polarizzazione !== s.polarizzazione)) close();
+    if (s.polarizzazione) run.push(s);
+  }
+  close();
+  return {
+    totale: countCenters(doc.scene),
+    perAtto: doc.atti.map((a) => {
+      const ids = new Set(a.sezioni.map((x) => x.id));
+      return { id: a.id, nome: a.nome, conteggi: countCenters(doc.scene.filter((s) => s.sezione && ids.has(s.sezione))) };
+    }),
+    serie,
+  };
 }
 
 export interface SceneAmounts {

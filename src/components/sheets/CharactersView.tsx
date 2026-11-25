@@ -5,9 +5,12 @@ import ProjectNav from "@/components/project/ProjectNav";
 import { api, ClientApiError, projectApi } from "@/lib/client/api";
 import { useApiData, useBeforeUnload } from "@/lib/client/hooks";
 import {
+  CENTER_INFO,
+  CENTERS,
   CHARACTER_GROUPS,
   RELATION_SUGGESTIONS,
   emptyCharacter,
+  type Center,
   type Character,
   type Relation,
 } from "@/lib/project/entities";
@@ -309,6 +312,72 @@ function CharacterForm({
           </div>
         </fieldset>
       ))}
+
+      <fieldset className="fieldset">
+        <legend>Polarizzazione</legend>
+        <p className="small muted" style={{ margin: "0 0 8px" }}>
+          Con quale centro il personaggio legge il mondo e reagisce per primo, e quale trascura (spesso è lì che passa il suo arco).
+        </p>
+        <div className="form-grid">
+          <div className="field">
+            <span id="ch-pol-dom" className="label">
+              Centro dominante
+            </span>
+            <div className="segmented" role="radiogroup" aria-labelledby="ch-pol-dom">
+              {CENTERS.map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  role="radio"
+                  aria-checked={c.polarizzazione.dominante === k}
+                  onClick={() =>
+                    change({
+                      ...c,
+                      polarizzazione: {
+                        ...c.polarizzazione,
+                        dominante: c.polarizzazione.dominante === k ? null : k,
+                        trascurato: c.polarizzazione.trascurato === k ? null : c.polarizzazione.trascurato,
+                      },
+                    })
+                  }
+                >
+                  {CENTER_INFO[k].label}
+                </button>
+              ))}
+            </div>
+            <span className="hint">{c.polarizzazione.dominante ? `Di ${CENTER_INFO[c.polarizzazione.dominante].label.toLowerCase()}: ${CENTER_INFO[c.polarizzazione.dominante].descrizione}.` : "Nessuno indicato. Un secondo clic sul centro scelto lo toglie."}</span>
+          </div>
+          <div className="field">
+            <label htmlFor="ch-pol-tra">Centro trascurato</label>
+            <select
+              id="ch-pol-tra"
+              className="select"
+              value={c.polarizzazione.trascurato ?? ""}
+              onChange={(e) => change({ ...c, polarizzazione: { ...c.polarizzazione, trascurato: (e.target.value || null) as Center | null } })}
+            >
+              <option value="">—</option>
+              {CENTERS.filter((k) => k !== c.polarizzazione.dominante).map((k) => (
+                <option key={k} value={k}>
+                  {CENTER_INFO[k].label}
+                </option>
+              ))}
+            </select>
+            <span className="hint">Facoltativo: il centro che non usa, e che magari imparerà a usare.</span>
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="ch-pol-come">Come si vede</label>
+          <textarea
+            id="ch-pol-come"
+            className="textarea"
+            rows={2}
+            maxLength={4000}
+            value={c.polarizzazione.come}
+            placeholder="es. decide prima di sentire; si accorge di avere paura solo dopo"
+            onChange={(e) => change({ ...c, polarizzazione: { ...c.polarizzazione, come: e.target.value } })}
+          />
+        </div>
+      </fieldset>
 
       <div className="field">
         <label htmlFor="ch-bio">Biografia</label>

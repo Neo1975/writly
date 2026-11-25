@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CHARACTER_GROUPS } from "@/lib/project/entities";
+import { CHARACTER_GROUPS, describePolarization } from "@/lib/project/entities";
 import { SCENE_STATUS_LABEL, type Scene } from "@/lib/project/structure";
 import type { WorldRule } from "@/lib/project/world";
 import type { SheetsData } from "@/lib/server/sheets";
@@ -28,6 +28,8 @@ export function summarize(sheets: SheetsData, id: string, projectHref: string): 
   if (c) {
     const righe: [string, string][] = [];
     if (c.eta) righe.push(["Età", c.eta]);
+    const pol = describePolarization(c.polarizzazione);
+    if (pol) righe.push(["Polarizzazione", pol]);
     for (const g of ["fisico", "morale", "comportamento"] as const) {
       for (const [field, label] of Object.entries(CHARACTER_GROUPS[g].fields)) {
         const v = (c[g] as Record<string, string>)[field];

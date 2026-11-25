@@ -5,6 +5,14 @@ import Modal from "@/components/ui/Modal";
 import type { ChapterEntry } from "@/lib/project/format";
 import { SCENE_STATUSES, SCENE_STATUS_LABEL, type Scene, type SceneStatus, type StructureAct } from "@/lib/project/structure";
 import type { SheetsData } from "@/lib/server/sheets";
+import { CENTER_INFO, CENTERS, type Center } from "@/lib/project/entities";
+
+/** Cosa vuol dire il registro di una scena (diverso dalla polarizzazione di un personaggio). */
+export const SCENE_REGISTER: Record<Center, string> = {
+  testa: "Scena di testa: riflessione, scoperta, piano, indagine; il lettore capisce.",
+  cuore: "Scena di cuore: emozione, relazione, confronto fra persone; il lettore sente.",
+  pancia: "Scena di pancia: azione, pericolo, istinto, corpo; il lettore trattiene il fiato.",
+};
 
 /** Editor di scena: modifica una copia, la restituisce con `onSave` (il commit avviene con «Salva struttura»). */
 export default function SceneEditor({
@@ -58,6 +66,7 @@ function SceneForm({
   const set = (patch: Partial<Scene>) => setS((cur) => ({ ...cur, ...patch }));
   const characters = sheets?.personaggi ?? [];
   const known = new Set(characters.map((c) => c.data.id));
+  const povCenter = characters.find((c) => c.data.id === s.pov)?.data.polarizzazione.dominante ?? null;
   const missing = s.personaggi.filter((id) => !known.has(id));
 
   function submit(e: FormEvent) {
@@ -104,6 +113,22 @@ function SceneForm({
               </option>
             ))}
           </select>
+        </div>
+        <div className="field">
+          <span id="sc-pol" className="label">
+            Registro della scena
+          </span>
+          <div className="segmented" role="radiogroup" aria-labelledby="sc-pol">
+            {CENTERS.map((k) => (
+              <button key={k} type="button" role="radio" aria-checked={s.polarizzazione === k} onClick={() => set({ polarizzazione: s.polarizzazione === k ? undefined : k })}>
+                {CENTER_INFO[k].label}
+              </button>
+            ))}
+          </div>
+          <span className="hint">
+            {s.polarizzazione ? SCENE_REGISTER[s.polarizzazione] : "Facoltativo: testa (riflessione, scoperta), cuore (emozione, relazioni), pancia (azione, istinto). Un secondo clic toglie la scelta."}
+            {povCenter && ` Il punto di vista è di ${CENTER_INFO[povCenter].label.toLowerCase()}.`}
+          </span>
         </div>
         <div className="field">
           <label htmlFor="sc-capitolo">Capitolo di destinazione</label>
