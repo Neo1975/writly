@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Writly · Export PDF e opuscolo</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Literata:opsz,wght@7..72,400;7..72,600&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F2;color:#1F2328;font-family:Inter,system-ui,sans-serif}
+a{color:#2E4A7D}a:hover{color:#1D3460}
+.nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#3D434C;text-decoration:none;font-size:14px;min-height:24px}
+.nav a:hover{background:#ECEAE4;color:#1F2328}
+.nav a.on{background:#E8EDF6;color:#1D3460;font-weight:600}
+.lbl{display:block;font-size:12px;font-weight:600;color:#3D434C;margin-bottom:6px}
+.sel{width:100%;height:40px;border:1px solid #D5D2CA;border-radius:8px;padding:0 10px;font:14px Inter,sans-serif;background:#FFFFFF}
+.chk{display:flex;align-items:center;gap:10px;min-height:36px;font-size:14px}
+.chk input{width:18px;height:18px}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; font-family: Inter, system-ui, sans-serif; background: #F6F5F2">
+  <nav class="nav" aria-label="Navigazione principale" style="flex: 1 1 200px; max-width: 220px; box-sizing: border-box; padding: 20px 12px; background: #FFFFFF; border-right: 1px solid #E3E1DC; display: flex; flex-direction: column; gap: 4px">
+    <div style="font-family: Literata, Georgia, serif; font-size: 24px; font-weight: 600; padding: 4px 12px 18px">Writly</div>
+    <a href="Main.dc.html">Libreria</a>
+    <div style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #5C6370; padding: 16px 12px 6px">Il porto delle nebbie</div>
+    <a href="Editor.dc.html">Scrivi</a>
+    <a href="Struttura.dc.html">Struttura</a>
+    <a href="Scena.dc.html">Scene</a>
+    <a href="Personaggi.dc.html">Personaggi</a>
+    <a href="Mondo.dc.html">Mondo</a>
+    <a href="Appunti.dc.html">Appunti e glossario</a>
+    <a href="Versioni.dc.html">Versioni</a>
+    <a class="on" href="Export.dc.html">Esporta PDF</a>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 18px">
+    <header style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between">
+      <h1 style="margin: 0; font-family: Literata, Georgia, serif; font-size: 30px; font-weight: 600">Esporta PDF</h1>
+      <button type="button" style="height: 44px; padding: 0 20px; border: 0; border-radius: 8px; background: #2E4A7D; color: #FFFFFF; font: 600 14px Inter, sans-serif">{{ cta }}</button>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+      <form style="flex: 1 1 300px; max-width: 360px; background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 18px">
+        <fieldset style="border: 0; padding: 0; margin: 0">
+          <legend class="lbl">Cosa esportare</legend>
+          <div class="chk"><input type="radio" name="cosa" id="c1"><label for="c1">Capitolo corrente</label></div>
+          <div class="chk"><input type="radio" name="cosa" id="c2" checked><label for="c2">Selezione di capitoli</label></div>
+          <div style="margin: 4px 0 0 28px; padding: 8px 12px; background: #F6F5F2; border-radius: 8px">
+            <div class="chk"><input type="checkbox" id="k1" checked><label for="k1">1–6 · Parte prima</label></div>
+            <div class="chk"><input type="checkbox" id="k2" checked><label for="k2">7 · Le lanterne del molo</label></div>
+            <div class="chk"><input type="checkbox" id="k3"><label for="k3">8 · (pianificato)</label></div>
+          </div>
+          <div class="chk"><input type="radio" name="cosa" id="c3"><label for="c3">Opera intera</label></div>
+        </fieldset>
+
+        <div>
+          <span class="lbl">Impaginazione</span>
+          <div role="group" aria-label="Impaginazione" style="display: flex; gap: 4px; background: #ECEAE4; padding: 4px; border-radius: 10px">
+            <button type="button" aria-pressed="{{ normSel }}" onClick="{{ setNorm }}" style="{{ normStyle }}">Pagine singole</button>
+            <button type="button" aria-pressed="{{ bookSel }}" onClick="{{ setBook }}" style="{{ bookStyle }}">Opuscolo</button>
+          </div>
+        </div>
+
+        <div><label class="lbl" for="tpl">Template</label>
+          <select id="tpl" class="sel"><option>Romanzo classico · A5, Literata 11pt</option><option>Bozza per lettori · A4, interlinea doppia</option><option>Manoscritto per editori · A4, 30 righe</option><option>Nuovo template…</option></select>
+          <a href="Export.dc.html" style="display: inline-block; margin-top: 8px; font-size: 13px">Modifica template</a>
+        </div>
+
+        <sc-if value="{{ book }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 14px; padding-top: 14px; border-top: 1px solid #ECEAE4">
+            <div><label class="lbl" for="fg">Foglio di stampa</label><select id="fg" class="sel"><option>A4 piegato → pagine A5</option><option>A3 piegato → pagine A4</option></select></div>
+            <div><label class="lbl" for="fr">Fronte/retro</label><select id="fr" class="sel"><option>Rilegatura lato corto</option><option>Rilegatura lato lungo</option><option>Manuale (stampa prima i fronti)</option></select></div>
+            <div><label class="lbl" for="sg">Fascicoli (segnature)</label><select id="sg" class="sel"><option>Un unico opuscolo</option><option>Fascicoli da 4 fogli (16 pagine)</option><option>Fascicoli da 8 fogli (32 pagine)</option></select></div>
+            <div class="chk"><input type="checkbox" id="cr"><label for="cr">Compensa lo scorrimento (creep)</label></div>
+            <div style="font-size: 13px; line-height: 1.5; color: #6B4A12; background: #FBF1DF; padding: 10px 12px; border-radius: 8px">54 pagine → aggiunte 2 pagine bianche per arrivare a 56 (14 fogli).</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ norm }}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-direction: column; gap: 4px; padding-top: 14px; border-top: 1px solid #ECEAE4">
+            <div class="chk"><input type="checkbox" id="o1" checked><label for="o1">Frontespizio</label></div>
+            <div class="chk"><input type="checkbox" id="o2" checked><label for="o2">Indice</label></div>
+            <div class="chk"><input type="checkbox" id="o3"><label for="o3">Filigrana «BOZZA»</label></div>
+          </div>
+        </sc-if>
+      </form>
+
+      <section aria-label="Anteprima" style="flex: 999 1 480px; min-width: 0; background: #E9E7E1; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 16px; align-items: center">
+        <sc-if value="{{ norm }}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-direction: column; gap: 12px; align-items: center">
+            <div style="font-size: 13px; color: #3D434C">Anteprima · pagine 2–3 di 54</div>
+            <div style="display: flex; gap: 2px; box-shadow: 0 6px 20px rgba(31,35,40,.18)">
+              <div style="width: 280px; height: 396px; background: #FFFFFF; box-sizing: border-box; padding: 40px 30px 30px 36px; display: flex; flex-direction: column; font-family: Literata, Georgia, serif">
+                <div style="font-size: 9px; color: #5C6370; letter-spacing: .1em; text-transform: uppercase; text-align: center">Il porto delle nebbie</div>
+                <div style="margin-top: 70px; text-align: center; font-size: 22px">VII</div>
+                <div style="text-align: center; font-size: 15px; margin-top: 4px">Le lanterne del molo</div>
+                <p style="margin: 28px 0 0; font-size: 10px; line-height: 1.6; text-indent: 1.2em; text-align: justify">Iris scese al molo quando le lanterne erano già accese. Il vento portava odore di salmastro e di corde bagnate, e soprattutto quel silenzio che precede le partenze.</p>
+                <div style="margin-top: auto; text-align: center; font-size: 9px; color: #5C6370">2</div>
+              </div>
+              <div style="width: 280px; height: 396px; background: #FFFFFF; box-sizing: border-box; padding: 40px 36px 30px 30px; display: flex; flex-direction: column; font-family: Literata, Georgia, serif">
+                <div style="font-size: 9px; color: #5C6370; letter-spacing: .1em; text-transform: uppercase; text-align: center">Le lanterne del molo</div>
+                <p style="margin: 20px 0 0; font-size: 10px; line-height: 1.6; text-indent: 1.2em; text-align: justify">Teodoro la aspettava sotto la tettoia, il cappello calato sugli occhi, come se il buio potesse proteggerlo dagli sguardi dei pescatori. Non si voltò quando lei gli fu accanto.</p>
+                <p style="margin: 0; font-size: 10px; line-height: 1.6; text-indent: 1.2em; text-align: justify">«Hai portato le carte?» chiese, senza staccare gli occhi dall'acqua.</p>
+                <p style="margin: 0; font-size: 10px; line-height: 1.6; text-indent: 1.2em; text-align: justify">«Ho portato un altro problema» rispose Iris. «Il Capitano sa che siamo qui.»</p>
+                <div style="margin-top: auto; text-align: center; font-size: 9px; color: #5C6370">3</div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ book }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 14px; align-items: center; width: 100%">
+            <div style="font-size: 13px; color: #3D434C">Imposizione · ogni foglio A4 orizzontale, piegato a metà</div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; width: 100%">
+              <sc-for list="{{ sheets }}" as="s" hint-placeholder-count="4">
+                <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+                  <div style="font: 600 12px Inter, sans-serif; color: #3D434C">{{ s.label }}</div>
+                  <div style="display: flex; width: 240px; height: 170px; background: #FFFFFF; box-shadow: 0 4px 14px rgba(31,35,40,.15); position: relative">
+                    <div style="flex: 1; display: flex; align-items: center; justify-content: center; font: 600 28px Literata, serif; color: #1F2328; border-right: 1px dashed #A9A59B">{{ s.l }}</div>
+                    <div style="flex: 1; display: flex; align-items: center; justify-content: center; font: 600 28px Literata, serif; color: #1F2328">{{ s.r }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="font-size: 13px; line-height: 1.5; color: #3D434C; text-align: center; max-width: 520px">Esempio su 8 pagine: stampa fronte/retro, impila i fogli, piega lungo la linea tratteggiata e ottieni le pagine in ordine 1→8.</div>
+            <button type="button" style="height: 40px; padding: 0 14px; border: 1px solid #A9A59B; border-radius: 8px; background: #FFFFFF; font: 13px Inter, sans-serif">Scarica pagina di prova (verifica orientamento)</button>
+          </div>
+        </sc-if>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { mode: 'book' }; }
+  renderVals() {
+    const book = this.state.mode === 'book';
+    const st = (on) => 'flex: 1; height: 36px; padding: 0 12px; border: 0; border-radius: 7px; cursor: pointer; font: ' + (on ? '600' : '500') + ' 13px Inter, sans-serif; background: ' + (on ? '#FFFFFF' : 'transparent') + '; color: #1F2328';
+    return {
+      book, norm: !book,
+      bookSel: book ? 'true' : 'false', normSel: book ? 'false' : 'true',
+      bookStyle: st(book), normStyle: st(!book),
+      setBook: () => this.setState({ mode: 'book' }), setNorm: () => this.setState({ mode: 'norm' }),
+      cta: book ? 'Genera opuscolo PDF' : 'Genera PDF',
+      sheets: [
+        { label: 'Foglio 1 · fronte', l: '8', r: '1' },
+        { label: 'Foglio 1 · retro', l: '2', r: '7' },
+        { label: 'Foglio 2 · fronte', l: '6', r: '3' },
+        { label: 'Foglio 2 · retro', l: '4', r: '5' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

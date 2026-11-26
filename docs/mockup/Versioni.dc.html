@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Writly · Storico e confronto</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Literata:opsz,wght@7..72,400;7..72,600&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F2;color:#1F2328;font-family:Inter,system-ui,sans-serif}
+a{color:#2E4A7D}a:hover{color:#1D3460}
+.nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#3D434C;text-decoration:none;font-size:14px;min-height:24px}
+.nav a:hover{background:#ECEAE4;color:#1F2328}
+.nav a.on{background:#E8EDF6;color:#1D3460;font-weight:600}
+del{background:#FBE3E1;color:#8E2A1F;text-decoration:line-through;border-radius:3px;padding:0 2px}
+ins{background:#DFF0E5;color:#1E5E38;text-decoration:none;border-radius:3px;padding:0 2px}
+.ver{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:10px;border:1px solid #E3E1DC;background:#FFFFFF}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; font-family: Inter, system-ui, sans-serif; background: #F6F5F2">
+  <nav class="nav" aria-label="Navigazione principale" style="flex: 1 1 200px; max-width: 220px; box-sizing: border-box; padding: 20px 12px; background: #FFFFFF; border-right: 1px solid #E3E1DC; display: flex; flex-direction: column; gap: 4px">
+    <div style="font-family: Literata, Georgia, serif; font-size: 24px; font-weight: 600; padding: 4px 12px 18px">Writly</div>
+    <a href="Main.dc.html">Libreria</a>
+    <div style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #5C6370; padding: 16px 12px 6px">Il porto delle nebbie</div>
+    <a href="Editor.dc.html">Scrivi</a>
+    <a href="Struttura.dc.html">Struttura</a>
+    <a href="Scena.dc.html">Scene</a>
+    <a href="Personaggi.dc.html">Personaggi</a>
+    <a href="Mondo.dc.html">Mondo</a>
+    <a href="Appunti.dc.html">Appunti e glossario</a>
+    <a class="on" href="Versioni.dc.html">Versioni</a>
+    <a href="Export.dc.html">Esporta PDF</a>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 18px">
+    <header style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between">
+      <div>
+        <a href="Editor.dc.html" style="font-size: 13px">← Cap. 7 — Le lanterne del molo</a>
+        <h1 style="margin: 6px 0 0; font-family: Literata, Georgia, serif; font-size: 30px; font-weight: 600">Storico e confronto</h1>
+      </div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center">
+        <label for="var" style="font-size: 13px; color: #3D434C">Variante</label>
+        <select id="var" style="height: 40px; border: 1px solid #D5D2CA; border-radius: 8px; padding: 0 10px; font: 14px Inter, sans-serif; background: #FFFFFF"><option>Principale</option><option>Finale alternativo</option></select>
+        <div role="group" aria-label="Modalità di confronto" style="display: flex; gap: 4px; background: #ECEAE4; padding: 4px; border-radius: 10px">
+          <button type="button" aria-pressed="{{ twoSel }}" onClick="{{ setTwo }}" style="{{ twoStyle }}">2 versioni</button>
+          <button type="button" aria-pressed="{{ threeSel }}" onClick="{{ setThree }}" style="{{ threeStyle }}">3 versioni</button>
+        </div>
+      </div>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+      <section aria-label="Versioni salvate" style="flex: 1 1 280px; max-width: 320px; display: flex; flex-direction: column; gap: 8px">
+        <div style="font-size: 12px; color: #5C6370">Seleziona le versioni da confrontare</div>
+        <div class="ver" style="border-color: #C77B12"><input type="checkbox" id="v0" aria-label="Bozza corrente" style="width: 20px; height: 20px; margin-top: 2px"><label for="v0" style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 600">Bozza corrente</span><span style="display: block; font-size: 12px; color: #5C6370">non ancora salvata · +84 parole</span></label></div>
+        <div class="ver" style="border-color: #2E4A7D; background: #E8EDF6"><input type="checkbox" id="v1" checked aria-label="Versione di oggi" style="width: 20px; height: 20px; margin-top: 2px"><label for="v1" style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 600">Riscritto il dialogo al molo</span><span style="display: block; font-size: 12px; color: #5C6370">oggi 18:42 · a1f9c3e · +212 / −140</span></label></div>
+        <sc-if value="{{ three }}" hint-placeholder-val="{{ false }}">
+          <div class="ver" style="border-color: #2E4A7D; background: #E8EDF6"><input type="checkbox" id="v2" checked aria-label="Versione di ieri" style="width: 20px; height: 20px; margin-top: 2px"><label for="v2" style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 600">Aggiunto il Capitano</span><span style="display: block; font-size: 12px; color: #5C6370">ieri 22:10 · 7c02b18 · +96 / −12</span></label></div>
+        </sc-if>
+        <sc-if value="{{ two }}" hint-placeholder-val="{{ true }}">
+          <div class="ver"><input type="checkbox" id="v2b" aria-label="Versione di ieri" style="width: 20px; height: 20px; margin-top: 2px"><label for="v2b" style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 600">Aggiunto il Capitano</span><span style="display: block; font-size: 12px; color: #5C6370">ieri 22:10 · 7c02b18 · +96 / −12</span></label></div>
+        </sc-if>
+        <div class="ver" style="border-color: #2E4A7D; background: #E8EDF6"><input type="checkbox" id="v3" checked aria-label="Prima stesura" style="width: 20px; height: 20px; margin-top: 2px"><label for="v3" style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 600">Prima stesura completa</span><span style="display: block; font-size: 12px; color: #5C6370">12 nov · 3e8d0aa · +1.980</span></label></div>
+        <div class="ver"><input type="checkbox" id="v4" aria-label="Scaletta" style="width: 20px; height: 20px; margin-top: 2px"><label for="v4" style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 600">Scaletta del capitolo</span><span style="display: block; font-size: 12px; color: #5C6370">9 nov · 91b47fd · +310</span></label></div>
+        <div style="font-size: 12px; color: #5C6370; padding-top: 4px">Ogni versione è un commit su github.com/autore/cronache-di-vael</div>
+      </section>
+
+      <section aria-label="Confronto" style="flex: 999 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center">
+          <div style="font-size: 14px; color: #3D434C">Differenze a livello di parola · scorrimento sincronizzato</div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <button type="button" style="height: 36px; padding: 0 12px; border: 1px solid #D5D2CA; border-radius: 8px; background: #FFFFFF; font: 13px Inter, sans-serif">Ripristina paragrafo</button>
+            <button type="button" style="height: 36px; padding: 0 12px; border: 1px solid #D5D2CA; border-radius: 8px; background: #FFFFFF; font: 13px Inter, sans-serif">Ripristina versione</button>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: {{ cols }}; gap: 16px; font-family: Literata, Georgia, serif; font-size: 16px; line-height: 1.7; color: #22262B">
+          <div style="border: 1px solid #ECEAE4; border-radius: 10px; padding: 14px 16px">
+            <div style="font: 600 12px Inter, sans-serif; color: #5C6370; margin-bottom: 8px">12 nov · Prima stesura</div>
+            <p style="margin: 0 0 10px">Teodoro la aspettava sotto la tettoia. Non si voltò quando lei arrivò.</p>
+            <p style="margin: 0">«Hai le carte?» chiese.</p>
+          </div>
+          <sc-if value="{{ three }}" hint-placeholder-val="{{ false }}">
+            <div style="border: 1px solid #ECEAE4; border-radius: 10px; padding: 14px 16px">
+              <div style="font: 600 12px Inter, sans-serif; color: #5C6370; margin-bottom: 8px">ieri · Aggiunto il Capitano</div>
+              <p style="margin: 0 0 10px">Teodoro la aspettava sotto la tettoia. Non si voltò quando lei arrivò.</p>
+              <p style="margin: 0">«Hai le carte?» chiese. <ins>«Il Capitano sa che siamo qui.»</ins></p>
+            </div>
+          </sc-if>
+          <div style="border: 1px solid #ECEAE4; border-radius: 10px; padding: 14px 16px">
+            <div style="font: 600 12px Inter, sans-serif; color: #5C6370; margin-bottom: 8px">oggi · Riscritto il dialogo al molo</div>
+            <p style="margin: 0 0 10px">Teodoro la aspettava sotto la tettoia<ins>, il cappello calato sugli occhi, come se il buio potesse proteggerlo dagli sguardi dei pescatori</ins>. Non si voltò quando lei <del>arrivò</del> <ins>gli fu accanto</ins>.</p>
+            <p style="margin: 0">«Hai <del>le</del> <ins>portato le</ins> carte?» chiese<ins>, senza staccare gli occhi dall'acqua</ins>.</p>
+          </div>
+        </div>
+        <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #3D434C"><span><ins>aggiunto</ins> testo nuovo</span><span><del>rimosso</del> testo eliminato</span></div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { n: 3 }; }
+  renderVals() {
+    const three = this.state.n === 3;
+    const st = (on) => 'height: 36px; padding: 0 14px; border: 0; border-radius: 7px; cursor: pointer; font: ' + (on ? '600' : '500') + ' 13px Inter, sans-serif; background: ' + (on ? '#FFFFFF' : 'transparent') + '; color: #1F2328';
+    return {
+      three, two: !three,
+      cols: three ? 'repeat(auto-fit, minmax(220px, 1fr))' : 'repeat(auto-fit, minmax(260px, 1fr))',
+      twoSel: three ? 'false' : 'true', threeSel: three ? 'true' : 'false',
+      twoStyle: st(!three), threeStyle: st(three),
+      setTwo: () => this.setState({ n: 2 }), setThree: () => this.setState({ n: 3 })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,46 +1,34 @@
-# Writly
+# Writly (branch `preview`, ripartenza da zero)
 
-Web app di supporto alla scrittura narrativa (Next.js App Router, TypeScript). GitHub è l'unica fonte di verità: nessun database applicativo.
+Web app per scrivere racconti, romanzi e saghe. Next.js 16 (App Router) + TypeScript. GitHub è l'unica fonte di verità: nessun database applicativo. Piano e requisiti in `docs/analisi-e-pianificazione.md`, mock-up in `docs/mockup/`.
 
-## Gerarchia dati
+@AGENTS.md
 
-Saga (repo GitHub, scoperto via topic `writly-saga`) → Romanzo (`romanzi/<slug>/romanzo.json`) → Capitolo (`romanzi/<slug>/capitoli/<file>.md` + `.comments.json` gemello).
+## Mappa del codice
 
-Personaggi (`personaggi/personaggi.json`) e Timeline degli eventi (`timeline/timeline.json`) vivono a livello **Saga**, non annidati sotto un Romanzo: sono condivisi/attraversano l'intera saga, non un singolo libro. Ogni evento della timeline può referenziare opzionalmente un romanzo/scena specifici (`romanzoSlug`/`sceneId` in `TimelineEvent`), ma non è obbligato a farlo.
+- `src/lib/project/` — formato dei file nel repo del progetto: manifest e capitoli (`format.ts`), strutture e scene (`structure.ts`, predefinite in `templates.ts`), personaggi/relazioni/voci del mondo (`entities.ts`), regole/cronologia/mappe (`world.ts`), appunti e glossario (`notes.ts`), commenti ai capitoli con ancoraggio alla citazione (`comments.ts`), skill del mentore AI per Claude Code (`mentor-skill.ts`), validazione dei campi (`normalize.ts`), percorsi consentiti (`paths.ts`), slug. Logica pura, testata.
+- `src/lib/text/` — statistiche (parole, battute), tokenizzazione per l'ortografia, riconoscimento dei nomi (`mentions.ts`), confronto a parole e per paragrafi (`diff.ts`), controlli di stile (`style.ts`) e di continuità con le schede (`continuity.ts`).
+- `src/lib/export/` — export PDF: Markdown → blocchi (`markdown.ts`), template (`template.ts`), definizioni pdfmake pure (`pdf.ts`), imposizione a opuscolo (`imposition.ts`), impaginazione nel browser con pdfmake + pdf-lib (`render.ts`, solo client, import dinamico); EPUB e DOCX come zip con fflate (`ebook.ts`).
+- `src/lib/server/` — solo lato server: token GitHub dal JWT (`auth-token.ts`), client Octokit, commit multi-file, albero e blob (`github.ts`), progetti (`projects.ts`), strutture e statistiche dell'opera (`structures.ts`), schede di progetto, compresi appunti e glossario (`sheets.ts`), appunti globali e spostamenti (`notes.ts`), varianti/rami (`variants.ts`), commenti con riscrittura sicura (`comments.ts`), panoramica con parole, presenze e continuità di tutte le opere (`overview.ts`), helper delle route (`http.ts`).
+- `src/app/api/progetti/**` — elenco/crea/collega; progetto (azioni via campo `azione`); file (lettura, salvataggio con sha, storico); `schede` (personaggi, relazioni, mondo, mappe con immagine, appunti, glossario); `immagine` (immagini delle mappe, solo PNG/JPEG/WebP sotto `mondo/mappe/`); `opere/[opera]/struttura` e `/statistiche`; `varianti`; `panoramica` (sola lettura); `commenti` (aggiungi, rispondi, risolvi, elimina). Il file route accetta `ramo=variante/<nome>`. `src/app/api/strutture` e `src/app/api/appunti` — strutture personali e appunti globali nel repo `writly-libreria`.
+- `src/components/editor/` — editor TipTap del capitolo, estensioni ortografia e nomi (`mentions.ts`), pannello laterale, storico con confronto (`HistoryDialog.tsx`, `DiffView.tsx`), unione (`MergeDialog.tsx`), commenti (`CommentsPanel.tsx`), evidenziazione di stile e continuità (`textchecks.ts`).
+- `src/components/structures/` — editor delle strutture (libreria), bacheca delle scene, editor di scena. `src/components/sheets/` — personaggi (con grafo) e mondo (voci, mappe, storia, regole). `src/components/notes/` — appunti, glossario, cattura rapida. `src/components/export/` — pagina Esporta e editor dei template PDF.
+- `src/lib/client/` — fetch verso le API, hook (`hooks.ts`), bozze e copie locali (IndexedDB + copia sincrona in localStorage alla chiusura), preferenze del browser e diario della scrittura (`prefs.ts`, solo localStorage, mai su GitHub).
 
-Esiste inoltre un'**Agendina** personale dell'autore, fuori da questa gerarchia: vive in un repo GitHub dedicato e separato (topic `writly-personal`, creato on-demand da `POST /api/agendina/repo`, non taggato `writly-saga` per non confondersi con le saghe nella Sidebar). Le note sono file Markdown (`note/<slug>.md`) con un indice leggero (`note/index.json`) per categoria/tag. Nessuna selezione di branch per l'Agendina: è un repo personale non collaborativo, si opera sempre sul branch di default.
+## Regole da rispettare
 
-## Flusso di lavoro reale (importante per capire certe richieste di feature)
+- Il token GitHub non deve mai arrivare al browser: non aggiungerlo a `session` in `src/auth.ts`; lato server usare `getAccessToken()`.
+- Le API accettano solo i percorsi validati da `src/lib/project/paths.ts`: niente scritture arbitrarie nel repository dell'autore.
+- Gli slug `personaggi`, `mondo`, `struttura`, `appunti`, `esporta`, `varianti`, `panoramica` sono riservati (segmenti delle pagine del progetto): non usarli per le opere. `mappe` non può essere una categoria del mondo.
+- Le immagini caricate si accettano solo se i primi byte sono PNG, JPEG o WebP: mai SVG o tipi dichiarati dal client.
+- I riferimenti tra file (scene → personaggi/luoghi, relazioni, collegamenti) usano gli `id` stabili, mai i nomi dei file; un id che non esiste più si mostra come «eliminato», non fa fallire il caricamento.
+- Le varianti sono solo rami `variante/<nome>` (`isVariantRef`): mai scrivere su altri rami. Le bozze locali sono separate per variante.
+- Salvare un capitolo richiede lo `sha` letto: in caso di conflitto (409) non si sovrascrive mai, si avvisa l'autore.
+- I commenti si ancorano alla frase citata, mai a segni dentro il Markdown dei capitoli. I commenti del mentore AI (`tipo: mentore`) si chiudono ma non si eliminano.
+- La skill del mentore (`src/lib/project/mentor-skill.ts`) viene copiata nei repository degli autori: se cambi il formato dei file, aggiorna la skill e alza `MENTOR_SKILL_VERSION` (il test `mentor-skill.test.ts` verifica che gli esempi della skill siano leggibili da Writly).
+- Interfaccia e messaggi d'errore in italiano, rivolti all'autore (non tecnici).
+- `GITHUB_API_URL` (opzionale) punta l'app a un altro endpoint GitHub: GitHub Enterprise o un server finto per i test end-to-end.
 
-L'autore usa questa app per scrivere, e in parallelo tiene una sessione **separata** di Claude Code in locale, puntata sugli stessi repo GitHub, che agisce da mentore narrativo (skill `.claude/skills/editor-comment.md`, generata da `src/lib/skill-template.ts`). Quel Claude Code scrive commenti con `authorType: "ai-mentor"` direttamente via commit — non c'è connessione live tra l'app web e quella sessione, solo git asincrono. Diverse feature nascono da attrito in questo flusso a due Claude Code (es. id breve dei commenti per poterli citare in chat, commenti risolti nascosti dalla vista principale ma recuperabili in uno storico).
+## Prima di ogni commit
 
-## Sintassi evidenziazione
-
-`{{h:ID:colore}}testo{{/h}}` — `colore` opzionale per retrocompatibilità. `ID` è l'highlight id, condivisibile da più commenti (vedi `highlightId` in `ChapterComment`, `src/lib/types.ts`).
-
-`src/lib/markdown.ts` supporta anche `[[Titolo Nota]]` (wikilink), usato solo dall'Agendina: `renderMarkdown` accetta un resolver opzionale titolo→slug, i capitoli della saga non lo passano e quindi non ne sono toccati.
-
-## Relazioni personaggio
-
-`Character.relationships` è un array di `{ personaggioId, relazione }` — riferimento per id al personaggio collegato, non per nome in chiaro (a differenza di `Scene.personaggi`, che resta testo libero separato da virgole: scelta non toccata in questa modifica). I dati legacy salvati come stringa libera vengono normalizzati in lettura (`getCharacters` in `src/lib/domain.ts`) in una singola voce con `personaggioId` vuoto, da assegnare manualmente dall'autore tramite il nuovo selettore in `CharacterBoard.tsx`.
-
-## Convenzioni di lavoro
-
-- Commit solo quando l'utente lo chiede esplicitamente ("fai commit").
-- Prima di ogni commit: `npx tsc --noEmit`, `npm run lint`, `npm run build` — tutti devono risultare puliti.
-- Staging esplicito escludendo gli env: `git add -A ":!.env" ":!.env.local"`, poi `git status --short` per verificare cosa è in stage.
-- Messaggi di commit in italiano, descrittivi, focalizzati sul perché.
-- Mai `git commit --amend` o force-push senza richiesta esplicita.
-
-## Limiti noti / scelte di scope accettate
-
-- **Branch switching** (selettore in sidebar, stato in `src/contexts/BranchContext.tsx` + localStorage per owner/repo): tutte le letture/scritture di contenuto (capitoli, commenti, scene, personaggi, impostazioni PDF) rispettano il branch selezionato. I **titoli** mostrati nelle pagine server-rendered (`RomanzoPage`, `RomanzoPdfPage`, `CapitoloPage`) restano letti dal branch di default: scelta deliberata per non dover propagare `?branch=` su ogni `<Link>`/`<a href>` dell'app. Da rivedere solo se i titoli disallineati tra branch diventano un problema reale.
-- Il branch selezionato viene validato contro l'elenco reale dei branch del repo appena caricato (`Sidebar.tsx`): se non esiste più (es. cancellato su GitHub), si torna automaticamente al branch predefinito con un avviso.
-- **Timeline degli eventi** è a livello Saga, non per singolo Romanzo: scelta deliberata per permettere eventi che attraversano più romanzi o che precedono la pubblicazione (backstory), e per restare coerente con i Personaggi (già saga-level) che ogni evento referenzia. Da rivedere se l'uso reale mostra che serve invece una timeline interna alla trama di un singolo romanzo, in parallelo all'architettura delle scene.
-- **Grafo di connessione personaggi** (`CharacterGraph.tsx`) usa un layout SVG circolare custom, senza librerie di grafici (nessuna era installata). Scelta per restare senza dipendenze pesanti; adeguata a un numero di personaggi nell'ordine delle decine. Da rivalutare (es. `reactflow`) solo se il cerchio diventa affollato con molti personaggi.
-- **Token GitHub nella sessione NextAuth** (`src/auth.ts`): `session.accessToken` è per design di NextAuth recuperabile anche dal browser tramite `GET /api/auth/session` (lo stesso oggetto che i callback `jwt`/`session` producono per `auth()` lato server è quello servito al client). Oggi nessun componente usa `useSession()` e non esiste una via XSS nota nell'app (pipeline markdown con `allowDangerousHtml: false`, nessun `dangerouslySetInnerHTML` su contenuto non neutralizzato) — quindi il token non è concretamente raggiungibile da un attaccante. Rimuoverlo dall'esposizione pubblica richiederebbe passare da `auth().session.accessToken` a una lettura diretta del JWT lato server (`getToken()`), toccando `src/lib/session-github.ts` e le guardie `session?.accessToken` in più pagine: rischio di regressione sull'intero flusso di login giudicato non commisurato al rischio attuale (solo teorico). Da rivedere se in futuro venisse introdotto `useSession()` lato client o un qualunque meccanismo che renderizzi contenuto HTML non attendibile senza passare da `renderMarkdown`.
-- **Header di sicurezza HTTP** (`next.config.ts`, `headers()`): CSP con `script-src`/`style-src` che includono `'unsafe-inline'` (necessario: Next.js App Router inietta script inline per l'hydration/streaming, e diversi componenti usano lo style prop di React che produce attributi `style=""` inline). Un CSP più stretto richiederebbe un `middleware.ts` che generi un nonce per request — cambiamento più invasivo, non fatto in questa modifica. Gli altri header (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `object-src 'none'`, `frame-ancestors 'none'`) sono applicati senza compromessi.
-
-## Decisioni in sospeso (da riprendere)
-
-- **Id del commento opzionale nella sintassi di evidenziazione**: proposta `{{h:ID:colore:commentId}}` (terzo segmento opzionale) per rendere le evidenziazioni più autodescrittive per il flusso Claude Code locale. Richiede di generare l'id del commento lato client (oggi è generato dal server in `POST add-comment`, `capitoli/[file]/route.ts`) e aggiornare `lib/markdown.ts` + `skill-template.ts` (le skill già scaffoldate nei repo esistenti non si aggiornano da sole). Proposta presentata, non confermata.
+`npm run typecheck`, `npm run lint`, `npm test`, `npm run build`: tutti puliti. Messaggi di commit in italiano, focalizzati sul perché.

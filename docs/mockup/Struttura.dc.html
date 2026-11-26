@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Writly · Struttura narrativa</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Literata:opsz,wght@7..72,400;7..72,600&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F2;color:#1F2328;font-family:Inter,system-ui,sans-serif}
+a{color:#2E4A7D}a:hover{color:#1D3460}
+.nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#3D434C;text-decoration:none;font-size:14px;min-height:24px}
+.nav a:hover{background:#ECEAE4;color:#1F2328}
+.nav a.on{background:#E8EDF6;color:#1D3460;font-weight:600}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; font-family: Inter, system-ui, sans-serif; background: #F6F5F2">
+  <nav class="nav" aria-label="Navigazione principale" style="flex: 1 1 200px; max-width: 220px; box-sizing: border-box; padding: 20px 12px; background: #FFFFFF; border-right: 1px solid #E3E1DC; display: flex; flex-direction: column; gap: 4px">
+    <div style="font-family: Literata, Georgia, serif; font-size: 24px; font-weight: 600; padding: 4px 12px 18px">Writly</div>
+    <a href="Main.dc.html">Libreria</a>
+    <div style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #5C6370; padding: 16px 12px 6px">Il porto delle nebbie</div>
+    <a href="Editor.dc.html">Scrivi</a>
+    <a class="on" href="Struttura.dc.html">Struttura</a>
+    <a href="Scena.dc.html">Scene</a>
+    <a href="Personaggi.dc.html">Personaggi</a>
+    <a href="Mondo.dc.html">Mondo</a>
+    <a href="Appunti.dc.html">Appunti e glossario</a>
+    <a href="Versioni.dc.html">Versioni</a>
+    <a href="Export.dc.html">Esporta PDF</a>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 20px">
+    <header style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between">
+      <div>
+        <div style="font-size: 13px; color: #5C6370">Architettura del romanzo</div>
+        <h1 style="margin: 4px 0 0; font-family: Literata, Georgia, serif; font-size: 30px; font-weight: 600">Struttura narrativa</h1>
+      </div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center">
+        <button type="button" style="height: 40px; padding: 0 14px; border: 1px solid #D5D2CA; border-radius: 8px; background: #FFFFFF; font: 500 14px Inter, sans-serif">Vista tabella</button>
+        <a href="Strutture.dc.html" style="height: 40px; display: inline-flex; align-items: center; padding: 0 14px; border: 1px solid #D5D2CA; border-radius: 8px; background: #FFFFFF; color: #1F2328; text-decoration: none; font-size: 14px">Clona struttura</a>
+        <a href="Strutture.dc.html" style="height: 40px; display: inline-flex; align-items: center; padding: 0 14px; border: 1px solid #D5D2CA; border-radius: 8px; background: #FFFFFF; color: #1F2328; text-decoration: none; font-size: 14px">Modifica struttura</a>
+        <a href="Scena.dc.html" style="height: 40px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 8px; background: #2E4A7D; color: #FFFFFF; text-decoration: none; font-weight: 600; font-size: 14px">Nuova scena</a>
+      </div>
+    </header>
+
+    <div role="radiogroup" aria-label="Modello narrativo" style="display: flex; flex-wrap: wrap; gap: 8px">
+      <sc-for list="{{ models }}" as="m" hint-placeholder-count="4">
+        <button type="button" role="radio" aria-checked="{{ m.on }}" onClick="{{ m.pick }}" style="{{ m.style }}">{{ m.label }}</button>
+      </sc-for>
+    </div>
+
+    <section aria-label="Copertura del modello" style="background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 13px">
+        <span style="font-weight: 600">{{ summary }}</span>
+        <span style="display: flex; gap: 14px; flex-wrap: wrap; color: #3D434C">
+          <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #2E7D4F"></span>Scritta</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #C77B12"></span>In stesura</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #8EA3C7"></span>Pianificata</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; border: 1px dashed #8A8F98"></span>Vuota</span>
+        </span>
+      </div>
+      <div aria-hidden="true" style="display: flex; gap: 3px; height: 12px">
+        <sc-for list="{{ sections }}" as="s" hint-placeholder-count="12">
+          <div style="flex: 1; border-radius: 3px; background: {{ s.bar }}"></div>
+        </sc-for>
+      </div>
+    </section>
+
+    <div style="overflow-x: auto; padding-bottom: 8px">
+      <div style="display: flex; gap: 14px; align-items: flex-start; width: max-content">
+        <sc-for list="{{ sections }}" as="s" hint-placeholder-count="6">
+          <section style="width: 248px; flex: none; background: #EFEDE8; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+            <div>
+              <div style="font-size: 11px; font-weight: 600; letter-spacing: .06em; color: #5C6370">{{ s.num }} · {{ s.pct }}</div>
+              <h2 style="margin: 2px 0 0; font-size: 15px; font-weight: 600; line-height: 1.3">{{ s.name }}</h2>
+              <div style="font-size: 12px; color: #5C6370; line-height: 1.4; margin-top: 4px">{{ s.hint }}</div>
+            </div>
+            <sc-for list="{{ s.scenes }}" as="c" hint-placeholder-count="2">
+              <a href="Scena.dc.html" style="display: block; background: #FFFFFF; border: 1px solid #E3E1DC; border-left: 4px solid {{ c.color }}; border-radius: 8px; padding: 10px 12px; text-decoration: none; color: #1F2328">
+                <div style="font-size: 14px; font-weight: 600; line-height: 1.3">{{ c.title }}</div>
+                <div style="display: flex; justify-content: space-between; gap: 6px; font-size: 12px; color: #5C6370; margin-top: 6px"><span>{{ c.pov }}</span><span>{{ c.chap }}</span></div>
+              </a>
+            </sc-for>
+            <button type="button" style="height: 40px; border: 1px dashed #A9A59B; border-radius: 8px; background: none; font: 13px Inter, sans-serif; color: #3D434C">+ Aggiungi scena</button>
+          </section>
+        </sc-for>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { model: 'hero' }; }
+  renderVals() {
+    const C = { s: '#2E7D4F', w: '#C77B12', p: '#8EA3C7' };
+    const sc = (title, st, pov, chap) => ({ title, color: C[st], pov, chap });
+    const defs = {
+      hero: { label: 'Viaggio dell’eroe · 12 tappe', secs: [
+        ['Mondo ordinario', 'La vita di Iris prima che tutto cambi.', [sc('Il faro spento', 's', 'Iris', 'Cap. 1'), sc('La lettera della madre', 's', 'Iris', 'Cap. 1')]],
+        ['Chiamata all’avventura', 'L’evento che rompe l’equilibrio.', [sc('Il registro scomparso', 's', 'Iris', 'Cap. 2')]],
+        ['Rifiuto della chiamata', 'Paura, dubbio, resistenza.', [sc('Iris brucia la mappa', 's', 'Iris', 'Cap. 3')]],
+        ['Incontro con il mentore', 'Chi offre aiuto, consiglio, un dono.', [sc('Il notaio sotto la pioggia', 's', 'Iris', 'Cap. 4')]],
+        ['Superamento della prima soglia', 'Non si torna indietro.', [sc('La chiatta di notte', 's', 'Teodoro', 'Cap. 5')]],
+        ['Prove, alleati e nemici', 'Il nuovo mondo mette alla prova.', [sc('Debiti', 's', 'Teodoro', 'Cap. 6'), sc('Incontro al molo', 'w', 'Iris', 'Cap. 7'), sc('La locanda dei pescatori', 'p', 'Iris', '—')]],
+        ['Avvicinamento alla caverna', 'Preparazione alla prova più dura.', [sc('Le chiavi del magazzino', 'p', 'Iris', '—')]],
+        ['Prova centrale', 'Morte e rinascita simbolica.', []],
+        ['Ricompensa', 'Ciò che si conquista.', [sc('Il nome sul registro', 'p', 'Iris', '—')]],
+        ['La via del ritorno', 'Le conseguenze inseguono.', []],
+        ['Resurrezione', 'L’ultima prova, la trasformazione.', [sc('Il faro riacceso', 'p', 'Iris', '—')]],
+        ['Ritorno con l’elisir', 'Il mondo ordinario, cambiato.', []]
+      ]},
+      cat: { label: 'Save the Cat! Writes a Novel · 15 beat', secs: [
+        ['Immagine d’apertura', '', [sc('Il faro spento', 's', 'Iris', 'Cap. 1')]], ['Tema enunciato', '', []], ['Setup', '', [sc('La lettera della madre', 's', 'Iris', 'Cap. 1')]], ['Catalizzatore', '', [sc('Il registro scomparso', 's', 'Iris', 'Cap. 2')]], ['Dibattito', '', [sc('Iris brucia la mappa', 's', 'Iris', 'Cap. 3')]], ['Passaggio al secondo atto', '', [sc('La chiatta di notte', 's', 'Teodoro', 'Cap. 5')]], ['Storia B', '', [sc('Il notaio sotto la pioggia', 's', 'Iris', 'Cap. 4')]], ['Divertimento e giochi', '', [sc('Incontro al molo', 'w', 'Iris', 'Cap. 7')]], ['Punto centrale', '', []], ['I cattivi si avvicinano', '', []], ['Tutto è perduto', '', []], ['Notte buia dell’anima', '', []], ['Passaggio al terzo atto', '', []], ['Finale', '', [sc('Il faro riacceso', 'p', 'Iris', '—')]], ['Immagine finale', '', []]
+      ]},
+      marks: { label: 'Dara Marks · arco trasformativo', secs: [
+        ['Atto I · Lo status quo', 'Il difetto fatale è già all’opera.', [sc('Il faro spento', 's', 'Iris', 'Cap. 1')]], ['Primo punto di svolta', 'La trama esterna costringe a muoversi.', [sc('Il registro scomparso', 's', 'Iris', 'Cap. 2')]], ['Atto II · Resistenza', 'Il protagonista si aggrappa a ciò che conosce.', [sc('Debiti', 's', 'Teodoro', 'Cap. 6')]], ['Punto centrale', 'Il conflitto interiore viene a galla.', []], ['Atto II · Il difetto messo a nudo', 'Il vecchio sé non funziona più.', []], ['Secondo punto di svolta', 'La scelta.', []], ['Atto III · Climax', 'Trama esterna e interiore convergono.', []], ['Risoluzione', 'Il sé trasformato.', []]
+      ]},
+      mine: { label: 'Mia: Viaggio dell’eroe in 9 passi', secs: [
+        ['Mondo ordinario', 'Sezione clonata e adattata.', [sc('Il faro spento', 's', 'Iris', 'Cap. 1'), sc('La lettera della madre', 's', 'Iris', 'Cap. 1')]], ['La chiamata (e il rifiuto)', 'Unisce due tappe di Vogler.', [sc('Il registro scomparso', 's', 'Iris', 'Cap. 2'), sc('Iris brucia la mappa', 's', 'Iris', 'Cap. 3')]], ['Incontro con il mentore', '', [sc('Il notaio sotto la pioggia', 's', 'Iris', 'Cap. 4')]], ['Prove, alleati e nemici', '', [sc('Debiti', 's', 'Teodoro', 'Cap. 6'), sc('Incontro al molo', 'w', 'Iris', 'Cap. 7')]], ['Prova centrale', '', []], ['Ricompensa', '', [sc('Il nome sul registro', 'p', 'Iris', '—')]], ['La via del ritorno', '', []], ['Resurrezione', '', [sc('Il faro riacceso', 'p', 'Iris', '—')]], ['Ritorno con l’elisir', '', []]
+      ]},
+      free: { label: 'Libero / personalizzato', secs: [
+        ['Parte prima · Il porto', 'Sezione definita dall’autore.', [sc('Il faro spento', 's', 'Iris', 'Cap. 1'), sc('Il registro scomparso', 's', 'Iris', 'Cap. 2')]], ['Parte seconda · Il mare', 'Sezione definita dall’autore.', [sc('Incontro al molo', 'w', 'Iris', 'Cap. 7')]], ['Parte terza · Il faro', 'Sezione definita dall’autore.', []]
+      ]}
+    };
+    const cur = defs[this.state.model];
+    const n = cur.secs.length;
+    let filled = 0, scenes = 0;
+    const sections = cur.secs.map((d, i) => {
+      const list = d[2];
+      scenes += list.length; if (list.length) filled++;
+      const anyW = list.some((x) => x.color === C.s);
+      const bar = !list.length ? '#E3E1DC' : anyW ? C.s : list.some((x) => x.color === C.w) ? C.w : C.p;
+      return { num: String(i + 1).padStart(2, '0'), pct: Math.round(((i + 0.5) / n) * 100) + '% del libro', name: d[0], hint: d[1] || 'Descrizione del beat (guida in linea).', scenes: list, bar };
+    });
+    const models = Object.keys(defs).map((k) => {
+      const on = this.state.model === k;
+      return { label: defs[k].label, on: on ? 'true' : 'false', pick: () => this.setState({ model: k }),
+        style: 'height: 40px; padding: 0 14px; border-radius: 20px; font: ' + (on ? '600' : '500') + ' 13px Inter, sans-serif; cursor: pointer; border: 1px solid ' + (on ? '#2E4A7D' : '#D5D2CA') + '; background: ' + (on ? '#2E4A7D' : '#FFFFFF') + '; color: ' + (on ? '#FFFFFF' : '#1F2328') };
+    });
+    return { models, sections, summary: filled + ' di ' + n + ' sezioni coperte · ' + scenes + ' scene collegate' };
+  }
+}
+</script>
+</body>
+</html>

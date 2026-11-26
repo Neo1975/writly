@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Writly · Libreria</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Literata:opsz,wght@7..72,400;7..72,600&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F2;color:#1F2328;font-family:Inter,system-ui,sans-serif}
+a{color:#2E4A7D}a:hover{color:#1D3460}
+.nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#3D434C;text-decoration:none;font-size:14px;min-height:24px}
+.nav a:hover{background:#ECEAE4;color:#1F2328}
+.nav a.on{background:#E8EDF6;color:#1D3460;font-weight:600}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; font-family: Inter, system-ui, sans-serif; background: #F6F5F2">
+  <nav class="nav" aria-label="Navigazione principale" style="flex: 1 1 220px; max-width: 260px; box-sizing: border-box; padding: 20px 14px; background: #FFFFFF; border-right: 1px solid #E3E1DC; display: flex; flex-direction: column; gap: 4px">
+    <div style="font-family: Literata, Georgia, serif; font-size: 24px; font-weight: 600; padding: 4px 12px 18px; color: #1F2328">Writly</div>
+    <a class="on" href="Main.dc.html">Libreria</a>
+    <div style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #5C6370; padding: 16px 12px 6px">Il porto delle nebbie</div>
+    <a href="Editor.dc.html">Scrivi</a>
+    <a href="Struttura.dc.html">Struttura</a>
+    <a href="Scena.dc.html">Scene</a>
+    <a href="Personaggi.dc.html">Personaggi</a>
+    <a href="Mondo.dc.html">Mondo</a>
+    <a href="Appunti.dc.html">Appunti e glossario</a>
+    <a href="Versioni.dc.html">Versioni</a>
+    <a href="Export.dc.html">Esporta PDF</a>
+    <div style="margin-top: auto; padding: 12px; font-size: 12px; color: #5C6370; display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #2E7D4F"></span>Sincronizzato con GitHub</div>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 28px">
+    <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+      <div>
+        <div style="font-size: 13px; color: #5C6370">Martedì 17 novembre</div>
+        <h1 style="margin: 4px 0 0; font-family: Literata, Georgia, serif; font-size: 34px; font-weight: 600">La tua libreria</h1>
+      </div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap">
+        <button type="button" style="height: 44px; padding: 0 18px; border-radius: 8px; border: 1px solid #D5D2CA; background: #FFFFFF; font: 500 14px Inter, sans-serif; color: #1F2328">Collega repository</button>
+        <button type="button" style="height: 44px; padding: 0 18px; border-radius: 8px; border: 0; background: #2E4A7D; font: 600 14px Inter, sans-serif; color: #FFFFFF">Nuovo progetto</button>
+      </div>
+    </header>
+
+    <form style="display: flex; gap: 10px; flex-wrap: wrap; background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 14px">
+      <label for="idea" style="align-self: center; font-size: 13px; font-weight: 600; color: #3D434C">Idea al volo</label>
+      <input id="idea" type="text" placeholder="Annota uno spunto: finisce negli appunti, lo smisti dopo" style="flex: 1 1 320px; height: 44px; box-sizing: border-box; padding: 0 14px; border: 1px solid #D5D2CA; border-radius: 8px; font: 15px Inter, sans-serif">
+      <button type="button" style="height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid #2E4A7D; background: #FFFFFF; color: #2E4A7D; font: 600 14px Inter, sans-serif">Salva idea</button>
+    </form>
+
+    <section aria-labelledby="h-progetti" style="display: flex; flex-direction: column; gap: 14px">
+      <h2 id="h-progetti" style="margin: 0; font-size: 16px; font-weight: 600">Progetti</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px">
+        <a href="Struttura.dc.html" style="display: flex; flex-direction: column; gap: 12px; padding: 20px; background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; text-decoration: none; color: #1F2328">
+          <div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #6B4A12; background: #FBF1DF; padding: 4px 8px; border-radius: 6px">Saga · 3 romanzi</span><span style="font-size: 12px; color: #5C6370">ieri</span></div>
+          <div style="font-family: Literata, Georgia, serif; font-size: 22px; font-weight: 600">Le cronache di Vael</div>
+          <div style="font-size: 14px; color: #5C6370; line-height: 1.5">Il porto delle nebbie · La torre di sale · Senza titolo (in pianificazione)</div>
+          <div style="display: flex; gap: 6px; align-items: center"><div style="flex: 1; height: 6px; background: #ECEAE4; border-radius: 3px"><div style="width: 46%; height: 6px; background: #2E4A7D; border-radius: 3px"></div></div><span style="font-size: 12px; color: #5C6370">46% della saga</span></div>
+          <div style="font-size: 12px; color: #5C6370">github.com/autore/cronache-di-vael</div>
+        </a>
+        <a href="Editor.dc.html" style="display: flex; flex-direction: column; gap: 12px; padding: 20px; background: #FFFFFF; border: 2px solid #2E4A7D; border-radius: 12px; text-decoration: none; color: #1F2328">
+          <div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #1D3460; background: #E8EDF6; padding: 4px 8px; border-radius: 6px">Romanzo · Viaggio dell'eroe</span><span style="font-size: 12px; color: #5C6370">2 ore fa</span></div>
+          <div style="font-family: Literata, Georgia, serif; font-size: 22px; font-weight: 600">Il porto delle nebbie</div>
+          <div style="font-size: 14px; color: #5C6370; line-height: 1.5">Ultimo: Cap. 7 — «Le lanterne del molo»</div>
+          <div style="display: flex; gap: 6px; align-items: center"><div style="flex: 1; height: 6px; background: #ECEAE4; border-radius: 3px"><div style="width: 58%; height: 6px; background: #2E4A7D; border-radius: 3px"></div></div><span style="font-size: 12px; color: #5C6370">52.300 / 90.000 parole</span></div>
+          <div style="font-size: 12px; color: #5C6370">7 di 12 tappe coperte · 31 scene, 19 scritte</div>
+        </a>
+        <a href="Editor.dc.html" style="display: flex; flex-direction: column; gap: 12px; padding: 20px; background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; text-decoration: none; color: #1F2328">
+          <div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #245C3C; background: #E3F1E8; padding: 4px 8px; border-radius: 6px">Racconto · libero</span><span style="font-size: 12px; color: #5C6370">3 settimane fa</span></div>
+          <div style="font-family: Literata, Georgia, serif; font-size: 22px; font-weight: 600">Neve d'agosto</div>
+          <div style="font-size: 14px; color: #5C6370; line-height: 1.5">4 capitoli · in revisione</div>
+          <div style="display: flex; gap: 6px; align-items: center"><div style="flex: 1; height: 6px; background: #ECEAE4; border-radius: 3px"><div style="width: 90%; height: 6px; background: #2E7D4F; border-radius: 3px"></div></div><span style="font-size: 12px; color: #5C6370">8.900 parole</span></div>
+          <div style="font-size: 12px; color: #5C6370">github.com/autore/neve-d-agosto</div>
+        </a>
+      </div>
+    </section>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 16px">
+      <section aria-labelledby="h-oggi" style="flex: 1 1 300px; background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+        <h2 id="h-oggi" style="margin: 0; font-size: 16px; font-weight: 600">Questa settimana</h2>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+          <div><div style="font-size: 28px; font-weight: 700">1.240</div><div style="font-size: 12px; color: #5C6370">parole oggi · obiettivo 1.000</div></div>
+          <div><div style="font-size: 28px; font-weight: 700">6</div><div style="font-size: 12px; color: #5C6370">giorni di fila</div></div>
+          <div><div style="font-size: 28px; font-weight: 700">5</div><div style="font-size: 12px; color: #5C6370">versioni salvate</div></div>
+        </div>
+        <div aria-hidden="true" style="display: flex; align-items: flex-end; gap: 8px; height: 64px">
+          <div style="flex: 1; height: 40%; background: #C9D3E6; border-radius: 4px"></div>
+          <div style="flex: 1; height: 75%; background: #C9D3E6; border-radius: 4px"></div>
+          <div style="flex: 1; height: 55%; background: #C9D3E6; border-radius: 4px"></div>
+          <div style="flex: 1; height: 90%; background: #C9D3E6; border-radius: 4px"></div>
+          <div style="flex: 1; height: 30%; background: #C9D3E6; border-radius: 4px"></div>
+          <div style="flex: 1; height: 65%; background: #C9D3E6; border-radius: 4px"></div>
+          <div style="flex: 1; height: 100%; background: #2E4A7D; border-radius: 4px"></div>
+        </div>
+      </section>
+      <section aria-labelledby="h-inbox" style="flex: 1 1 300px; background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; justify-content: space-between; align-items: center"><h2 id="h-inbox" style="margin: 0; font-size: 16px; font-weight: 600">Idee da smistare</h2><a href="Appunti.dc.html" style="font-size: 13px">Apri appunti</a></div>
+        <div style="padding: 10px 0; border-top: 1px solid #ECEAE4; font-size: 14px; line-height: 1.5">Un faro che si accende solo per le navi che non torneranno. <span style="color: #5C6370">— forse per il libro 3</span></div>
+        <div style="padding: 10px 0; border-top: 1px solid #ECEAE4; font-size: 14px; line-height: 1.5">«Salmastro» come gergo dei contrabbandieri per dire «bugia».</div>
+        <div style="padding: 10px 0; border-top: 1px solid #ECEAE4; font-size: 14px; line-height: 1.5">Il mentore di Iris ha un fratello gemello? Verificare con la timeline.</div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

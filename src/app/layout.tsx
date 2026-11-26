@@ -1,29 +1,47 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
+import { auth, signOut } from "@/auth";
+import QuickCapture from "@/components/notes/QuickCapture";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Writly",
-  description: "Supporto alla scrittura narrativa, su GitHub.",
+  description: "Scrittura di racconti, romanzi e saghe, con le versioni su GitHub.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const session = await auth();
   return (
-    <html
-      lang="it"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900">
+    <html lang="it">
+      <body>
+        <header className="topbar">
+          <Link href="/" className="brand">
+            Writly
+          </Link>
+          {session?.user && (
+            <nav aria-label="Sezioni" className="topnav">
+              <Link href="/">Libreria</Link>
+              <Link href="/strutture">Strutture</Link>
+              <Link href="/appunti">Appunti</Link>
+            </nav>
+          )}
+          <span className="spacer" />
+          {session?.user && <QuickCapture />}
+          {session?.user && (
+            <form
+              action={async () => {
+                "use server";
+                await signOut({ redirectTo: "/" });
+              }}
+              className="row"
+            >
+              <span className="small muted">{session.login ?? session.user.name}</span>
+              <button type="submit" className="btn btn-small">
+                Esci
+              </button>
+            </form>
+          )}
+        </header>
         {children}
       </body>
     </html>

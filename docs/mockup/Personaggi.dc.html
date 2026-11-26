@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Writly · Personaggi e relazioni</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Literata:opsz,wght@7..72,400;7..72,600&amp;display=swap">
+<style>
+body{margin:0;background:#F6F5F2;color:#1F2328;font-family:Inter,system-ui,sans-serif}
+a{color:#2E4A7D}a:hover{color:#1D3460}
+.nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#3D434C;text-decoration:none;font-size:14px;min-height:24px}
+.nav a:hover{background:#ECEAE4;color:#1F2328}
+.nav a.on{background:#E8EDF6;color:#1D3460;font-weight:600}
+.cap{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#5C6370;margin:0 0 6px}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; font-family: Inter, system-ui, sans-serif; background: #F6F5F2">
+  <nav class="nav" aria-label="Navigazione principale" style="flex: 1 1 200px; max-width: 220px; box-sizing: border-box; padding: 20px 12px; background: #FFFFFF; border-right: 1px solid #E3E1DC; display: flex; flex-direction: column; gap: 4px">
+    <div style="font-family: Literata, Georgia, serif; font-size: 24px; font-weight: 600; padding: 4px 12px 18px">Writly</div>
+    <a href="Main.dc.html">Libreria</a>
+    <div style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #5C6370; padding: 16px 12px 6px">Le cronache di Vael</div>
+    <a href="Editor.dc.html">Scrivi</a>
+    <a href="Struttura.dc.html">Struttura</a>
+    <a href="Scena.dc.html">Scene</a>
+    <a class="on" href="Personaggi.dc.html">Personaggi</a>
+    <a href="Mondo.dc.html">Mondo</a>
+    <a href="Appunti.dc.html">Appunti e glossario</a>
+    <a href="Versioni.dc.html">Versioni</a>
+    <a href="Export.dc.html">Esporta PDF</a>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 20px">
+    <header style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between">
+      <div>
+        <div style="font-size: 13px; color: #5C6370">Condivisi da tutti i romanzi della saga</div>
+        <h1 style="margin: 4px 0 0; font-family: Literata, Georgia, serif; font-size: 30px; font-weight: 600">Personaggi</h1>
+      </div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center">
+        <label for="lib" style="font-size: 13px; color: #3D434C">Relazioni valide in</label>
+        <select id="lib" style="height: 40px; border: 1px solid #D5D2CA; border-radius: 8px; padding: 0 10px; font: 14px Inter, sans-serif; background: #FFFFFF"><option>Il porto delle nebbie</option><option>La torre di sale</option></select>
+        <button type="button" style="height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: #2E4A7D; color: #FFFFFF; font: 600 14px Inter, sans-serif">Nuovo personaggio</button>
+      </div>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+      <div role="list" aria-label="Elenco personaggi" style="flex: 1 1 220px; max-width: 260px; display: flex; flex-direction: column; gap: 8px">
+        <sc-for list="{{ people }}" as="p" hint-placeholder-count="5">
+          <button type="button" role="listitem" onClick="{{ p.pick }}" style="{{ p.style }}">
+            <span style="width: 40px; height: 40px; flex: none; border-radius: 50%; background: {{ p.tint }}; display: inline-flex; align-items: center; justify-content: center; font: 600 15px Inter, sans-serif">{{ p.initial }}</span>
+            <span style="text-align: left"><span style="display: block; font: 600 14px Inter, sans-serif">{{ p.name }}</span><span style="display: block; font: 12px Inter, sans-serif; color: #5C6370">{{ p.role }}</span></span>
+          </button>
+        </sc-for>
+      </div>
+
+      <section aria-label="Scheda personaggio" style="flex: 999 1 380px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 18px">
+        <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap">
+          <div style="width: 72px; height: 72px; border-radius: 50%; background: {{ card.tint }}; display: flex; align-items: center; justify-content: center; font: 600 26px Literata, serif">{{ card.initial }}</div>
+          <div style="flex: 1">
+            <h2 style="margin: 0; font-family: Literata, Georgia, serif; font-size: 26px; font-weight: 600">{{ card.name }}</h2>
+            <div style="font-size: 13px; color: #5C6370; margin-top: 2px">{{ card.role }} · alias: {{ card.alias }}</div>
+          </div>
+          <div style="font-size: 13px; color: #5C6370; text-align: right; white-space: pre-line; line-height: 1.5">{{ card.appear }}</div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px">
+          <div><div class="cap">Fisico</div><div style="font-size: 14px; line-height: 1.55">{{ card.fisico }}</div></div>
+          <div><div class="cap">Morale</div><div style="font-size: 14px; line-height: 1.55">{{ card.morale }}</div></div>
+          <div><div class="cap">Comportamento e voce</div><div style="font-size: 14px; line-height: 1.55">{{ card.comp }}</div></div>
+          <div><div class="cap">Arco</div><div style="font-size: 14px; line-height: 1.55">{{ card.arco }}</div></div>
+        </div>
+        <div>
+          <div class="cap">Relazioni</div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <sc-for list="{{ card.rels }}" as="r" hint-placeholder-count="2">
+              <div style="display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; background: #F6F5F2; border-radius: 8px; font-size: 14px"><span><b style="font-weight: 600">{{ r.type }}</b> {{ r.who }}</span><span style="color: #5C6370">{{ r.note }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+
+      <section aria-label="Grafo delle relazioni" style="flex: 1 1 360px; max-width: 420px; background: #FFFFFF; border: 1px solid #E3E1DC; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+        <h2 style="margin: 0; font-size: 15px; font-weight: 600">Grafo delle relazioni</h2>
+        <div style="position: relative; height: 380px; background: #FBFAF8; border-radius: 10px">
+          <svg aria-hidden="true" width="100%" height="100%" viewBox="0 0 380 380" preserveAspectRatio="none" style="position: absolute; inset: 0">
+            <line x1="190" y1="70" x2="80" y2="200" stroke="#8EA3C7" stroke-width="2"></line>
+            <line x1="190" y1="70" x2="300" y2="200" stroke="#C0392B" stroke-width="2" stroke-dasharray="6 4"></line>
+            <line x1="80" y1="200" x2="300" y2="200" stroke="#C77B12" stroke-width="2"></line>
+            <line x1="190" y1="70" x2="190" y2="320" stroke="#2E7D4F" stroke-width="2"></line>
+          </svg>
+          <div style="position: absolute; left: 140px; top: 46px; width: 100px; text-align: center; font-size: 13px; font-weight: 600"><div style="width: 48px; height: 48px; margin: 0 auto 4px; border-radius: 50%; background: #F3D9C4; border: 2px solid #2E4A7D"></div>Iris</div>
+          <div style="position: absolute; left: 30px; top: 176px; width: 100px; text-align: center; font-size: 13px; font-weight: 600"><div style="width: 48px; height: 48px; margin: 0 auto 4px; border-radius: 50%; background: #D6E0EF"></div>Teodoro</div>
+          <div style="position: absolute; left: 250px; top: 176px; width: 100px; text-align: center; font-size: 13px; font-weight: 600"><div style="width: 48px; height: 48px; margin: 0 auto 4px; border-radius: 50%; background: #DCE9DF"></div>Morvan</div>
+          <div style="position: absolute; left: 140px; top: 296px; width: 100px; text-align: center; font-size: 13px; font-weight: 600"><div style="width: 48px; height: 48px; margin: 0 auto 4px; border-radius: 50%; background: #EADCF0"></div>Lena</div>
+          <div style="position: absolute; left: 82px; top: 112px; font-size: 11px; color: #3D434C; background: #FFFFFF; padding: 2px 6px; border-radius: 4px">mentore</div>
+          <div style="position: absolute; left: 246px; top: 112px; font-size: 11px; color: #3D434C; background: #FFFFFF; padding: 2px 6px; border-radius: 4px">nemico</div>
+          <div style="position: absolute; left: 160px; top: 206px; font-size: 11px; color: #3D434C; background: #FFFFFF; padding: 2px 6px; border-radius: 4px">debitore</div>
+          <div style="position: absolute; left: 196px; top: 250px; font-size: 11px; color: #3D434C; background: #FFFFFF; padding: 2px 6px; border-radius: 4px">madre</div>
+        </div>
+        <div style="font-size: 12px; color: #5C6370">Trascina i nodi per riordinare · clic su un arco per modificarlo</div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { who: 'iris' }; }
+  renderVals() {
+    const D = {
+      iris: { name: 'Iris Valden', role: 'Protagonista', tint: '#F3D9C4', alias: 'la ragazza del faro, Iri', appear: 'Prima apparizione: cap. 1\n31 capitoli · 2 romanzi',
+        fisico: 'Ventitré anni, magra, capelli corti color rame, cicatrice sul dorso della mano sinistra, occhi verdi. Veste abiti da uomo, troppo larghi.',
+        morale: 'Leale fino all’ostinazione. Paura: diventare come la madre. Desiderio: riaccendere il faro. Segreto: ha bruciato lei il registro del porto.',
+        comp: 'Frasi brevi, spezzate; evita le domande dirette. Quando mente si tocca la cicatrice. Sotto stress diventa ironica.',
+        arco: 'Da «non mi fido di nessuno» a «posso chiedere aiuto senza perdermi». Svolta alla tappa 8 (Prova centrale).',
+        rels: [{ type: 'Figlia di', who: 'Lena Valden', note: 'libro 1–2' }, { type: 'Allieva di', who: 'Teodoro Arrighi', note: 'fiducia incrinata, cap. 7' }, { type: 'Nemica di', who: 'Capitano Morvan', note: 'libro 1' }] },
+      teo: { name: 'Teodoro Arrighi', role: 'Mentore', tint: '#D6E0EF', alias: 'Teo, il notaio', appear: 'Prima apparizione: cap. 4\n14 capitoli',
+        fisico: 'Quarant’anni, alto, curvo, barba grigia curata. Porta sempre il cappello, anche al chiuso.',
+        morale: 'Pragmatico: ogni cosa ha un prezzo. Vuole ricomprare la casa di famiglia. Vergogna: il debito con Morvan.',
+        comp: 'Cortese e formale, dà del lei a tutti. Non guarda negli occhi chi gli parla.',
+        arco: 'Da complice silenzioso a testimone. Arco secondario, chiuso nel libro 1.',
+        rels: [{ type: 'Mentore di', who: 'Iris Valden', note: '' }, { type: 'Debitore di', who: 'Capitano Morvan', note: 'segreto fino al cap. 7' }] },
+      morvan: { name: 'Capitano Morvan', role: 'Antagonista', tint: '#DCE9DF', alias: 'il Capitano, il Vecchio', appear: 'Prima apparizione: cap. 2\n9 capitoli',
+        fisico: 'Sessant’anni, massiccio, zoppica dalla gamba destra. Mani enormi.',
+        morale: 'L’ordine prima di tutto; disprezza la debolezza ma protegge il suo equipaggio.',
+        comp: 'Voce bassa, non alza mai i toni. Fischietta quando è nervoso.',
+        arco: 'Statico nel libro 1; nel libro 2 si scopre il suo legame con Lena.',
+        rels: [{ type: 'Creditore di', who: 'Teodoro Arrighi', note: '' }, { type: 'Nemico di', who: 'Iris Valden', note: '' }] },
+      lena: { name: 'Lena Valden', role: 'Personaggio secondario', tint: '#EADCF0', alias: 'la guardiana', appear: 'Prima apparizione: cap. 1 (lettera)\n3 capitoli',
+        fisico: 'Mai descritta direttamente nel libro 1: solo ritratti e ricordi.',
+        morale: 'Ha scelto il faro invece della figlia. Rimorso.',
+        comp: 'Scrive lettere lunghe, piene di dettagli tecnici e quasi nessun sentimento.',
+        arco: 'Assente nel libro 1, ritorna nel libro 2.',
+        rels: [{ type: 'Madre di', who: 'Iris Valden', note: '' }] }
+    };
+    const who = this.state.who;
+    const people = Object.keys(D).map((k) => ({
+      name: D[k].name, role: D[k].role, tint: D[k].tint, initial: D[k].name.charAt(0),
+      pick: () => this.setState({ who: k }),
+      style: 'display: flex; align-items: center; gap: 10px; width: 100%; min-height: 60px; padding: 8px 12px; border-radius: 10px; cursor: pointer; border: 1px solid ' + (who === k ? '#2E4A7D' : '#E3E1DC') + '; background: ' + (who === k ? '#E8EDF6' : '#FFFFFF') + '; color: #1F2328'
+    }));
+    const card = Object.assign({ initial: D[who].name.charAt(0) }, D[who]);
+    return { people, card };
+  }
+}
+</script>
+</body>
+</html>
