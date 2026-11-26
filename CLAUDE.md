@@ -17,6 +17,9 @@ Web app per scrivere racconti, romanzi e saghe. Next.js 16 (App Router) + TypeSc
 
 ## Regole da rispettare
 
+- La Content Security Policy delle pagine è in `src/proxy.ts`: un nonce nuovo per richiesta, niente `'unsafe-inline'` per script e tag `<style>` (gli attributi `style` restano ammessi da `style-src-attr`). Le pagine devono restare dinamiche (il nonce nasce a ogni richiesta: niente export statico); una libreria che inserisce `<style>` o `<script>` va configurata col nonce (vedi `injectNonce` di TipTap in `ChapterEditor.tsx`). `next.config.ts` ha solo le intestazioni comuni e la politica di `/api/auth/*`.
+- `getAccessToken()` legge solo il cookie di sessione coerente col protocollo (in HTTPS solo `__Secure-…`): non rimettere il ciclo che prova entrambi i nomi, permetterebbe di piantare una sessione altrui da un sottodominio o dalla rete.
+- `.claude/settings.json` fissa il plugin ECC a un commit (`ref`): per aggiornarlo si cambia il commit di proposito, non si segue l'ultima versione.
 - Il token GitHub non deve mai arrivare al browser: non aggiungerlo a `session` in `src/auth.ts`; lato server usare `getAccessToken()`.
 - Le API accettano solo i percorsi validati da `src/lib/project/paths.ts`: niente scritture arbitrarie nel repository dell'autore.
 - Gli slug `personaggi`, `mondo`, `struttura`, `appunti`, `esporta`, `varianti`, `panoramica` sono riservati (segmenti delle pagine del progetto): non usarli per le opere. `mappe` non può essere una categoria del mondo.

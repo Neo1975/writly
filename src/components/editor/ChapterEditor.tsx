@@ -231,6 +231,8 @@ export default function ChapterEditor({
 
   const editor = useEditor({
     immediatelyRender: false,
+    // L'editor inserisce un suo tag <style>: con la CSP a nonce serve il nonce della pagina.
+    injectNonce: typeof document === "undefined" ? undefined : document.querySelector<HTMLScriptElement>("script[nonce]")?.nonce || undefined,
     editable: false,
     extensions: [
       StarterKit.configure({

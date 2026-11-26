@@ -6,7 +6,8 @@
     "ecc": {
       "source": {
         "source": "github",
-        "repo": "affaan-m/ecc"
+        "repo": "affaan-m/ecc",
+        "ref": "3f14a103a8694e51c1df9a806217a6d0b5f7a6f7"
       }
     }
   }

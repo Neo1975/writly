@@ -1,26 +1,17 @@
 import type { NextConfig } from "next";
 
-const isDev = process.env.NODE_ENV !== "production";
-
 /**
- * CSP: 'unsafe-inline' per script e stili serve agli script di idratazione di
- * Next e agli attributi style di React; 'wasm-unsafe-eval' a Hunspell (WebAssembly)
- * per il controllo ortografico. Nessuna risorsa esterna oltre agli avatar GitHub
- * (connect-src 'data:' non apre connessioni verso l'esterno).
+ * La Content Security Policy delle pagine è in src/proxy.ts (con un nonce per
+ * richiesta). Qui restano le intestazioni uguali per tutti e la politica della
+ * pagina di accesso di Auth.js (/api/auth/*), che usa solo stili in linea e non
+ * può portare un nonce: nessuno script, nessuna risorsa esterna.
  */
-const csp = [
-  "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ""}`,
-  "style-src 'self' 'unsafe-inline'",
+const authPageCsp = [
+  "default-src 'none'",
+  "style-src 'unsafe-inline'",
   "img-src 'self' data: https://avatars.githubusercontent.com",
-  "font-src 'self'",
-  // data: serve a Hunspell, che carica il proprio WebAssembly incorporato come URL data:.
-  "connect-src 'self' data:",
-  // blob: per l'anteprima del PDF generato nel browser.
-  "frame-src blob:",
-  "object-src 'none'",
-  "base-uri 'self'",
   "form-action 'self' https://github.com",
+  "base-uri 'none'",
   "frame-ancestors 'none'",
 ].join("; ");
 
@@ -30,11 +21,14 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: [
-          { key: "Content-Security-Policy", value: csp },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         ],
+      },
+      {
+        source: "/api/auth/:path*",
+        headers: [{ key: "Content-Security-Policy", value: authPageCsp }],
       },
     ];
   },
