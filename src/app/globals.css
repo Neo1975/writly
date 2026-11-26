@@ -1220,29 +1220,60 @@ h1.project-title {
 }
 
 /* ---- Grafo delle relazioni ---- */
+.graph-wrap {
+  overflow-x: auto;
+}
 .graph {
-  width: 100%;
   height: auto;
-  max-height: 520px;
   display: block;
+  margin: 0 auto;
+}
+@media (min-width: 700px) {
+  .graph {
+    min-width: var(--graph-min, 0);
+  }
 }
 .graph-edge path {
-  stroke: var(--border-strong);
+  stroke: var(--muted);
   stroke-width: 1.6;
+  opacity: 0.75;
 }
 .graph-edge.is-active path {
   stroke: var(--accent);
-  stroke-width: 2.4;
+  stroke-width: 2.6;
+  opacity: 1;
+}
+.graph-edge.is-dim {
+  opacity: 0.18;
 }
 .graph-arrow {
   fill: var(--muted);
 }
+.graph-arrow.is-active {
+  fill: var(--accent);
+}
 .graph-label {
-  font-size: 12px;
+  font-size: 13px;
   fill: var(--text-2);
   paint-order: stroke;
   stroke: var(--surface);
-  stroke-width: 4px;
+  stroke-width: 6px;
+  stroke-linejoin: round;
+}
+.graph-edge.is-active .graph-label {
+  fill: var(--accent-strong);
+  font-weight: 600;
+}
+.graph-node.is-dim {
+  opacity: 0.4;
+}
+.graph-strip line {
+  stroke: var(--border);
+  stroke-dasharray: 4 4;
+}
+.graph-strip text {
+  font-size: 12px;
+  fill: var(--muted);
 }
 .graph-node {
   cursor: pointer;
@@ -1270,12 +1301,13 @@ h1.project-title {
   fill: var(--surface);
 }
 .graph-name {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   fill: var(--text);
   paint-order: stroke;
   stroke: var(--surface);
-  stroke-width: 4px;
+  stroke-width: 5px;
+  stroke-linejoin: round;
 }
 
 /* ---- Barra in alto su schermi stretti ---- */
