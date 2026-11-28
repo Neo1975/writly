@@ -28,6 +28,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <header className="topbar">
           <Link href="/" className="brand">
+            {/* eslint-disable-next-line @next/next/no-img-element -- piccolo SVG locale, niente da ottimizzare */}
+            <img src="/icons/icon.svg" alt="" width={26} height={26} className="brand-mark" />
             Writly
           </Link>
           {session?.user && (

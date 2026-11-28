@@ -2227,3 +2227,11 @@ div.comment-quote {
   color: var(--warn-text);
   border-color: transparent;
 }
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.brand-mark {
+  border-radius: 7px;
+}
