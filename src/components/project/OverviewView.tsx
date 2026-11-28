@@ -8,12 +8,14 @@ import { dailyTotals, today, useDiary } from "@/lib/client/prefs";
 import type { OverviewData, OverviewEntity, OverviewWork } from "@/lib/server/overview";
 import { formatCount } from "@/lib/text/stats";
 import ProjectNav from "./ProjectNav";
+import PublicationCard from "./PublicationCard";
 
 const STATUS_LABEL: Record<string, string> = {
   bozza: "Bozza",
   "in-stesura": "In stesura",
   scritto: "Scritto",
   revisionato: "Revisionato",
+  pubblicato: "Pubblicato",
   mancante: "File mancante",
 };
 
@@ -253,7 +255,7 @@ export default function OverviewView({ owner, repo }: { owner: string; repo: str
     if (!data) return null;
     const chapters = data.opere.flatMap((w) => w.capitoli);
     const total = chapters.reduce((s, c) => s + c.parole, 0);
-    const done = chapters.filter((c) => c.stato === "scritto" || c.stato === "revisionato").length;
+    const done = chapters.filter((c) => c.stato === "scritto" || c.stato === "revisionato" || c.stato === "pubblicato").length;
     const warnings = data.opere.flatMap((w) => w.capitoli.flatMap((c) => c.avvisi.map((a) => ({ ...a, work: w, chapter: c }))));
     const cited = new Set(chapters.flatMap((c) => Object.keys(c.presenze)));
     const unused = data.schede.filter((s) => !cited.has(s.id));
@@ -292,7 +294,7 @@ export default function OverviewView({ owner, repo }: { owner: string; repo: str
                 <dd>{formatCount(derived.total)}</dd>
               </div>
               <div>
-                <dt>Capitoli scritti o revisionati</dt>
+                <dt>Capitoli scritti, rivisti o pubblicati</dt>
                 <dd>
                   {derived.done} / {derived.chapters.length}
                 </dd>
@@ -338,6 +340,8 @@ export default function OverviewView({ owner, repo }: { owner: string; repo: str
             </section>
           )}
 
+          {(data.tipo === "webnovel" || derived.chapters.some((c) => c.stato === "pubblicato")) && <PublicationCard data={data} href={chapterHref} />}
+
           {data.opere.map((w) => (
             <section key={w.slug} className="card stack" aria-labelledby={`opera-${w.slug}`}>
               <h2 id={`opera-${w.slug}`} className="serif" style={{ margin: 0, fontSize: 22 }}>
@@ -361,7 +365,10 @@ export default function OverviewView({ owner, repo }: { owner: string; repo: str
                         <td>
                           <Link href={chapterHref(w.slug, c.file)}>{c.titolo}</Link>
                         </td>
-                        <td>{STATUS_LABEL[c.stato] ?? c.stato}</td>
+                        <td>
+                          {STATUS_LABEL[c.stato] ?? c.stato}
+                          {c.pubblicato ? <span className="muted"> · {c.pubblicato.split("-").reverse().join("/")}</span> : null}
+                        </td>
                         <td>{formatCount(c.parole)}</td>
                         <td>{formatCount(c.battute)}</td>
                       </tr>

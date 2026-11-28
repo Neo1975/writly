@@ -59,12 +59,12 @@ export async function syncEntry(entry: DraftEntry, io: SyncIO): Promise<SyncResu
   if (remote.sha !== entry.draft.baseSha) return { entry, outcome: "conflitto" };
 
   const current = parseChapter(remote.text);
-  if (current.body === entry.draft.body && current.meta.stato === entry.draft.stato) {
+  if (current.body === entry.draft.body && current.meta.stato === entry.draft.stato && (current.meta.pubblicato ?? "") === (entry.draft.pubblicato ?? "")) {
     await io.clearDraft(entry);
     return { entry, outcome: "gia-allineato" };
   }
 
-  const text = serializeChapter({ meta: { ...current.meta, stato: entry.draft.stato }, body: entry.draft.body });
+  const text = serializeChapter({ meta: { ...current.meta, stato: entry.draft.stato, pubblicato: entry.draft.pubblicato }, body: entry.draft.body });
   let sha: string;
   try {
     sha = await io.writeRemote(entry, text, remote.sha, syncMessage(entry));

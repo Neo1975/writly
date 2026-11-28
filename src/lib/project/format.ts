@@ -4,8 +4,8 @@ import YAML from "yaml";
  * Formato dei file Writly dentro un repository GitHub.
  *
  *   writly.yaml                       manifest del progetto
- *   opere/<opera>/opera.yaml          titolo e ordine dei capitoli dell'opera
- *   opere/<opera>/capitoli/<file>.md  front-matter (id, stato) + testo Markdown
+ *   opere/<opera>/opera.yaml          titolo, ordine dei capitoli, archi, obiettivi di pubblicazione
+ *   opere/<opera>/capitoli/<file>.md  front-matter (id, stato, data di pubblicazione) + testo Markdown
  *   dizionario.txt                    parole accettate dal controllo ortografico
  *
  * Il titolo di un capitolo vive solo in opera.yaml (unica fonte), così
@@ -15,10 +15,10 @@ import YAML from "yaml";
 
 export const FORMAT_VERSION = 1;
 
-export const PROJECT_TYPES = ["racconto", "romanzo", "saga"] as const;
+export const PROJECT_TYPES = ["racconto", "romanzo", "saga", "webnovel"] as const;
 export type ProjectType = (typeof PROJECT_TYPES)[number];
 
-export const CHAPTER_STATUSES = ["bozza", "in-stesura", "scritto", "revisionato"] as const;
+export const CHAPTER_STATUSES = ["bozza", "in-stesura", "scritto", "revisionato", "pubblicato"] as const;
 export type ChapterStatus = (typeof CHAPTER_STATUSES)[number];
 
 export interface ProjectManifest {
@@ -33,6 +33,24 @@ export interface ProjectManifest {
 export interface ChapterEntry {
   file: string;
   titolo: string;
+  /** id dell'arco a cui appartiene (assente = senza arco; un id che non esiste più conta come assente). */
+  arco?: string;
+}
+
+/** Un arco narrativo: un gruppo di capitoli con un inizio e una chiusura (volume, stagione, saga interna). */
+export interface Arc {
+  id: string;
+  titolo: string;
+  /** Arco concluso: nella pagina del progetto si ripiega. */
+  chiuso?: boolean;
+  /** Di cosa parla l'arco, in due righe. */
+  sintesi?: string;
+}
+
+/** Lunghezza voluta di un capitolo, in parole (serie a puntate: es. 1.500–3.000). */
+export interface WordRange {
+  min: number;
+  max: number;
 }
 
 export interface WorkManifest {
@@ -43,6 +61,11 @@ export interface WorkManifest {
   tema?: string;
   /** L'idea da cui parte la storia: chi, cosa vuole, cosa glielo impedisce, cosa rischia. */
   premessa?: string;
+  archi?: Arc[];
+  paroleCapitolo?: WordRange;
+  /** Note fisse per le piattaforme: in testa e in coda a ogni capitolo esportato per incollare. */
+  notaIniziale?: string;
+  notaFinale?: string;
 }
 
 /** Lunghezza massima di tema e premessa: qualche paragrafo, non una sinossi. */
@@ -51,6 +74,15 @@ export const WORK_INFO_MAX = 2000;
 export interface ChapterMeta {
   id: string;
   stato: ChapterStatus;
+  /** Giorno di uscita (AAAA-MM-GG), solo con stato «pubblicato»; nel futuro = programmato. */
+  pubblicato?: string;
+}
+
+/** Data AAAA-MM-GG esistente nel calendario. */
+export function isIsoDate(value: unknown): value is string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const d = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
 }
 
 export interface ChapterDocument {
@@ -136,13 +168,17 @@ export function parseWorkManifest(text: string, slug: string): WorkManifest {
   }
   const capitoli = raw.map((item, i) => {
     const entry = asRecord(item, `${what}, capitolo ${i + 1}`);
+    const arco = typeof entry.arco === "string" && entry.arco.trim() ? { arco: entry.arco.trim() } : {};
     return {
       file: requireString(entry, "file", `${what}, capitolo ${i + 1}`),
       titolo: requireString(entry, "titolo", `${what}, capitolo ${i + 1}`),
+      ...arco,
     };
   });
+  const archi = parseArcs(obj.archi, what);
+  const range = parseWordRange(obj.paroleCapitolo, what);
   const goal = obj.obiettivoParole;
-  const info = (key: "tema" | "premessa") => {
+  const info = (key: "tema" | "premessa" | "notaIniziale" | "notaFinale") => {
     const v = obj[key];
     if (v === undefined || v === null) return {};
     if (typeof v !== "string") throw new FormatError(`${what}: «${key}» deve essere un testo`);
@@ -155,7 +191,40 @@ export function parseWorkManifest(text: string, slug: string): WorkManifest {
     ...(typeof goal === "number" && goal > 0 ? { obiettivoParole: goal } : {}),
     ...info("tema"),
     ...info("premessa"),
+    ...(archi.length ? { archi } : {}),
+    ...(range ? { paroleCapitolo: range } : {}),
+    ...info("notaIniziale"),
+    ...info("notaFinale"),
   };
+}
+
+function parseArcs(raw: unknown, what: string): Arc[] {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) throw new FormatError(`${what}: «archi» deve essere un elenco`);
+  const seen = new Set<string>();
+  return raw.map((item, i) => {
+    const entry = asRecord(item, `${what}, arco ${i + 1}`);
+    const id = requireString(entry, "id", `${what}, arco ${i + 1}`);
+    if (seen.has(id)) throw new FormatError(`${what}: due archi con lo stesso id «${id}»`);
+    seen.add(id);
+    const sintesi = typeof entry.sintesi === "string" ? entry.sintesi.trim().slice(0, WORK_INFO_MAX) : "";
+    return {
+      id,
+      titolo: requireString(entry, "titolo", `${what}, arco ${i + 1}`),
+      ...(entry.chiuso === true ? { chiuso: true } : {}),
+      ...(sintesi ? { sintesi } : {}),
+    };
+  });
+}
+
+function parseWordRange(raw: unknown, what: string): WordRange | null {
+  if (raw === undefined || raw === null) return null;
+  const obj = asRecord(raw, `${what}: «paroleCapitolo»`);
+  const { min, max } = obj;
+  if (typeof min !== "number" || typeof max !== "number" || !(min > 0) || max < min) {
+    throw new FormatError(`${what}: «paroleCapitolo» vuole «min» e «max» in parole, con min maggiore di zero e max non inferiore`);
+  }
+  return { min: Math.round(min), max: Math.round(max) };
 }
 
 export function serializeWorkManifest(w: WorkManifest): string {
@@ -164,7 +233,11 @@ export function serializeWorkManifest(w: WorkManifest): string {
     ...(w.obiettivoParole ? { obiettivoParole: w.obiettivoParole } : {}),
     ...(w.tema ? { tema: w.tema } : {}),
     ...(w.premessa ? { premessa: w.premessa } : {}),
-    capitoli: w.capitoli.map((c) => ({ file: c.file, titolo: c.titolo })),
+    ...(w.paroleCapitolo ? { paroleCapitolo: { min: w.paroleCapitolo.min, max: w.paroleCapitolo.max } } : {}),
+    ...(w.notaIniziale ? { notaIniziale: w.notaIniziale } : {}),
+    ...(w.notaFinale ? { notaFinale: w.notaFinale } : {}),
+    ...(w.archi?.length ? { archi: w.archi.map((a) => ({ id: a.id, titolo: a.titolo, ...(a.chiuso ? { chiuso: true } : {}), ...(a.sintesi ? { sintesi: a.sintesi } : {}) })) } : {}),
+    capitoli: w.capitoli.map((c) => ({ file: c.file, titolo: c.titolo, ...(c.arco ? { arco: c.arco } : {}) })),
   });
 }
 
@@ -192,11 +265,15 @@ export function parseChapter(text: string): ChapterDocument {
   const stato = CHAPTER_STATUSES.includes(obj.stato as ChapterStatus)
     ? (obj.stato as ChapterStatus)
     : "bozza";
-  return { meta: { id: typeof obj.id === "string" ? obj.id : "", stato }, body };
+  // YAML 1.1 legge le date come oggetti Date: le riportiamo a AAAA-MM-GG.
+  const when = obj.pubblicato instanceof Date && !Number.isNaN(obj.pubblicato.getTime()) ? obj.pubblicato.toISOString().slice(0, 10) : obj.pubblicato;
+  const pubblicato = stato === "pubblicato" && isIsoDate(when) ? { pubblicato: when } : {};
+  return { meta: { id: typeof obj.id === "string" ? obj.id : "", stato, ...pubblicato }, body };
 }
 
 export function serializeChapter(doc: ChapterDocument): string {
-  return joinFrontMatter({ id: doc.meta.id, stato: doc.meta.stato }, doc.body);
+  const published = doc.meta.stato === "pubblicato" && isIsoDate(doc.meta.pubblicato) ? { pubblicato: doc.meta.pubblicato } : {};
+  return joinFrontMatter({ id: doc.meta.id, stato: doc.meta.stato, ...published }, doc.body);
 }
 
 export function parseDictionary(text: string): string[] {

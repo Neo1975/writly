@@ -9,6 +9,8 @@ import type { ChapterStatus } from "@/lib/project/format";
 export interface Draft {
   body: string;
   stato: ChapterStatus;
+  /** Giorno di uscita, solo con stato «pubblicato». */
+  pubblicato?: string;
   baseSha: string;
   updatedAt: number;
 }

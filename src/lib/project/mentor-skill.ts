@@ -9,7 +9,7 @@
  * testi qui sotto e alza MENTOR_SKILL_VERSION.
  */
 
-export const MENTOR_SKILL_VERSION = 5;
+export const MENTOR_SKILL_VERSION = 6;
 export const MENTOR_SKILL_DIR = ".claude/skills/writly-mentore";
 export const MENTOR_SKILL_PATH = `${MENTOR_SKILL_DIR}/SKILL.md`;
 
@@ -87,9 +87,9 @@ in modo che l'app li mostri.
 ## Dove sono le cose
 
 \`\`\`
-writly.yaml                          titolo, tipo (racconto | romanzo | saga), lingua, opere in ordine di lettura
-opere/<opera>/opera.yaml             titolo, tema, premessa, obiettivoParole, capitoli in ordine (file + titolo)
-opere/<opera>/capitoli/<file>.md     front-matter (id, stato) + testo in Markdown
+writly.yaml                          titolo, tipo (racconto | romanzo | saga | webnovel), lingua, opere in ordine di lettura
+opere/<opera>/opera.yaml             titolo, tema, premessa, obiettivoParole, capitoli in ordine (file + titolo + arco), archi, paroleCapitolo, note per le piattaforme
+opere/<opera>/capitoli/<file>.md     front-matter (id, stato, pubblicato) + testo in Markdown
 opere/<opera>/struttura.yaml         modello narrativo dell'opera (atti → sezioni) e scene
 opere/<opera>/commenti/<file>.yaml   commenti al capitolo <file>.md   ← ci scrivi tu
 personaggi/<slug>.md                 scheda personaggio (front-matter) + biografia
@@ -109,7 +109,17 @@ cosa rischia) sono in \`opera.yaml\`, facoltativi: sono la bussola
 dell'autore, usali come metro in ogni revisione.
 
 Il **titolo di un capitolo** sta solo in \`opera.yaml\`; nel file del capitolo il
-front-matter ha \`id\` e \`stato\` (bozza, in-stesura, scritto, revisionato).
+front-matter ha \`id\` e \`stato\` (bozza, in-stesura, scritto, revisionato,
+pubblicato). Con lo stato \`pubblicato\` c'è anche \`pubblicato: AAAA-MM-GG\`, il
+giorno di uscita (nel futuro = programmato): non scriverlo tu, lo mette l'autore.
+
+Nelle opere **a puntate** (tipo \`webnovel\`, ma vale per ogni opera) \`opera.yaml\`
+può avere \`archi\` (\`id\`, \`titolo\`, \`chiuso\`, \`sintesi\`: gruppi di capitoli con un
+inizio e una fine; ogni capitolo dell'elenco ha \`arco\` con l'id), la lunghezza
+voluta dei capitoli \`paroleCapitolo: {min, max}\` e le note fisse per le piattaforme
+(\`notaIniziale\`, \`notaFinale\`). Sono dell'autore: leggili come metro (un
+capitolo molto fuori dalla lunghezza voluta, un cliffhanger che manca a fine
+capitolo, un arco che non si chiude) ma non modificarli.
 
 Gli **id** collegano i file: una scena ha \`pov\`, \`luogo\` e \`personaggi\` con gli
 id delle schede (il campo \`id\` nel front-matter di personaggi e voci), e

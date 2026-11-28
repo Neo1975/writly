@@ -9,6 +9,7 @@ import {
   serializeWorkManifest,
   type ProjectManifest,
   type ProjectType,
+  type WordRange,
   type WorkManifest,
 } from "@/lib/project/format";
 import {
@@ -70,13 +71,23 @@ export async function loadProject(gh: GitHub, owner: string, repo: string): Prom
   };
 }
 
+/** Lunghezza di partenza di un capitolo di web novel (modificabile nelle impostazioni dell'opera). */
+export const WEBNOVEL_WORDS: WordRange = { min: 1500, max: 3000 };
+
+/** Opera di partenza: per una web novel il primo arco e la lunghezza dei capitoli già impostati. */
+function initialWork(titolo: string, tipo: ProjectType): WorkManifest {
+  const first: WorkManifest["capitoli"][number] = { file: "capitolo-1.md", titolo: "Capitolo 1" };
+  if (tipo !== "webnovel") return { titolo, capitoli: [first] };
+  return { titolo, capitoli: [{ ...first, arco: "arco-1" }], archi: [{ id: "arco-1", titolo: "Arco 1" }], paroleCapitolo: WEBNOVEL_WORDS };
+}
+
 function initialFiles(titolo: string, tipo: ProjectType, titoloOpera: string) {
   const work = uniqueSlug(slugify(titoloOpera), RESERVED_WORK_SLUGS);
-  const firstChapter: WorkManifest["capitoli"][number] = { file: "capitolo-1.md", titolo: "Capitolo 1" };
+  const firstChapter = initialWork(titoloOpera, tipo).capitoli[0];
   const manifest: ProjectManifest = { writly: FORMAT_VERSION, titolo, tipo, lingua: "it", opere: [work] };
   return [
     { path: MANIFEST_PATH, text: serializeProjectManifest(manifest) },
-    { path: workManifestPath(work), text: serializeWorkManifest({ titolo: titoloOpera, capitoli: [firstChapter] }) },
+    { path: workManifestPath(work), text: serializeWorkManifest(initialWork(titoloOpera, tipo)) },
     { path: chapterPath(work, firstChapter.file), text: serializeChapter({ meta: { id: shortId(), stato: "bozza" }, body: "" }) },
     { path: DICTIONARY_PATH, text: serializeDictionary([]) },
     ...mentorSkillFiles(),
@@ -134,20 +145,130 @@ export async function addWork(gh: GitHub, owner: string, repo: string, titolo: s
   return slug;
 }
 
-/** Tema e premessa di un'opera (testo vuoto = toglierli). Riprova una volta se opera.yaml è cambiato nel frattempo. */
-export async function updateWorkInfo(gh: GitHub, owner: string, repo: string, work: string, info: { tema: string; premessa: string }) {
+/**
+ * Cambia opera.yaml con un solo commit. `change` riceve l'opera attuale e restituisce la nuova
+ * (o null se non c'è niente da cambiare); se il file è cambiato nel frattempo si riprova una volta.
+ */
+async function mutateWork(gh: GitHub, owner: string, repo: string, work: string, message: string, change: (current: WorkManifest) => WorkManifest | null) {
   for (let attempt = 0; ; attempt++) {
     const { work: manifest, sha } = await readWork(gh, owner, repo, work);
-    const next: WorkManifest = { ...manifest, tema: info.tema.trim() || undefined, premessa: info.premessa.trim() || undefined };
-    if (next.tema === manifest.tema && next.premessa === manifest.premessa) return;
+    const next = change(manifest);
+    if (!next) return;
     try {
-      await writeText(gh, { owner, repo, path: workManifestPath(work), text: serializeWorkManifest(next), sha, message: `Tema e premessa di «${manifest.titolo}»` });
+      await writeText(gh, { owner, repo, path: workManifestPath(work), text: serializeWorkManifest(next), sha, message });
       return;
     } catch (err) {
       if (attempt === 0 && (err as { status?: number }).status === 409) continue;
       throw err;
     }
   }
+}
+
+/** Tema e premessa di un'opera (testo vuoto = toglierli). */
+export async function updateWorkInfo(gh: GitHub, owner: string, repo: string, work: string, info: { tema: string; premessa: string }) {
+  await mutateWork(gh, owner, repo, work, `Tema e premessa`, (manifest) => {
+    const next: WorkManifest = { ...manifest, tema: info.tema.trim() || undefined, premessa: info.premessa.trim() || undefined };
+    return next.tema === manifest.tema && next.premessa === manifest.premessa ? null : next;
+  });
+}
+
+/** Lunghezza voluta dei capitoli e note per le piattaforme (null / testo vuoto = toglierli). */
+export async function updateWorkSettings(
+  gh: GitHub,
+  owner: string,
+  repo: string,
+  work: string,
+  settings: { paroleCapitolo: WordRange | null; notaIniziale: string; notaFinale: string },
+) {
+  await mutateWork(gh, owner, repo, work, "Impostazioni di pubblicazione", (manifest) => {
+    const next: WorkManifest = {
+      ...manifest,
+      paroleCapitolo: settings.paroleCapitolo ?? undefined,
+      notaIniziale: settings.notaIniziale.trim() || undefined,
+      notaFinale: settings.notaFinale.trim() || undefined,
+    };
+    const same =
+      next.notaIniziale === manifest.notaIniziale &&
+      next.notaFinale === manifest.notaFinale &&
+      next.paroleCapitolo?.min === manifest.paroleCapitolo?.min &&
+      next.paroleCapitolo?.max === manifest.paroleCapitolo?.max;
+    return same ? null : next;
+  });
+}
+
+const missingArc = () => new ApiError(404, "Arco non trovato nell'opera.");
+
+/** Nuovo arco in fondo all'elenco; restituisce il suo id. */
+export async function addArc(gh: GitHub, owner: string, repo: string, work: string, titolo: string): Promise<string> {
+  let id = "";
+  await mutateWork(gh, owner, repo, work, `Nuovo arco «${titolo}»`, (manifest) => {
+    const archi = manifest.archi ?? [];
+    id = uniqueSlug(slugify(titolo, 40), archi.map((a) => a.id));
+    return { ...manifest, archi: [...archi, { id, titolo }] };
+  });
+  return id;
+}
+
+/** Titolo, sintesi e «concluso» di un arco: i campi non indicati restano quelli di prima. */
+export async function updateArc(
+  gh: GitHub,
+  owner: string,
+  repo: string,
+  work: string,
+  arcId: string,
+  changes: { titolo?: string; sintesi?: string; chiuso?: boolean },
+) {
+  await mutateWork(gh, owner, repo, work, "Modifica un arco", (manifest) => {
+    const archi = manifest.archi ?? [];
+    const arc = archi.find((a) => a.id === arcId);
+    if (!arc) throw missingArc();
+    const next = {
+      id: arc.id,
+      titolo: changes.titolo ?? arc.titolo,
+      ...((changes.chiuso ?? arc.chiuso) ? { chiuso: true } : {}),
+      ...((changes.sintesi ?? arc.sintesi) ? { sintesi: (changes.sintesi ?? arc.sintesi)!.trim() } : {}),
+    };
+    if (JSON.stringify(next) === JSON.stringify(arc)) return null;
+    return { ...manifest, archi: archi.map((a) => (a.id === arcId ? next : a)) };
+  });
+}
+
+/** Elimina un arco: i suoi capitoli restano, senza arco. */
+export async function removeArc(gh: GitHub, owner: string, repo: string, work: string, arcId: string) {
+  await mutateWork(gh, owner, repo, work, "Elimina un arco", (manifest) => {
+    const archi = manifest.archi ?? [];
+    if (!archi.some((a) => a.id === arcId)) throw missingArc();
+    return {
+      ...manifest,
+      archi: archi.filter((a) => a.id !== arcId),
+      capitoli: manifest.capitoli.map((c) => {
+        if (c.arco !== arcId) return c;
+        const { arco: _removed, ...rest } = c;
+        void _removed;
+        return rest;
+      }),
+    };
+  });
+}
+
+/** Mette uno o più capitoli in un arco (null = senza arco), con un solo commit. */
+export async function moveChaptersToArc(gh: GitHub, owner: string, repo: string, work: string, files: string[], arcId: string | null) {
+  if (files.length === 0 || files.some((f) => !isChapterFile(f))) throw new ApiError(400, "Capitolo non valido.");
+  const wanted = new Set(files);
+  await mutateWork(gh, owner, repo, work, files.length === 1 ? "Sposta un capitolo in un altro arco" : `Sposta ${files.length} capitoli in un altro arco`, (manifest) => {
+    if (arcId !== null && !(manifest.archi ?? []).some((a) => a.id === arcId)) throw missingArc();
+    const known = new Set(manifest.capitoli.map((c) => c.file));
+    if (files.some((f) => !known.has(f))) throw new ApiError(404, "Capitolo non trovato nell'opera.");
+    let changed = false;
+    const capitoli = manifest.capitoli.map((c) => {
+      if (!wanted.has(c.file) || (c.arco ?? null) === arcId) return c;
+      changed = true;
+      const { arco: _old, ...rest } = c;
+      void _old;
+      return arcId ? { ...rest, arco: arcId } : rest;
+    });
+    return changed ? { ...manifest, capitoli } : null;
+  });
 }
 
 /** Installa o aggiorna la skill del mentore AI per Claude Code (un solo commit). */
@@ -159,12 +280,14 @@ export async function installMentor(gh: GitHub, owner: string, repo: string): Pr
   return MENTOR_SKILL_VERSION;
 }
 
-export async function addChapter(gh: GitHub, owner: string, repo: string, work: string, titolo: string): Promise<string> {
+/** Nuovo capitolo in fondo all'opera; `arcId` lo mette in un arco (di solito l'ultimo aperto). */
+export async function addChapter(gh: GitHub, owner: string, repo: string, work: string, titolo: string, arcId?: string): Promise<string> {
   const { work: manifest } = await readWork(gh, owner, repo, work);
+  if (arcId !== undefined && !(manifest.archi ?? []).some((a) => a.id === arcId)) throw missingArc();
   const base = slugify(titolo, 70);
   const taken = manifest.capitoli.map((c) => c.file.replace(/\.md$/, ""));
   const file = `${uniqueSlug(base, taken)}.md`;
-  const next: WorkManifest = { ...manifest, capitoli: [...manifest.capitoli, { file, titolo }] };
+  const next: WorkManifest = { ...manifest, capitoli: [...manifest.capitoli, { file, titolo, ...(arcId ? { arco: arcId } : {}) }] };
   await commitFiles(gh, owner, repo, `Nuovo capitolo «${titolo}»`, [
     { path: workManifestPath(work), text: serializeWorkManifest(next) },
     { path: chapterPath(work, file), text: serializeChapter({ meta: { id: shortId(), stato: "bozza" }, body: "" }) },

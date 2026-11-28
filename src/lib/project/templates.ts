@@ -131,6 +131,26 @@ const daraMarks: StructureTemplate = {
   ],
 };
 
+const arcoPuntate: StructureTemplate = {
+  id: "arco-puntate",
+  nome: "Arco a puntate (web novel)",
+  descrizione: "La forma di un arco narrativo in una serie a capitoli: si ripete ad ogni arco e chiude con un gancio verso il successivo.",
+  origine: "",
+  atti: [
+    {
+      id: "arco",
+      nome: "Un arco",
+      sezioni: [
+        { id: "apertura", nome: "Apertura dell'arco", guida: "Un problema nuovo (o la conseguenza del precedente) e la posta: perché il lettore dovrebbe tornare al prossimo capitolo.", peso: 10 },
+        { id: "escalation", nome: "Sviluppo e complicazioni", guida: "Ogni capitolo alza un po' la posta o cambia le regole; un piccolo gancio a fine capitolo.", peso: 35 },
+        { id: "svolta", nome: "Svolta a metà arco", guida: "Una rivelazione o un fallimento che ribalta ciò che il lettore credeva di sapere.", peso: 15 },
+        { id: "climax", nome: "Climax dell'arco", guida: "La prova decisiva: il protagonista paga un prezzo e ottiene (o perde) qualcosa di concreto.", peso: 25 },
+        { id: "chiusura-gancio", nome: "Chiusura e gancio", guida: "Le conseguenze, il respiro dei personaggi e una domanda aperta che spinge verso l'arco successivo.", peso: 15 },
+      ],
+    },
+  ],
+};
+
 const libero: StructureTemplate = {
   id: "libero",
   nome: "Libero",
@@ -139,7 +159,7 @@ const libero: StructureTemplate = {
   atti: [{ id: "parte-1", nome: "Parte 1", sezioni: [] }],
 };
 
-export const BUILTIN_TEMPLATES: readonly StructureTemplate[] = [viaggioEroe, saveTheCat, daraMarks, libero];
+export const BUILTIN_TEMPLATES: readonly StructureTemplate[] = [viaggioEroe, saveTheCat, daraMarks, arcoPuntate, libero];
 
 export function builtinTemplate(id: string): StructureTemplate | undefined {
   return BUILTIN_TEMPLATES.find((t) => t.id === id);

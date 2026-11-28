@@ -15,7 +15,7 @@ interface LibraryData {
   candidati: RepoSummary[];
 }
 
-const TYPE_LABEL: Record<ProjectType, string> = { racconto: "Racconto", romanzo: "Romanzo", saga: "Saga" };
+const TYPE_LABEL: Record<ProjectType, string> = { racconto: "Racconto", romanzo: "Romanzo", saga: "Saga", webnovel: "Web novel (a puntate)" };
 
 function formatDate(iso: string | null) {
   if (!iso) return "";

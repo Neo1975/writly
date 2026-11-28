@@ -1,5 +1,5 @@
 import { characterAttributesText } from "@/lib/project/entities";
-import { parseChapter, parseProjectManifest, parseWorkManifest, type ChapterStatus, type ProjectType } from "@/lib/project/format";
+import { parseChapter, parseProjectManifest, parseWorkManifest, type Arc, type ChapterStatus, type ProjectType, type WordRange } from "@/lib/project/format";
 import { MANIFEST_PATH, chapterPath, workManifestPath } from "@/lib/project/paths";
 import { continuityWarnings, sheetAttributes } from "@/lib/text/continuity";
 import { countMentions, createMentionMatcher } from "@/lib/text/mentions";
@@ -28,6 +28,10 @@ export interface OverviewChapter {
   file: string;
   titolo: string;
   stato: ChapterStatus | "mancante";
+  /** Giorno di uscita (solo capitoli pubblicati). */
+  pubblicato: string | null;
+  /** id dell'arco, se c'è. */
+  arco: string | null;
   parole: number;
   battute: number;
   /** id della scheda → numero di citazioni. */
@@ -39,6 +43,8 @@ export interface OverviewWork {
   slug: string;
   titolo: string;
   obiettivoParole: number | null;
+  paroleCapitolo: WordRange | null;
+  archi: Arc[];
   capitoli: OverviewChapter[];
 }
 
@@ -84,9 +90,11 @@ export async function loadOverview(gh: GitHub, owner: string, repo: string): Pro
     slug: work.slug,
     titolo: work.titolo,
     obiettivoParole: work.obiettivoParole ?? null,
+    paroleCapitolo: work.paroleCapitolo ?? null,
+    archi: work.archi ?? [],
     capitoli: work.capitoli.map((c): OverviewChapter => {
       const raw = textByPath.get(chapterPath(work.slug, c.file));
-      if (raw === undefined) return { file: c.file, titolo: c.titolo, stato: "mancante", parole: 0, battute: 0, presenze: {}, avvisi: [] };
+      if (raw === undefined) return { file: c.file, titolo: c.titolo, stato: "mancante", pubblicato: null, arco: c.arco ?? null, parole: 0, battute: 0, presenze: {}, avvisi: [] };
       const doc = parseChapter(raw);
       const plain = markdownToPlain(doc.body);
       const stats = textStats(plain);
@@ -94,6 +102,8 @@ export async function loadOverview(gh: GitHub, owner: string, repo: string): Pro
         file: c.file,
         titolo: c.titolo,
         stato: doc.meta.stato,
+        pubblicato: doc.meta.pubblicato ?? null,
+        arco: c.arco ?? null,
         parole: stats.parole,
         battute: stats.battute,
         presenze: Object.fromEntries(countMentions(matcher, plain)),

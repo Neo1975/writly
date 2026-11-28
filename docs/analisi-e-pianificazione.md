@@ -268,6 +268,7 @@ Rimandati rispetto ai requisiti delle fasi 2–7 (restano nel piano):
 | **5 — Export** ✅ | Template PDF, export capitolo/selezione/opera, opuscolo e segnature | |
 | **6 — Versioni avanzate** ✅ | Confronto multi-versione, varianti/branch, ripristino parziale, sync esterna | |
 | **7 — Extra** ✅ | Statistiche, controlli di stile, continuità, EPUB/DOCX, panoramica della saga (AI e LanguageTool in attesa delle domande 5 e 7) | |
+| **8 — Web novel** ✅ | Tipo «Web novel»: archi, stato «Pubblicato» con data, lunghezza dei capitoli, scorta e ritmo di uscita, esportazione per le piattaforme (28/11/2026) | |
 
 ## 8. Rischi e mitigazioni
 

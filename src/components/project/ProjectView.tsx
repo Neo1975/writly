@@ -5,13 +5,15 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api, ClientApiError, projectApi } from "@/lib/client/api";
 import { loadTravelInfo } from "@/lib/client/offline";
 import { useOnline } from "@/components/ui/PwaSetup";
+import ChapterList from "./ChapterList";
 import ProjectNav from "./ProjectNav";
 import TravelCard from "./TravelCard";
+import WorkPublishing from "./WorkPublishing";
 import VariantsCard from "./VariantsCard";
 import type { ProjectData, WorkSummary } from "@/lib/server/projects";
 import { WORK_INFO_MAX } from "@/lib/project/format";
 
-const TYPE_LABEL = { racconto: "Racconto", romanzo: "Romanzo", saga: "Saga" } as const;
+const TYPE_LABEL = { racconto: "Racconto", romanzo: "Romanzo", saga: "Saga", webnovel: "Web novel" } as const;
 
 /** Il progetto da GitHub; senza rete, quello scaricato «per il viaggio» (se c'è). */
 async function loadProjectOrCopy(owner: string, repo: string): Promise<{ data: ProjectData; copyFrom: number | null }> {
@@ -129,7 +131,7 @@ export default function ProjectView({ owner, repo }: { owner: string; repo: stri
       )}
 
       {data.opere.map((w) => (
-        <WorkCard key={w.slug} owner={owner} repo={repo} work={w} onChanged={load} onError={setError} />
+        <WorkCard key={w.slug} owner={owner} repo={repo} work={w} webnovel={manifest.tipo === "webnovel"} onChanged={load} onError={setError} />
       ))}
 
       <TravelCard owner={owner} repo={repo} online={online} />
@@ -166,19 +168,19 @@ function WorkCard({
   owner,
   repo,
   work,
+  webnovel,
   onChanged,
   onError,
 }: {
   owner: string;
   repo: string;
   work: WorkSummary;
+  webnovel: boolean;
   onChanged: () => Promise<void>;
   onError: (e: ClientApiError) => void;
 }) {
   const base = projectApi(owner, repo);
   const [title, setTitle] = useState("");
-  const [editing, setEditing] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function run(json: Record<string, unknown>) {
@@ -195,14 +197,15 @@ function WorkCard({
     }
   }
 
+  // Un nuovo capitolo va nell'ultimo arco ancora aperto (di solito quello in cui si sta scrivendo), a meno che si scelga altro.
+  const archi = work.archi ?? [];
+  const defaultArc = [...archi].reverse().find((a) => !a.chiuso)?.id ?? archi[archi.length - 1]?.id ?? "";
+  const [arc, setArc] = useState<string | null>(null);
+  const chosenArc = archi.some((a) => a.id === (arc ?? defaultArc)) ? (arc ?? defaultArc) : "";
+
   async function addChapter(e: FormEvent) {
     e.preventDefault();
-    if (await run({ azione: "nuovo-capitolo", opera: work.slug, titolo: title })) setTitle("");
-  }
-
-  async function rename(e: FormEvent, file: string) {
-    e.preventDefault();
-    if (await run({ azione: "rinomina-capitolo", opera: work.slug, file, titolo: editTitle })) setEditing(null);
+    if (await run({ azione: "nuovo-capitolo", opera: work.slug, titolo: title, ...(chosenArc ? { arco: chosenArc } : {}) })) setTitle("");
   }
 
   return (
@@ -216,57 +219,7 @@ function WorkCard({
         </Link>
       </div>
       <WorkInfo work={work} busy={busy} onSave={(tema, premessa) => run({ azione: "info-opera", opera: work.slug, tema, premessa })} />
-      <ol className="list" style={{ paddingLeft: 0 }}>
-        {work.capitoli.map((c, i) => (
-          <li key={c.file}>
-            <span className="small muted" style={{ width: 28 }}>
-              {i + 1}
-            </span>
-            {editing === c.file ? (
-              <form className="row" style={{ flex: 1 }} onSubmit={(e) => rename(e, c.file)}>
-                <label htmlFor={`rn-${c.file}`} className="sr-only">
-                  Nuovo titolo
-                </label>
-                <input
-                  id={`rn-${c.file}`}
-                  className="input"
-                  style={{ flex: "1 1 220px", width: "auto" }}
-                  autoFocus
-                  required
-                  maxLength={200}
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                />
-                <button type="submit" className="btn btn-small btn-primary" disabled={busy}>
-                  Salva
-                </button>
-                <button type="button" className="btn btn-small" onClick={() => setEditing(null)}>
-                  Annulla
-                </button>
-              </form>
-            ) : (
-              <>
-                <Link
-                  href={`/progetto/${owner}/${repo}/${work.slug}/${c.file.replace(/\.md$/, "")}`}
-                  style={{ flex: 1, fontWeight: 500 }}
-                >
-                  {c.titolo}
-                </Link>
-                <button
-                  type="button"
-                  className="btn btn-small btn-ghost"
-                  onClick={() => {
-                    setEditing(c.file);
-                    setEditTitle(c.titolo);
-                  }}
-                >
-                  Rinomina
-                </button>
-              </>
-            )}
-          </li>
-        ))}
-      </ol>
+      <ChapterList owner={owner} repo={repo} work={work} busy={busy} run={run} />
       <form className="row" onSubmit={addChapter}>
         <label htmlFor={`nc-${work.slug}`} className="sr-only">
           Titolo del nuovo capitolo
@@ -281,10 +234,26 @@ function WorkCard({
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Titolo del nuovo capitolo"
         />
+        {archi.length > 0 && (
+          <>
+            <label htmlFor={`nca-${work.slug}`} className="sr-only">
+              Arco del nuovo capitolo
+            </label>
+            <select id={`nca-${work.slug}`} className="select" style={{ width: "auto" }} value={chosenArc} onChange={(e) => setArc(e.target.value)}>
+              <option value="">Senza arco</option>
+              {archi.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.titolo}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
         <button type="submit" className="btn" disabled={busy || !title.trim()}>
           Nuovo capitolo
         </button>
       </form>
+      <WorkPublishing work={work} busy={busy} defaultOpen={webnovel} onSave={run} />
     </section>
   );
 }

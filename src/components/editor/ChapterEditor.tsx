@@ -13,10 +13,12 @@ import {
   CHAPTER_STATUSES,
   parseChapter,
   serializeChapter,
+  isIsoDate,
   type ChapterMeta,
   type ChapterStatus,
 } from "@/lib/project/format";
 import { VARIANT_PREFIX, chapterPath, variantName } from "@/lib/project/paths";
+import { rangeStatus, todayIso } from "@/lib/project/serial";
 import type { ProjectData } from "@/lib/server/projects";
 import { loadItalianSpellChecker, type SpellChecker } from "@/lib/spell/checker";
 import { formatCount, textStats, type TextStats } from "@/lib/text/stats";
@@ -43,7 +45,10 @@ const STATUS_LABEL: Record<ChapterStatus, string> = {
   "in-stesura": "In stesura",
   scritto: "Scritto",
   revisionato: "Revisionato",
+  pubblicato: "Pubblicato",
 };
+
+const RANGE_LABEL = { sotto: "sotto l'obiettivo", dentro: "nell'obiettivo", sopra: "oltre l'obiettivo" } as const;
 
 interface SpellMenuState {
   word: string;
@@ -138,6 +143,7 @@ export default function ChapterEditor({
   const [dirty, setDirty] = useState(false);
   const [localSaved, setLocalSaved] = useState<number | null>(null);
   const [stato, setStato] = useState<ChapterStatus>("bozza");
+  const [pubblicato, setPubblicato] = useState("");
   const [stats, setStats] = useState<TextStats>(EMPTY_STATS);
   const [selection, setSelection] = useState<TextStats | null>(null);
   const [spellStatus, setSpellStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -164,7 +170,9 @@ export default function ChapterEditor({
   // Stato non reattivo usato dalle callback dell'editor.
   const shaRef = useRef("");
   const metaRef = useRef<ChapterMeta>({ id: "", stato: "bozza" });
-  const committedRef = useRef<{ body: string; stato: ChapterStatus }>({ body: "", stato: "bozza" });
+  const committedRef = useRef<{ body: string; stato: ChapterStatus; pubblicato?: string }>({ body: "", stato: "bozza" });
+  /** Stato o data di uscita diversi da quelli salvati su GitHub. */
+  const metaChanged = () => metaRef.current.stato !== committedRef.current.stato || (metaRef.current.pubblicato ?? "") !== (committedRef.current.pubblicato ?? "");
   // Contenitore stabile: ProseMirror legge il checker solo quando ricalcola le decorazioni.
   const [spell] = useState<{ checker: SpellChecker | null }>(() => ({ checker: null }));
   const [ents] = useState<{ source: (MentionsSource & { ambiguous: string[] }) | null }>(() => ({ source: null }));
@@ -186,7 +194,7 @@ export default function ChapterEditor({
     setReport({ counts, anchored, continuity: r.continuity, overused: overusedWords(plain, { ignora: checks.ignore }) });
     if (readyRef.current) recordWriting(owner, repo, draftKey, s.parole);
     const body = editor.getMarkdown();
-    const isDirty = body !== committedRef.current.body || metaRef.current.stato !== committedRef.current.stato;
+    const isDirty = body !== committedRef.current.body || metaChanged();
     setDirty(isDirty);
     return { body, isDirty };
   }, [ents, checks, owner, repo, draftKey]);
@@ -203,7 +211,7 @@ export default function ChapterEditor({
           return;
         }
         const now = Date.now();
-        const ok = await saveDraft(owner, repo, draftKey, { body, stato: metaRef.current.stato, baseSha: shaRef.current, updatedAt: now });
+        const ok = await saveDraft(owner, repo, draftKey, { body, stato: metaRef.current.stato, ...(metaRef.current.pubblicato ? { pubblicato: metaRef.current.pubblicato } : {}), baseSha: shaRef.current, updatedAt: now });
         setLocalSaved(ok ? now : null);
       };
       saveTimer.current = setTimeout(() => void pendingDraft.current?.(), 400);
@@ -223,8 +231,8 @@ export default function ChapterEditor({
     const editor = editorRef.current;
     if (pendingDraft.current && editor && readyRef.current) {
       const body = editor.getMarkdown();
-      if (body !== committedRef.current.body || metaRef.current.stato !== committedRef.current.stato) {
-        saveDraftNow(owner, repo, draftKey, { body, stato: metaRef.current.stato, baseSha: shaRef.current, updatedAt: Date.now() });
+      if (body !== committedRef.current.body || metaChanged()) {
+        saveDraftNow(owner, repo, draftKey, { body, stato: metaRef.current.stato, ...(metaRef.current.pubblicato ? { pubblicato: metaRef.current.pubblicato } : {}), baseSha: shaRef.current, updatedAt: Date.now() });
       }
     }
     flushDraft();
@@ -347,16 +355,18 @@ export default function ChapterEditor({
         shaRef.current = remote.sha;
         metaRef.current = doc.meta;
         editor.commands.setContent(doc.body, { contentType: "markdown", emitUpdate: false });
-        committedRef.current = { body: editor.getMarkdown(), stato: doc.meta.stato };
+        committedRef.current = { body: editor.getMarkdown(), stato: doc.meta.stato, pubblicato: doc.meta.pubblicato };
         setProject(proj);
         setStato(doc.meta.stato);
+        setPubblicato(doc.meta.pubblicato ?? "");
 
-        const differs = draft && (draft.body !== committedRef.current.body || draft.stato !== doc.meta.stato);
+        const differs = draft && (draft.body !== committedRef.current.body || draft.stato !== doc.meta.stato || (draft.pubblicato ?? "") !== (doc.meta.pubblicato ?? ""));
         if (draft && differs) {
           if (draft.baseSha === remote.sha) {
             editor.commands.setContent(draft.body, { contentType: "markdown", emitUpdate: false });
-            metaRef.current = { ...metaRef.current, stato: draft.stato };
+            metaRef.current = { ...metaRef.current, stato: draft.stato, pubblicato: draft.pubblicato };
             setStato(draft.stato);
+            setPubblicato(draft.pubblicato ?? "");
             setLocalSaved(draft.updatedAt);
             setNotice({ kind: "info", text: `Ho ripreso le modifiche salvate in questo browser il ${formatTime(draft.updatedAt)}, non ancora salvate in versione.` });
           } else {
@@ -540,8 +550,22 @@ export default function ChapterEditor({
   }, [flushDraft, flushDraftOnExit]);
 
   function changeStatus(next: ChapterStatus) {
-    metaRef.current = { ...metaRef.current, stato: next };
+    // «Pubblicato» porta la data di oggi (modificabile: nel futuro vuol dire programmato); gli altri stati non ne hanno.
+    const date = next === "pubblicato" ? metaRef.current.pubblicato || todayIso() : undefined;
+    metaRef.current = { ...metaRef.current, stato: next, pubblicato: date };
     setStato(next);
+    setPubblicato(date ?? "");
+    if (editor) {
+      recompute(editor);
+      scheduleDraft(editor);
+    }
+  }
+
+  /** Giorno di uscita di un capitolo «pubblicato» (vuoto = senza data). */
+  function changePublished(value: string) {
+    const date = isIsoDate(value) ? value : undefined;
+    metaRef.current = { ...metaRef.current, pubblicato: date };
+    setPubblicato(date ?? "");
     if (editor) {
       recompute(editor);
       scheduleDraft(editor);
@@ -596,7 +620,7 @@ export default function ChapterEditor({
         },
         onApply: (merged) => {
           shaRef.current = remote.sha;
-          committedRef.current = { body: theirs, stato: parseChapter(remote.text).meta.stato };
+          committedRef.current = { body: theirs, stato: parseChapter(remote.text).meta.stato, pubblicato: parseChapter(remote.text).meta.pubblicato };
           restoreBody(merged, "L'unione");
           setConflict(null);
         },
@@ -640,7 +664,7 @@ export default function ChapterEditor({
     const main = await mainVersion();
     if (!main) return;
     try {
-      const text = serializeChapter({ meta: { ...parseChapter(main.text).meta, stato: metaRef.current.stato }, body: editor.getMarkdown() });
+      const text = serializeChapter({ meta: { ...parseChapter(main.text).meta, stato: metaRef.current.stato, pubblicato: metaRef.current.pubblicato }, body: editor.getMarkdown() });
       await api(`${base}/file`, {
         method: "PUT",
         json: { path, text, sha: main.sha, message: `${chapter?.titolo ?? file}: portato dalla variante «${variantName(variant)}»` },
@@ -769,6 +793,15 @@ export default function ChapterEditor({
             <dt>Parole</dt>
             <dd>{formatCount(stats.parole)}</dd>
           </div>
+          {work_?.paroleCapitolo && (
+            <div>
+              <dt>Obiettivo</dt>
+              <dd className={`range range-${rangeStatus(stats.parole, work_.paroleCapitolo) ?? "nessuno"}`}>
+                {formatCount(work_.paroleCapitolo.min)}–{formatCount(work_.paroleCapitolo.max)}
+                {rangeStatus(stats.parole, work_.paroleCapitolo) && <span> · {RANGE_LABEL[rangeStatus(stats.parole, work_.paroleCapitolo)!]}</span>}
+              </dd>
+            </div>
+          )}
           <div>
             <dt>Battute con spazi</dt>
             <dd>{formatCount(stats.battute)}</dd>
@@ -818,6 +851,14 @@ export default function ChapterEditor({
               </option>
             ))}
           </select>
+          {stato === "pubblicato" && (
+            <>
+              <label htmlFor="uscita" className="sr-only">
+                Giorno di uscita
+              </label>
+              <input id="uscita" type="date" className="input" style={{ width: "auto", minHeight: 36 }} value={pubblicato} onChange={(e) => changePublished(e.target.value)} disabled={!ready} title="Giorno di uscita (nel futuro = programmato)" />
+            </>
+          )}
           <button type="button" className="btn" aria-pressed={focusMode} onClick={() => setFocusMode(!focusMode)} title="Solo il testo: nasconde barra, strumenti e pannello">
             {focusMode ? "Esci dalla concentrazione" : "Concentrazione"}
           </button>
@@ -921,6 +962,7 @@ export default function ChapterEditor({
                   onClick={() => {
                     restoreBody(conflict.body, "La tua bozza locale");
                     changeStatus(conflict.stato);
+                    if (conflict.pubblicato) changePublished(conflict.pubblicato);
                     setConflict(null);
                   }}
                 >

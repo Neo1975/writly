@@ -132,7 +132,8 @@ export async function listTravelProjects(): Promise<TravelInfo[]> {
 }
 
 async function primePages(urls: string[], onStep: () => void) {
-  const assets = new Set<string>();
+  // Il marchio nella barra in alto non è citato nel codice delle pagine come file di build: va chiesto da sé.
+  const assets = new Set<string>(["/icons/icon.svg"]);
   for (const url of urls) {
     try {
       // Con Accept: text/html il service worker tiene la pagina in cache.

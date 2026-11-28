@@ -13,6 +13,7 @@ import { slugify } from "@/lib/project/slug";
 import { formatCount } from "@/lib/text/stats";
 import type { ProjectData } from "@/lib/server/projects";
 import type { Sheet, SheetsData } from "@/lib/server/sheets";
+import PlatformExport from "./PlatformExport";
 import TemplateEditor from "./TemplateEditor";
 
 type Scope = "opera" | "selezione" | "capitolo";
@@ -210,6 +211,8 @@ export default function ExportView({ owner, repo }: { owner: string; repo: strin
           <div className="small muted">Il file si compone in questo browser con l&apos;ultima versione salvata di ogni capitolo: le modifiche non ancora in versione non sono incluse.</div>
         </div>
       </div>
+
+      {work && <PlatformExport key={work.slug} owner={owner} repo={repo} work={work} defaultOpen={project.data.manifest.tipo === "webnovel"} />}
 
       <div className="export-grid">
         <div className="stack">

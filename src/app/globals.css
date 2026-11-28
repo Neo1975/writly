@@ -2235,3 +2235,40 @@ div.comment-quote {
 .brand-mark {
   border-radius: 7px;
 }
+
+/* Archi e lunghezza dei capitoli (web novel) */
+.arc {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 14px 10px;
+  background: var(--surface);
+}
+.arc-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  padding: 10px 0;
+  cursor: pointer;
+}
+.arc-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+.arc-sintesi {
+  margin: 0 0 6px;
+}
+.arc-actions {
+  margin-bottom: 6px;
+}
+.select-small {
+  min-height: 32px;
+  font-size: 13px;
+}
+.range-dentro {
+  color: var(--ok);
+}
+.range-sotto,
+.range-sopra {
+  color: var(--warn-text);
+}
