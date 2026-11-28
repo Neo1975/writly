@@ -3,14 +3,32 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api, ClientApiError, projectApi } from "@/lib/client/api";
+import { loadTravelInfo } from "@/lib/client/offline";
+import { useOnline } from "@/components/ui/PwaSetup";
 import ProjectNav from "./ProjectNav";
+import TravelCard from "./TravelCard";
 import VariantsCard from "./VariantsCard";
 import type { ProjectData, WorkSummary } from "@/lib/server/projects";
 import { WORK_INFO_MAX } from "@/lib/project/format";
 
 const TYPE_LABEL = { racconto: "Racconto", romanzo: "Romanzo", saga: "Saga" } as const;
 
+/** Il progetto da GitHub; senza rete, quello scaricato «per il viaggio» (se c'è). */
+async function loadProjectOrCopy(owner: string, repo: string): Promise<{ data: ProjectData; copyFrom: number | null }> {
+  try {
+    return { data: await api<ProjectData>(projectApi(owner, repo)), copyFrom: null };
+  } catch (err) {
+    if ((err as ClientApiError).status === 0) {
+      const info = await loadTravelInfo(owner, repo);
+      if (info) return { data: info.project, copyFrom: info.scaricatoIl };
+    }
+    throw err;
+  }
+}
+
 export default function ProjectView({ owner, repo }: { owner: string; repo: string }) {
+  const online = useOnline();
+  const [copyFrom, setCopyFrom] = useState<number | null>(null);
   const [data, setData] = useState<ProjectData | null>(null);
   const [error, setError] = useState<ClientApiError | null>(null);
   const [newWork, setNewWork] = useState("");
@@ -20,21 +38,34 @@ export default function ProjectView({ owner, repo }: { owner: string; repo: stri
   const load = useCallback(async () => {
     setError(null);
     try {
-      setData(await api<ProjectData>(base));
+      const r = await loadProjectOrCopy(owner, repo);
+      setData(r.data);
+      setCopyFrom(r.copyFrom);
     } catch (err) {
       setError(err as ClientApiError);
     }
-  }, [base]);
+  }, [owner, repo]);
 
   useEffect(() => {
     let cancelled = false;
-    api<ProjectData>(base)
-      .then((d) => !cancelled && setData(d))
+    loadProjectOrCopy(owner, repo)
+      .then((r) => {
+        if (cancelled) return;
+        setData(r.data);
+        setCopyFrom(r.copyFrom);
+      })
       .catch((err: ClientApiError) => !cancelled && setError(err));
     return () => {
       cancelled = true;
     };
-  }, [base]);
+  }, [owner, repo]);
+
+  // Quando la rete torna, il progetto si rilegge da GitHub (se stavamo guardando la copia scaricata).
+  useEffect(() => {
+    const onOnline = () => void load();
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [load]);
 
   async function addWork(e: FormEvent) {
     e.preventDefault();
@@ -91,9 +122,17 @@ export default function ProjectView({ owner, repo }: { owner: string; repo: stri
         </div>
       )}
 
+      {!online && (
+        <div className="notice notice-warn" role="status">
+          Senza connessione: vedi la copia scaricata{copyFrom !== null ? ` il ${new Intl.DateTimeFormat("it-IT", { dateStyle: "long", timeStyle: "short" }).format(copyFrom)}` : ""}. I capitoli si aprono e si scrivono; schede, struttura e appunti si consultano soltanto.
+        </div>
+      )}
+
       {data.opere.map((w) => (
         <WorkCard key={w.slug} owner={owner} repo={repo} work={w} onChanged={load} onError={setError} />
       ))}
+
+      <TravelCard owner={owner} repo={repo} online={online} />
 
       <VariantsCard base={base} owner={owner} repo={repo} works={data.opere} />
 

@@ -1,4 +1,4 @@
-import { del, get, set } from "idb-keyval";
+import { del, get, keys, set } from "idb-keyval";
 import type { ChapterStatus } from "@/lib/project/format";
 
 /**
@@ -13,8 +13,32 @@ export interface Draft {
   updatedAt: number;
 }
 
+const DRAFT_PREFIX = "writly:bozza:";
+
 function key(owner: string, repo: string, path: string) {
-  return `writly:bozza:${owner}/${repo}/${path}`;
+  return `${DRAFT_PREFIX}${owner}/${repo}/${path}`;
+}
+
+/** Evento della finestra: le bozze sono cambiate (l'indicatore delle modifiche non salvate si aggiorna). */
+export const DRAFTS_EVENT = "writly:bozze";
+function notify() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(DRAFTS_EVENT));
+}
+
+/** Una bozza con il capitolo a cui appartiene. `variant` è «variante/<nome>» o null per la versione principale. */
+export interface DraftEntry {
+  owner: string;
+  repo: string;
+  path: string;
+  variant: string | null;
+  draft: Draft;
+}
+
+/** Chiave di una bozza → progetto, capitolo e variante (null se non è la bozza di un capitolo). */
+export function parseDraftKey(k: string): Omit<DraftEntry, "draft"> | null {
+  if (!k.startsWith(DRAFT_PREFIX)) return null;
+  const m = /^([^/]+)\/([^/]+)\/(opere\/[^/@]+\/capitoli\/[^/@]+\.md)(?:@(.+))?$/.exec(k.slice(DRAFT_PREFIX.length));
+  return m ? { owner: m[1], repo: m[2], path: m[3], variant: m[4] ?? null } : null;
 }
 
 function readEmergency(k: string): Draft | null {
@@ -53,6 +77,7 @@ export async function saveDraft(owner: string, repo: string, path: string, draft
   try {
     await set(k, draft);
     dropEmergency(k);
+    notify();
     return true;
   } catch {
     return false;
@@ -66,6 +91,7 @@ export async function saveDraft(owner: string, repo: string, path: string, draft
 export function saveDraftNow(owner: string, repo: string, path: string, draft: Draft): boolean {
   try {
     localStorage.setItem(key(owner, repo, path), JSON.stringify(draft));
+    notify();
     return true;
   } catch {
     return false;
@@ -80,6 +106,32 @@ export async function clearDraft(owner: string, repo: string, path: string): Pro
   } catch {
     // niente da fare
   }
+  notify();
+}
+
+/** Tutte le bozze di capitolo di questo dispositivo, dalla più recente (anche le copie di emergenza in localStorage). */
+export async function listDrafts(): Promise<DraftEntry[]> {
+  const found = new Map<string, DraftEntry>();
+  const add = (k: string, draft: Draft | undefined) => {
+    const id = parseDraftKey(k);
+    if (!id || !draft || typeof draft.body !== "string") return;
+    const prev = found.get(k);
+    if (!prev || draft.updatedAt > prev.draft.updatedAt) found.set(k, { ...id, draft });
+  };
+  try {
+    for (const k of await keys()) if (typeof k === "string" && k.startsWith(DRAFT_PREFIX)) add(k, (await get(k)) as Draft | undefined);
+  } catch {
+    // IndexedDB non disponibile: restano le copie di emergenza
+  }
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k?.startsWith(DRAFT_PREFIX)) add(k, readEmergency(k) ?? undefined);
+    }
+  } catch {
+    // niente da fare
+  }
+  return [...found.values()].sort((a, b) => b.draft.updatedAt - a.draft.updatedAt);
 }
 
 /**

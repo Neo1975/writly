@@ -2208,3 +2208,22 @@ div.comment-quote {
   outline: 2px solid var(--text);
   outline-offset: 2px;
 }
+
+/* Senza rete / copia per il viaggio */
+.offline-bar {
+  padding: 8px 24px;
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  font-size: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.travel-progress {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--accent);
+}
+.sync-badge {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  border-color: transparent;
+}

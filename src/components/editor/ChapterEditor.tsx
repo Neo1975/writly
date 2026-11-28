@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import SaveDialog from "@/components/ui/SaveDialog";
 import { api, ClientApiError, projectApi } from "@/lib/client/api";
 import { clearDraft, loadDraft, saveDraft, saveDraftNow, type Draft } from "@/lib/client/drafts";
+import { loadTravelCopy, updatePackedFile } from "@/lib/client/offline";
 import {
   CHAPTER_STATUSES,
   parseChapter,
@@ -318,12 +319,30 @@ export default function ChapterEditor({
     let cancelled = false;
     (async () => {
       try {
-        const [proj, remote, draft] = await Promise.all([
-          api<ProjectData>(base),
-          api<{ text: string; sha: string }>(`${base}/file?path=${encodeURIComponent(path)}${ramoQuery}`),
-          loadDraft(owner, repo, draftKey),
-        ]);
+        const draftPromise = loadDraft(owner, repo, draftKey);
+        let proj: ProjectData;
+        let remote: { text: string; sha: string };
+        let copyFrom: number | null = null;
+        try {
+          [proj, remote] = await Promise.all([
+            api<ProjectData>(base),
+            api<{ text: string; sha: string }>(`${base}/file?path=${encodeURIComponent(path)}${ramoQuery}`),
+          ]);
+          // La copia scaricata resta al passo con GitHub (solo versione principale).
+          if (!variant) void updatePackedFile(owner, repo, path, remote);
+        } catch (err) {
+          // Senza rete si apre la copia scaricata «per il viaggio».
+          const copy = !variant && (err as ClientApiError).status === 0 ? await loadTravelCopy(owner, repo, path) : null;
+          if (!copy) throw err;
+          proj = copy.project;
+          remote = copy.file;
+          copyFrom = copy.scaricatoIl;
+        }
+        const draft = await draftPromise;
         if (cancelled) return;
+        if (copyFrom !== null) {
+          setNotice({ kind: "info", text: `Senza connessione: lavori sulla copia scaricata il ${formatTime(copyFrom)}. Le modifiche restano su questo dispositivo; salvale su GitHub quando torna la rete.` });
+        }
         const doc = parseChapter(remote.text);
         shaRef.current = remote.sha;
         metaRef.current = doc.meta;
@@ -359,7 +378,7 @@ export default function ChapterEditor({
     return () => {
       cancelled = true;
     };
-  }, [editor, base, path, draftKey, ramoQuery, owner, repo, recompute]);
+  }, [editor, base, path, draftKey, ramoQuery, variant, owner, repo, recompute]);
 
   // Controllo ortografico: Hunspell italiano + dizionario del progetto.
   useEffect(() => {
@@ -541,6 +560,7 @@ export default function ChapterEditor({
       });
       shaRef.current = res.sha;
       committedRef.current = { body, stato: metaRef.current.stato };
+      if (!variant) void updatePackedFile(owner, repo, path, { text, sha: res.sha });
       await clearDraft(owner, repo, draftKey);
       setLocalSaved(null);
       recompute(editor);

@@ -30,6 +30,7 @@ Applicazione di supporto alla stesura di racconti, romanzi e saghe. Ogni progett
 - **Panoramica**: parole per capitolo e per opera con l'obiettivo del libro, presenze di personaggi e luoghi capitolo per capitolo e, nelle saghe, libro per libro con la prima comparsa; avvisi di continuità e schede mai citate.
 - **Commenti e mentore AI**: commenti sui passaggi del capitolo, ancorati alla frase citata (nessun segno nel testo), con risposte e «risolto». Ogni progetto contiene la skill di Claude Code `writly-mentore`: aprendo Claude Code sul repository si chiede una revisione di capitolo (commenti che compaiono nell'app), una revisione strutturale o una sessione di coaching (appunti di tipo «Revisione»). Il mentore non riscrive il testo.
 - **EPUB e DOCX**: ebook per i lettori digitali e dattiloscritto Word (Times 12, interlinea 1,5) per editori e concorsi, composti nel browser.
+- **Senza rete (iPad e computer)**: «Scarica per il viaggio» tiene sul dispositivo i capitoli della versione principale; con Writly aggiunta alla schermata Home si aprono e si scrivono anche senza rete (correzione ortografica compresa) e si salvano su GitHub quando torna. Le modifiche non ancora su GitHub hanno un indicatore e un elenco, e si salvano da sole quando torna la rete; se nel frattempo il capitolo è cambiato altrove non si sovrascrive niente e l'editor propone l'unione. Schede, mondo con mappe, appunti, struttura, panoramica e commenti si consultano offline in sola lettura.
 
 ## Avvio in locale
 

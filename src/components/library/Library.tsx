@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Modal from "@/components/ui/Modal";
 import { api, ClientApiError } from "@/lib/client/api";
+import { listTravelProjects, type TravelInfo } from "@/lib/client/offline";
 import { PROJECT_TYPES, type ProjectType } from "@/lib/project/format";
 import { slugify } from "@/lib/project/slug";
 import type { RepoSummary } from "@/lib/server/github";
@@ -26,13 +27,17 @@ export default function Library() {
   const [data, setData] = useState<LibraryData | null>(null);
   const [error, setError] = useState<ClientApiError | null>(null);
   const [dialog, setDialog] = useState<"crea" | "collega" | null>(null);
+  // Senza rete: i progetti scaricati su questo dispositivo.
+  const [copies, setCopies] = useState<TravelInfo[]>([]);
 
   const load = useCallback(async () => {
     setError(null);
     try {
       setData(await api<LibraryData>("/api/progetti"));
+      setCopies([]);
     } catch (err) {
       setError(err as ClientApiError);
+      if ((err as ClientApiError).status === 0) setCopies(await listTravelProjects());
     }
   }, []);
 
@@ -40,11 +45,25 @@ export default function Library() {
     let cancelled = false;
     api<LibraryData>("/api/progetti")
       .then((d) => !cancelled && setData(d))
-      .catch((err: ClientApiError) => !cancelled && setError(err));
+      .catch(async (err: ClientApiError) => {
+        if (cancelled) return;
+        setError(err);
+        if (err.status === 0) {
+          const found = await listTravelProjects();
+          if (!cancelled) setCopies(found);
+        }
+      });
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // Quando la rete torna, la libreria si rilegge da sola.
+  useEffect(() => {
+    const onOnline = () => void load();
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [load]);
 
   const open = (owner: string, repo: string) => router.push(`/progetto/${owner}/${repo}`);
 
@@ -65,7 +84,12 @@ export default function Library() {
         </div>
       </div>
 
-      {error && (
+      {error && error.status === 0 && copies.length > 0 && (
+        <div className="notice notice-warn" role="status">
+          Senza connessione: puoi aprire i progetti scaricati su questo dispositivo.
+        </div>
+      )}
+      {error && !(error.status === 0 && copies.length > 0) && (
         <div className="notice notice-error" role="alert">
           {error.message}{" "}
           {error.status === 401 ? (
@@ -79,6 +103,25 @@ export default function Library() {
       )}
 
       {!data && !error && <p className="muted">Carico i progetti da GitHub…</p>}
+
+      {!data && copies.length > 0 && (
+        <section aria-labelledby="scaricati-titolo" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <h2 id="scaricati-titolo" className="serif" style={{ margin: 0 }}>
+            Scaricati su questo dispositivo
+          </h2>
+          <div className="grid-cards">
+            {copies.map((c) => (
+              <Link key={`${c.project.owner}/${c.project.repo}`} href={`/progetto/${c.project.owner}/${c.project.repo}`} className="card project-card">
+                <h2>{c.project.manifest.titolo}</h2>
+                <span className="small muted">
+                  {c.project.owner}/{c.project.repo}
+                </span>
+                <span className="small muted">Scaricato il {new Intl.DateTimeFormat("it-IT", { dateStyle: "long", timeStyle: "short" }).format(c.scaricatoIl)}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {data && data.progetti.length === 0 && (
         <div className="card">

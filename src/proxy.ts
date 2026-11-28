@@ -13,6 +13,8 @@ import { NextResponse, type NextRequest } from "next/server";
  * - Nessuna risorsa esterna oltre agli avatar GitHub; connect-src 'data:' serve
  *   a Hunspell, che carica il WebAssembly incorporato come URL data:.
  * - frame-src blob: per l'anteprima del PDF generato nel browser.
+ * - worker-src 'self': il service worker (/sw.js) per l'uso senza rete. Senza questa riga
+ *   i worker ricadrebbero su script-src, dove con 'strict-dynamic' gli indirizzi sono ignorati.
  *
  * Le API non passano da qui (vedi `matcher`): rispondono JSON, o immagini con
  * una loro politica restrittiva (route immagine) o la pagina di accesso di Auth.js
@@ -30,6 +32,8 @@ export function proxy(request: NextRequest) {
     "font-src 'self'",
     "connect-src 'self' data:",
     "frame-src blob:",
+    "worker-src 'self'",
+    "manifest-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self' https://github.com",
@@ -48,7 +52,7 @@ export const config = {
   matcher: [
     {
       // Niente API, file statici, font e dizionari: non sono pagine e non servono il nonce.
-      source: "/((?!api|_next/static|_next/image|favicon.ico|fonts|dictionaries).*)",
+      source: "/((?!api|_next/static|_next/image|favicon.ico|fonts|dictionaries|icons|sw.js|manifest.webmanifest).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },

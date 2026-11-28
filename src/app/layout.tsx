@@ -1,13 +1,25 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import QuickCapture from "@/components/notes/QuickCapture";
+import PwaSetup, { SignOutButton } from "@/components/ui/PwaSetup";
+import SyncStatus from "@/components/ui/SyncStatus";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Writly",
   description: "Scrittura di racconti, romanzi e saghe, con le versioni su GitHub.",
+  // iPad: aggiunta alla schermata Home, si apre a tutto schermo.
+  appleWebApp: { capable: true, title: "Writly", statusBarStyle: "default" },
+  icons: { apple: "/icons/apple-touch-icon.png" },
 };
+
+export const viewport: Viewport = { themeColor: "#f6f5f2" };
+
+async function signOutAction() {
+  "use server";
+  await signOut({ redirectTo: "/" });
+}
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const session = await auth();
@@ -26,22 +38,16 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             </nav>
           )}
           <span className="spacer" />
+          {session?.user && <SyncStatus />}
           {session?.user && <QuickCapture />}
           {session?.user && (
-            <form
-              action={async () => {
-                "use server";
-                await signOut({ redirectTo: "/" });
-              }}
-              className="row"
-            >
+            <>
               <span className="small muted">{session.login ?? session.user.name}</span>
-              <button type="submit" className="btn btn-small">
-                Esci
-              </button>
-            </form>
+              <SignOutButton signOutAction={signOutAction} />
+            </>
           )}
         </header>
+        <PwaSetup />
         {children}
       </body>
     </html>
